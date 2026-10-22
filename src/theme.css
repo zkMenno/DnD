@@ -1,0 +1,34 @@
+/* ============================================================================
+   THEME TOKENS — "pirate" (a sea captain's chart)
+   Light = sun-bleached chart paper with ink, oxblood and doubloon gold; dark = night at sea, parchment text, lantern gold.
+   To reskin the sheet, replace this whole block with another theme's tokens (same variable names), and set
+   PACK.theme to a matching entry in THEMES (#themes script) for wording, fonts and dice.
+   Three blocks: light (default), dark via the OS setting, dark forced by [data-theme="dark"].
+   ============================================================================ */
+:root{
+  --bg:#ECE2CC; --surface:#F6EFDD; --raised:#FBF7EC; --ink:#2A2119; --muted:#6E5D47; --line:#D6C6A5;
+  --rope:#B08F5E; --chart:#E4D7BA;
+  --sea:#1E4E68; --sea-ink:#FBF7EC; --sea-soft:#D3E0E3; --brass:#94650F; --brass-soft:#F0DFB4;
+  --hp:#8E2A22; --good:#2E6B3F; --aye:#2A6239; --warn:#9A5B00; --shadow:0 1px 2px rgba(60,40,15,.08),0 6px 18px rgba(60,40,15,.08);
+  --f-pirate:"Pirata One","Alegreya SC",Georgia,serif;
+  --f-display:"Alegreya SC",Georgia,"Times New Roman",serif;
+  --f-body:"Alegreya Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:8px; --press:rgba(60,40,15,.12);
+  --grain:repeating-linear-gradient(0deg,rgba(110,80,30,.035) 0 1px,transparent 1px 3px);
+  --glow:radial-gradient(ellipse 120% 70% at 50% 0%,rgba(255,250,235,.55),transparent 70%);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C141C; --surface:#122030; --raised:#18293A; --ink:#EDE3CC; --muted:#CFC0A2; --line:#2A3B4C;
+  --rope:#6E5734; --chart:#0F1A25;
+  --sea:#72B4CF; --sea-ink:#0C141C; --sea-soft:#183447; --brass:#E2B04A; --brass-soft:#3A2E16;
+  --hp:#E26A5C; --press:rgba(255,240,210,.14); --good:#6CC48A; --aye:#2B7343; --warn:#E3A44B; --shadow:0 1px 2px rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.3);
+  --grain:repeating-linear-gradient(0deg,rgba(255,240,210,.018) 0 1px,transparent 1px 3px);
+  --glow:radial-gradient(ellipse 120% 60% at 50% 0%,rgba(226,176,74,.08),transparent 70%); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C141C; --surface:#122030; --raised:#18293A; --ink:#EDE3CC; --muted:#CFC0A2; --line:#2A3B4C;
+  --rope:#6E5734; --chart:#0F1A25;
+  --sea:#72B4CF; --sea-ink:#0C141C; --sea-soft:#183447; --brass:#E2B04A; --brass-soft:#3A2E16;
+  --hp:#E26A5C; --press:rgba(255,240,210,.14); --good:#6CC48A; --aye:#2B7343; --warn:#E3A44B; --shadow:0 1px 2px rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.3);
+  --grain:repeating-linear-gradient(0deg,rgba(255,240,210,.018) 0 1px,transparent 1px 3px);
+  --glow:radial-gradient(ellipse 120% 60% at 50% 0%,rgba(226,176,74,.08),transparent 70%); color-scheme:dark}

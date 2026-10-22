@@ -1,0 +1,14 @@
+{
+  "name": "character-sheets",
+  "private": true,
+  "description": "D&D 2024 play sheets from D&D Beyond data: claude.ai sheets and the web app",
+  "scripts": {
+    "build": "node tools/build.js",
+    "check": "bash tools/test.sh lint",
+    "test": "bash tools/test.sh"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0"
+  }
+}

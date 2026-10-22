@@ -1,0 +1,16 @@
+# Built output (tools/build.js makes it) and installed packages
+dist/
+node_modules/
+
+# Server state, never in git: live database, local test data
+pb_data/
+*.db
+
+# Secrets never go in git (the server's settings live in AppInfra's /srv/infra/.env)
+.env
+
+# Editors and OS
+.DS_Store
+*.swp
+.vscode/
+.idea/

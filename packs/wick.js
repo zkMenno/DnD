@@ -1,0 +1,1 @@
+const PACK = { id:"wick", theme:"pirate", tabs:[["combat","Combat","⚔️"],["spells","Spells","🪄"],["stats","Stats","📊"],["gear","Gear","🎒"],["traits","Traits","✨"],["notes","Notes","📜"]] };
