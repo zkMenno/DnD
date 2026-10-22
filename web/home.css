@@ -339,3 +339,4 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .steps .ql-step{margin:8px 0 8px;max-width:none;padding:10px 12px}
 .steps .substeps li{display:list-item;background:none;border:0;border-radius:0;padding:0}
 .steps > li > div{flex:1;min-width:0}
+.steps .limits{margin-top:8px;color:var(--muted)}
