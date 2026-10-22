@@ -46,7 +46,7 @@ input,select{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid 
 .top{position:relative;z-index:2}
 .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-family:var(--f-display);font-size:1.55rem;font-weight:700;letter-spacing:.01em}
 .brand-d20{width:30px;height:30px;color:var(--brass);flex:none}
-.brand:hover .brand-d20{transform:rotate(-18deg);transition:transform .3s}
+.brand-d20{transform:rotate(-18deg);transition:transform .3s} .brand:hover .brand-d20{transform:rotate(-40deg)}
 #who a{color:var(--ink);font-weight:700}
 .btn{transition:background .15s,border-color .15s,transform .08s,box-shadow .15s}
 .btn:hover{border-color:var(--brass)} .btn:active{transform:translateY(1px) scale(.98)}
@@ -66,7 +66,7 @@ body.front{background:
 .cta-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:26px}
 .btn.cta{display:inline-flex;align-items:center;gap:10px;font-size:1.2rem;padding:14px 28px;background:var(--brass);border-color:var(--brass);color:var(--sea-ink,#0c141c);text-decoration:none;box-shadow:0 6px 22px color-mix(in srgb,var(--brass) 35%,transparent)}
 .btn.cta:hover{filter:brightness(1.1);box-shadow:0 8px 28px color-mix(in srgb,var(--brass) 50%,transparent)}
-.btn.cta .d20i{width:22px;height:22px}
+.btn.cta .d20i{width:22px;height:22px;transform:rotate(-18deg);transition:transform .3s}   /* tilted at rest, like the logo; turns further on hover */
 .cta-alt{color:var(--ink);font-weight:700} .cta-alt:hover{color:var(--brass)}
 .quicklink{max-width:34em;padding:14px 16px;border:1px dashed var(--line);border-radius:14px;background:color-mix(in srgb,var(--surface) 70%,transparent)}
 .quicklink label{font-weight:600;font-size:.95rem;margin:0 0 8px;display:block}
@@ -141,7 +141,7 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
   .btn.cta{position:relative;overflow:hidden}
   .btn.cta::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-18deg);animation:glint 6s ease-in-out 2s infinite;pointer-events:none}
   @keyframes glint{0%,70%{left:-60%}88%,100%{left:130%}}
-  .btn.cta:hover .d20i{transform:rotate(-30deg);transition:transform .3s}
+  .btn.cta:hover .d20i{transform:rotate(-45deg)}
   .features li{transition:transform .2s ease,border-color .2s ease}
   .features li:hover{transform:translateY(-4px);border-color:var(--brass)}
 }
@@ -307,3 +307,10 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .howgrid .clip{width:100%}
 @media (max-width:860px){ .howgrid{grid-template-columns:1fr;gap:26px} .howgrid .clip{width:min(300px,86vw);margin:0 auto} .swatches{grid-template-columns:repeat(2,1fr)} }
 @media (max-width:520px){ .swatches{grid-template-columns:1fr;gap:14px} .srow{grid-template-columns:repeat(4,minmax(0,72px));gap:10px} }
+
+/* footer: three short lines (22 Oct) */
+.foot p{margin:0 0 6px} .foot p.small{display:block;margin:0 0 6px}
+/* header Log in: the same outlined button as the hero's, a size smaller */
+#who .btn.toplogin{font-size:.95rem;padding:7px 16px;border-radius:999px;font-weight:700;color:var(--ink);border-color:color-mix(in srgb,var(--ink) 35%,transparent);background:var(--raised)}
+#who .btn.toplogin:hover{border-color:var(--brass);color:var(--brass)}
+@media (max-width:520px){ #who .btn.toplogin{font-size:.85rem;padding:6px 12px} }

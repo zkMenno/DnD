@@ -39,7 +39,7 @@ fs.cpSync(path.join(__dirname,'..','web'), out+'/web', { recursive: true, filter
 // Fonts: the web app serves its own copies (web/fonts, GDPR: no visitor ever contacts Google); claude.ai sheets keep Google Fonts.
 const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<title>'+title+'</title>')
     .replace(/<link rel="preconnect"[^>]*>\n?/g, '').replace(/<link href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/fonts/fonts.css">')
-  + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon-192.png"><link rel="apple-touch-icon" href="/icon-192.png">'
+  + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="48x48"><link rel="apple-touch-icon" href="/icon-192.png">'
   + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css">'
   + '<script src="/sw-register.js"></script>';   // offline (web/sw.template.js); no inline scripts (CSP)
 fs.writeFileSync(out+'/web/sheet.html', head('Character') + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/home.css">\n'
@@ -50,7 +50,9 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
   + '<link rel="stylesheet" href="/home.css">\n'
   + '<header class="top"><a class="brand" href="/"><svg class="brand-d20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><span>Dungeon Tracker</span></a><span id="who"></span></header>\n'
   + R('src/landing.html') + '\n<p id="msg" class="msg"></p><main id="main"></main>\n'
-  + '<footer class="foot"><a href="/legal.html">Privacy &amp; terms</a> · Hosted in the EU (Germany)<br><span class="small">Made with 🎲 by <a href="https://github.com/zkMenno" rel="noopener">Menno</a> · Unofficial fan project. Not affiliated with Wizards of the Coast or D&amp;D Beyond.</span></footer>\n'
+  + '<footer class="foot"><p>Made with 🎲 by <a href="https://github.com/zkMenno" target="_blank" rel="noopener">Menno</a></p>'
+  + '<p class="small">This is an unofficial fan project. Dungeon Tracker is not affiliated with Wizards of the Coast or D&amp;D Beyond.</p>'
+  + '<p><a href="/legal.html">Privacy &amp; Terms</a> · Hosted in Germany.</p></footer>\n'
   + '<script src="/pocketbase.umd.js"></script>\n<script src="/index.js"></script>\n<script src="/home-dice.js" defer></script>\n<script src="/home-anim.js" defer></script>\n</body></html>');
 // front page dice (web/home-anim.js): the sheet's own 3D dice (src/engine/06-3d-dice.js) with the theme's dice sets, in one
 // closure so its names don't meet web/index.js. three.js is loaded by home-anim.js when it's needed, so the line that

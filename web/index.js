@@ -20,7 +20,7 @@ const ss = { get: k => { try { return sessionStorage.getItem(k); } catch (_) { r
 
 // ── Signed out: the front page ──────────────────────────────────────────────────────────────────────
 function showLanding() {
-  const l = $('#landing'); l.hidden = false; $('#main').innerHTML = ''; $('#who').innerHTML = '<a href="#signin" data-go="signin">Log in</a>';
+  const l = $('#landing'); l.hidden = false; $('#main').innerHTML = ''; $('#who').innerHTML = '<a class="btn login toplogin" href="#signin" data-go="signin">Log in <span aria-hidden="true">→</span></a>';
   document.body.classList.add('front');
 }
 // clicks on "Get started" / "Sign in" anywhere on the page
