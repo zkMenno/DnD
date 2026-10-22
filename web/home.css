@@ -193,3 +193,14 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .fxdice{background:radial-gradient(circle at 50% 50%,rgba(8,12,18,.7) 0,rgba(8,12,18,.45) 40%,rgba(8,12,18,.1) 75%)}
 .dice3d{position:fixed;inset:0;display:block;pointer-events:none}
 @media (prefers-reduced-motion:reduce){ .fx{display:none} }
+
+/* ── Front page text size (22 Oct): the page inherited the sheet's compact 14 px base, and Alegreya Sans' small
+   x-height made that read like 12 px. The landing gets an 18 px base; cards and steps 17 px; headings follow. */
+.landing{font-size:1.125rem}
+.lede{font-size:1.28rem;line-height:1.55}
+.features p,.steps p,.dice-text p:last-child{font-size:1.06rem;line-height:1.55}
+.features h3{font-size:1.32rem} .steps h3{font-size:1.25rem} .how h2,.dice-text h2{font-size:2.2rem}
+.quicklink label,.trust,.setname span{font-size:1.06rem} .setname b{font-size:1.3rem}
+.cta-alt{font-size:1.1rem} .eyebrow{font-size:.85rem}
+.foot{font-size:.95rem}
+@media (max-width:520px){ .lede{font-size:1.2rem} .how h2,.dice-text h2{font-size:1.9rem} }
