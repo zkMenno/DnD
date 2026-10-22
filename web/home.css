@@ -240,7 +240,7 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .bgdice{position:absolute;top:0;bottom:0;left:calc(50% - 50vw);width:100vw;overflow:hidden;pointer-events:none;z-index:0}   /* the whole window width, not just the text column */
 body.front{overflow-x:clip}   /* 100vw includes the scrollbar: never a sideways scroll */
 .bd{transition:opacity .2s,filter .2s}
-.bd.hot,.bd.held{opacity:.6;filter:drop-shadow(0 0 4px var(--brass)) drop-shadow(0 0 12px color-mix(in srgb,var(--brass) 70%,transparent))}   /* you can pick this one up */
+.bd.hot,.bd.held{opacity:.4;filter:drop-shadow(0 0 3px color-mix(in srgb,var(--brass) 55%,transparent))}   /* you can pick this one up */
 html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.grabbing-die *{cursor:grabbing!important;user-select:none!important}
 .bd{position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.5)}
 @media (prefers-reduced-motion:no-preference){
@@ -338,4 +338,10 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .steps .ql-step{margin:8px 0 8px;max-width:none;padding:10px 12px}
 .steps .substeps li{display:list-item;background:none;border:0;border-radius:0;padding:0}
 .steps > li > div{flex:1;min-width:0}
-.steps .limits{margin-top:8px;color:var(--muted)}
+
+/* How it works: as wide as the rest of the page; the note on limits and Get started sit under the steps (22 Oct, late) */
+.how{max-width:none}
+@media (min-width:861px){ .howgrid{grid-template-columns:320px 1fr;gap:48px} }
+.howside .limits{margin:14px 4px 0;color:var(--muted);font-size:1rem;line-height:1.5}
+.howcta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:20px 4px 0} .howcta span{color:var(--muted);font-size:1rem}
+@media (max-width:520px){ .howcta{flex-direction:column;align-items:stretch;text-align:center} }
