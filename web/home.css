@@ -359,7 +359,7 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .pc figcaption .bt{display:block;font-family:var(--f-display);font-weight:700;font-size:1.05rem;margin:1px 0 2px}
 .pc:hover,.pc:focus-visible{z-index:5;transform:translateY(-8px);filter:brightness(1.08) drop-shadow(0 0 14px color-mix(in srgb,var(--brass) 35%,transparent))}
 .pc:hover figcaption,.pc:focus-visible figcaption{opacity:1;transform:translate(-50%,0)}
-.pc-wizard{height:290px}
+.pc-wizard{height:300px}
 @media (prefers-reduced-motion:reduce){ .pc,.pc figcaption{transition:none} .pc:hover,.pc:focus-visible{transform:none} }
 @media (max-width:1100px){ .party{height:250px} .pc{margin:0 -24px} .pc-barbarian{height:250px} .pc-pirate,.pc-bard{height:225px} .pc-wizard,.pc-ranger{height:200px} }
 @media (max-width:520px){ .party{height:190px;margin-top:14px} .pc{margin:0 -16px} .pc-wizard,.pc-ranger{display:none} .pc-barbarian{height:190px} .pc-pirate,.pc-bard{height:170px} }
