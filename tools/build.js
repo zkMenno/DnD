@@ -44,9 +44,13 @@ const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<titl
   + '<script src="/sw-register.js"></script>';   // offline (web/sw.template.js); no inline scripts (CSP)
 fs.writeFileSync(out+'/web/sheet.html', head('Character') + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/home.css">\n'
   + '<div id="app"><div class="boot"><p>Loading…</p></div></div>\n<script src="/pocketbase.umd.js"></script>\n<script src="/sheet-boot.js"></script>\n</body></html>');
-fs.writeFileSync(out+'/web/index.html', head('Character sheets') + '<link rel="stylesheet" href="/home.css">\n'
-  + '<header class="top"><h1>Character sheets</h1><span id="who"></span></header><p id="msg" class="msg"></p><main id="main"></main>\n'
-  + '<footer class="foot"><a href="/legal.html">Privacy &amp; terms</a> · Hosted in the EU (Germany)</footer>\n'
+// home: the public front page (src/landing.html, signed out) and the app's own screens (#main, drawn by web/index.js)
+fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyond character at the table')
+  + '<meta name="description" content="Dungeon Tracker turns your D&amp;D Beyond character into a quick play sheet: every roll one tap away, HP, spell slots and uses tracked as you play. Read-only, free, hosted in the EU.">\n'
+  + '<link rel="stylesheet" href="/home.css">\n'
+  + '<header class="top"><a class="brand" href="/"><svg class="brand-d20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><span>Dungeon Tracker</span></a><span id="who"></span></header>\n'
+  + R('src/landing.html') + '\n<p id="msg" class="msg"></p><main id="main"></main>\n'
+  + '<footer class="foot"><a href="/legal.html">Privacy &amp; terms</a> · Hosted in the EU (Germany)<br><span class="small">Unofficial fan project. Not affiliated with Wizards of the Coast or D&amp;D Beyond.</span></footer>\n'
   + '<script src="/pocketbase.umd.js"></script>\n<script src="/index.js"></script>\n</body></html>');
 // privacy & terms: src/legal.html with the operator details from src/site.json
 { const site = JSON.parse(R('src/site.json'));
