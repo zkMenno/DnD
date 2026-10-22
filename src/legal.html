@@ -1,0 +1,96 @@
+<!-- /legal.html: privacy notice, storage, terms, credits. tools/build.js wraps it in the web app's <head> and fills
+     {{operator}}, {{contact}}, {{emailProvider}} and {{updated}} from src/site.json. Each section folds open (<details>);
+     add new sections the same way. Keep it true to what the app does: change it when the app changes. -->
+<header class="top"><h1>Privacy &amp; terms</h1><a href="/" class="small muted">← Your characters</a></header>
+<main>
+<section class="card legal">
+  <p><b>In short.</b> This is a free, unofficial hobby app for tracking D&amp;D characters at the table. It stores only what it
+  needs to work: your email, a username, your trackers and your notes. Everything is kept on a server in Germany
+  (Hetzner), inside the EU, under European data protection law (GDPR). No ads, no tracking, no analytics, nothing sold or
+  shared. You can download or delete your data yourself at any time on the <a href="/">home page</a>.</p>
+  <p class="small muted">Last updated {{updated}}.</p>
+
+  <details open><summary>Who runs this app</summary>
+    <p>{{operator}}, runs this app as a personal, non-commercial project and is the data controller under the GDPR.
+    Contact: <b>{{contact}}</b>.</p>
+  </details>
+
+  <details><summary>What is stored, and why</summary>
+    <table>
+      <tr><th>What</th><th>Why</th><th>How long</th></tr>
+      <tr><td>Your email address, username, and a password if you set one (stored as a one-way hash, never readable)</td><td>To sign you in and keep your sheets yours</td><td>Until you delete your account</td></tr>
+      <tr><td>Characters you add: the D&amp;D Beyond character number and a copy of that character's <i>public</i> D&amp;D Beyond sheet</td><td>To show the sheet</td><td>Until you remove it or delete your account</td></tr>
+      <tr><td>Your trackers (HP, uses, slots, coins, items added in the app) and your notes</td><td>That's what the app is for</td><td>Until you delete them or your account</td></tr>
+      <tr><td>Party log notes, with your character's name</td><td>Shared with verified players in the same D&amp;D Beyond campaign, as you chose</td><td>Until you delete them or your account</td></tr>
+      <tr><td>Server request logs, including IP addresses</td><td>Security: spotting abuse, limiting sign-in attempts</td><td>5 days</td></tr>
+      <tr><td>Nightly, encrypted backups of all of the above</td><td>So a server fault doesn't lose your data</td><td>Up to 15 days, then deleted</td></tr>
+    </table>
+    <h3>Legal basis</h3>
+    <p>Providing the app you signed up for (GDPR Art. 6(1)(b)), and a legitimate interest in keeping it secure for the
+    request logs (Art. 6(1)(f)).</p>
+    <h3>What we never do</h3>
+    <p>No advertising, no tracking or analytics tools, no profiling, no selling or sharing of data. Your trackers and notes
+    are private unless <i>you</i> share a sheet with your party or with everyone signed in; shared sheets are read-only for others.</p>
+  </details>
+
+  <details><summary>Where your data lives, and who else touches it</summary>
+    <ul>
+      <li><b>Hosting:</b> Hetzner Online GmbH (Gunzenhausen, Germany), in its data centre in Falkenstein, Germany. All app
+      data and backups stay there, inside the EU. Hetzner's data centres are ISO/IEC 27001 certified and Hetzner acts as a
+      data processor bound by the GDPR.</li>
+      <li><b>Email:</b> sign-in codes are sent through {{emailProvider}}, which only receives your email address and the
+      message, to deliver it.</li>
+      <li><b>D&amp;D Beyond:</b> the server reads <i>public</i> character sheets from D&amp;D Beyond by their character number.
+      Nothing about you is sent to D&amp;D Beyond, and this app never changes anything there.</li>
+      <li><b>Nothing else.</b> Fonts, scripts and images are served from this server itself, so your browser doesn't contact
+      Google or any other third party while you use the app.</li>
+    </ul>
+    <p>No data is transferred outside the European Union.</p>
+  </details>
+
+  <details><summary>Cookies and storage on your device</summary>
+    <p>The app uses no cookies. It keeps a few things in your browser's own storage so it works quickly and offline: your
+    sign-in, your last-opened sheets and unsent notes, and view settings like your dice set. These are strictly necessary for
+    the app to work, so no consent banner is needed; nothing is used for tracking. Signing out clears your sheets and notes
+    from that device.</p>
+  </details>
+
+  <details><summary>Your rights</summary>
+    <p>Under the GDPR you can see, correct, download, and delete your data, object to how it's used, and limit it.</p>
+    <ul>
+      <li><b>Download your data</b> and <b>delete your account</b> yourself on the <a href="/">home page</a> (Your data). Deleting
+      removes your account, characters, trackers and notes straight away; they leave the backups within 15 days.</li>
+      <li>For anything else, email <b>{{contact}}</b>. You'll get an answer within a month.</li>
+      <li>You can also complain to a data protection authority, in France the CNIL (<a href="https://www.cnil.fr" rel="noopener">cnil.fr</a>),
+      or the one where you live.</li>
+    </ul>
+    <p>To use the app you need to be old enough to agree to this under your country's law (15 in France, 16 in many EU
+    countries), or have permission from a parent.</p>
+  </details>
+
+  <details><summary>Terms of use</summary>
+    <ul>
+      <li>The app is free and offered as is, by a hobbyist: no guarantee it's always available, error-free, or that data is
+      never lost. Keep your real character on D&amp;D Beyond; this app is a table companion.</li>
+      <li>Only add characters you're allowed to look at (public D&amp;D Beyond sheets), and verify only your own.</li>
+      <li>Be decent in party logs. Don't use the app to harass anyone, to break the law, or to attack or overload the service.
+      Accounts that do can be removed.</li>
+      <li>You keep everything you write. You let the app store and show it to the people you share it with, nothing more.</li>
+      <li>These terms may change as the app grows; the date at the top shows the latest version.</li>
+    </ul>
+  </details>
+
+  <details><summary>Credits and licences</summary>
+    <ul>
+      <li>Unofficial fan content. Not approved or endorsed by Wizards of the Coast or D&amp;D Beyond. Dungeons &amp; Dragons and
+      D&amp;D Beyond are trademarks of their owners.</li>
+      <li>This work includes material from the System Reference Document 5.2 ("SRD 5.2") by Wizards of the Coast LLC, available at
+      <a href="https://www.dndbeyond.com/srd" rel="noopener">dndbeyond.com/srd</a>. The SRD 5.2 is licensed under the Creative
+      Commons Attribution 4.0 International License (<a href="https://creativecommons.org/licenses/by/4.0/legalcode" rel="noopener">CC BY 4.0</a>).</li>
+      <li>Built with <a href="https://pocketbase.io" rel="noopener">PocketBase</a> (MIT licence) and
+      <a href="https://threejs.org" rel="noopener">three.js</a> (MIT licence). Fonts: Pirata One, Alegreya SC, Alegreya Sans and
+      IBM Plex Mono, under the SIL Open Font License.</li>
+    </ul>
+  </details>
+</section>
+</main>

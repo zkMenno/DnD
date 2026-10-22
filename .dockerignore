@@ -1,0 +1,6 @@
+# Not needed inside the image build (the Dockerfile copies only what it uses)
+.git
+.github
+node_modules
+dist
+.env

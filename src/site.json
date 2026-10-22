@@ -1,0 +1,7 @@
+{
+  "_about": "Who runs the web app, as shown on /legal.html. tools/build.js fills these into src/legal.html. Change, rebuild, update.",
+  "operator": "Menno, a private individual based in France",
+  "contact": "[contact email]",
+  "emailProvider": "Brevo (Sendinblue SAS, Paris, France)",
+  "updated": "21 October 2026"
+}
