@@ -48,18 +48,20 @@ function boostBox(items){
   return '<details class="bd boosts'+(t && t.boostOpen?' isopen':'')+'"'+(t && t.boostOpen?' open':'')+'><summary><span class="optlb">Inspiration &amp; Blessings</span>'+(S.insp?'<span class="chip brass">⭐ ready</span>':'')+'<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></summary><div class="boostlist">'
     + items.map(x => x.html || '<div class="opt"><span class="od">'+x[1]+'</span>'+x[0]+'</div>').join('') + '</div></details>';
 }
+// a boost's name as a tappable term (its tooltip from the glossary, §16), plain bold when there's none
+const bterm = n => '<b>'+(G[n] ? '<button type="button" class="term" data-term="'+esc(n)+'">'+esc(n)+'</button>' : esc(n))+'</b>';
 // Heroic Inspiration row for the boost box
 const inspItem = (act, what, used) => used ? null : S.insp
-  ? [ob(act,'🎲 Reroll'), '<b>Heroic Inspiration</b>: reroll your lowest '+what+'. Uses it up.']
-  : [ob('inspgain','✓ Gained'), '<b>Heroic Inspiration</b> from the DM? Mark it, then reroll.'];
+  ? [ob(act,'🎲 Reroll'), bterm('Heroic Inspiration')+': reroll your lowest '+what+'. Uses it up.']
+  : [ob('inspgain','✓ Gained'), bterm('Heroic Inspiration')+' from the DM? Mark it, then reroll.'];
 // Bless row for the boost box
-const blessItem = save => [ob('boost','🎲 Roll d4',' data-k="bless" data-s="4"'), '<b>Bless</b>: add a d4'+(save?' to this save':'')+'.'];
+const blessItem = save => [ob('boost','🎲 Roll d4',' data-k="bless" data-s="4"'), bterm('Bless')+': add a d4'+(save?' to this save':'')+'.'];
 // Guidance row for the boost box
-const guidanceItem = () => [ob('boost','🎲 Roll d4',' data-k="guidance" data-s="4"'), '<b>Guidance</b>: add a d4.'];
+const guidanceItem = () => [ob('boost','🎲 Roll d4',' data-k="guidance" data-s="4"'), bterm('Guidance')+': add a d4.'];
 // Bardic Inspiration row: pick the die, then roll
 function bardItem(){
   const s = ui.bardDie || 8;
-  return { html: '<div class="opt bardopt"><span class="od"><b>Bardic Inspiration</b>: pick the bard’s die, then roll.</span></div>'
+  return { html: '<div class="opt bardopt"><span class="od">'+bterm('Bardic Inspiration')+': pick the bard’s die, then roll.</span></div>'
     + '<div class="bardrow"><div class="seg bardseg" role="group" aria-label="Bardic Inspiration die">'+[6,8,10,12].map(d=>'<button data-act="bardsel" data-s="'+d+'" aria-pressed="'+(d===s)+'">d'+d+'</button>').join('')+'</div>'
     + ob('boost','🎲 Roll d'+s,' data-k="bardic" data-s="'+s+'"')+'</div>' };
 }

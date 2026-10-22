@@ -130,6 +130,11 @@ const CORE_PROF = new Set();   // proficiency terms added here: tappable in the 
   put('Short rest', ['Rule', '**At least 1 hour of downtime.**\n• Spend hit dice to heal'+(shortBack ? '\n## 🔁 Comes back\n'+shortBack : '')]);
   put('Long rest', ['Rule', '**8 hours, at most once a day.**\n• Full HP and all hit dice\n• All spell slots and limited uses']);
   put('Heroic Inspiration', ['Rule', '**Reroll any one die right after you roll it.** You must keep the new roll.\n• You can only hold one\n• The DM hands it out for great play']);
+  // the Inspiration & Blessings box on roll cards links to these (a pack or a tracked feature may have written richer ones)
+  put('Guidance', ['Cantrip', '**Add a d4 to one ability check.** An ally touches you and casts it before you roll.\n• Lasts up to a minute while they concentrate\n• Not for attacks or saving throws']);
+  put('Bless', ['1st-level spell', '**Add a d4 to attack rolls and saving throws** for up to a minute.\n• Up to three creatures\n• The caster has to keep concentrating']);
+  put('Bardic Inspiration', ['Bard', '**Add the bard’s die to a d20 roll you just failed.** It can turn a miss into a hit or a failed save into a success.\n• A bard gives it to you as a Bonus Action; it lasts an hour\n• The die grows with the bard: d6, d8 at level 5, d10 at 10, d12 at 15']);
+  put('Tactical Mind', ['Fighter', '**Failed an ability check? Spend a Second Wind use to add a d10.**\n• If you still fail, the use isn’t spent']);
   put('Halfling Luck', ['Species', '**Roll a natural 1 on a d20 test → reroll it.** You must use the new roll.']);
   const coin = (n, v) => ['Coin', '**'+v+'**'];
   put('Platinum', coin('pp', '1 pp = 10 gp.')); put('Gold', coin('gp', '1 gp = 10 sp = 100 cp. Prices are mostly in gold.'));

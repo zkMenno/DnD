@@ -1545,3 +1545,8 @@ button.chip.ic.term{text-decoration:none}
 @media (prefers-reduced-motion:no-preference){ .diceask{animation:diceaskin .25s ease-out} @keyframes diceaskin{from{opacity:0;transform:translate(-50%,-8px)}} }
 /* wide screens: ↕ Sections sits just outside the sheet's right edge, not in the window's corner */
 @media (min-width:1560px){ .jumpbtn{right:auto;left:calc(50% + 652px)} }
+/* Bardic Inspiration die picker: four separate little buttons, not one segmented bar */
+.roll .bardseg{border:0;background:none;border-radius:0;overflow:visible;display:flex;gap:6px;flex-wrap:wrap}
+.roll .bardseg button{border:1px solid rgba(0,0,0,.28);border-radius:999px;padding:6px 12px;min-width:46px;background:rgba(255,255,255,.18);color:inherit;font-weight:700;transition:background .15s,border-color .15s}
+.roll .bardseg button:hover{border-color:rgba(0,0,0,.5)}
+.roll .bardseg button[aria-pressed="true"]{background:var(--bg);color:var(--ink);border-color:var(--bg)}
