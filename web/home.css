@@ -288,7 +288,7 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 /* ── Real phone recordings (22 Oct, 21:20): the crit attack in the hero phone, the ability check lower down ─────── */
 .phone video{display:block;width:100%;height:auto;border-radius:26px;aspect-ratio:544/910;background:#0f1720}
 .clip{width:300px}
-.clipphone video{aspect-ratio:544/922}
+.clipphone video{aspect-ratio:544/916}
 @media (max-width:520px){ .clip{width:min(300px,86vw)} }
 
 /* ── 22 Oct, 21:50: features with emoji + title on one line; bigger dice sets (no roll button); video beside the steps ── */
