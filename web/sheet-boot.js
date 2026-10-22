@@ -4,6 +4,11 @@
 // Addresses: /<username>/<D&D Beyond id> (someone's sheet) and /<D&D Beyond id> (your own copy; added if you don't have
 // it yet, then shown as /<username>/<D&D Beyond id>).
 // Paths are absolute ("/engine/…"): the page is served at /<username>/<id> too, where relative paths would miss.
+// The build tag from this script's own address (?v=…, set by tools/build.js): every file loaded below asks for the
+// same build, so a cached older engine can never run with a newer page.
+const BUILD_V = (() => { try { return new URL(document.currentScript.src).searchParams.get('v') || ''; } catch (_) { return ''; } })();
+const withV = p => BUILD_V ? p + (p.includes('?') ? '&' : '?') + 'v=' + BUILD_V : p;
+window.withV = withV;
 (async () => {
   const pb = new PocketBase(location.origin);
   const app = document.getElementById('app');
@@ -30,7 +35,7 @@
 
   // the pack decides the data element's id
   const packName = /^[a-z0-9-]+$/.test(ch.pack || '') ? ch.pack : 'bare';
-  const packSrc = await (await fetch('/packs/' + packName + '.js')).text();
+  const packSrc = await (await fetch(withV('/packs/' + packName + '.js'))).text();
   const pid = (packSrc.match(/\bid:\s*["']([a-z0-9-]+)["'],\s*theme:/) || [])[1] || 'sheet';
 
   // first open: no compact data yet → hand the engine D&D Beyond's raw JSON, save what it makes of it
@@ -45,6 +50,8 @@
   dj.type = 'application/json'; dj.id = pid + '-data'; dj.textContent = JSON.stringify(payload).replace(/</g, '\\u003c');
   document.body.appendChild(dj);
   document.title = ch.name || 'Character';
+  // the home page's "Continue with …" button: the last sheet opened on this device
+  try { localStorage.setItem('last-sheet', JSON.stringify({ path: location.pathname, id: ch.id, name: ch.name || 'your character', at: Date.now() })); } catch (_) {}
 
   window.SHEET = {
     pb, character: ch, mine,
@@ -59,7 +66,7 @@
   };
   window.claude = { use: async name => name === 'db' ? sheetDb(pb, ch, me, mine) : null };
 
-  for (const src of ['/engine/themes.js', '/engine/classes.js', '/packs/' + packName + '.js', '/engine/main.js']) await loadScript(src);
+  for (const src of ['/engine/themes.js', '/engine/classes.js', '/packs/' + packName + '.js', '/engine/main.js']) await loadScript(withV(src));
   // first open: save the compact copy (window.SHEET.saved settles when it's stored; tests wait on it)
   /* global DATA */   // the engine's compact character, defined by engine/main.js
   window.SHEET.saved = firstSync && typeof DATA === 'object'

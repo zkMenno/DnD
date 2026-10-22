@@ -4,7 +4,14 @@
 // Names that would clash with the app's own pages and files, or read as official.
 const RESERVED = ["api", "admin", "sheet", "sheets", "engine", "packs", "index", "login", "logout", "signin", "signup",
   "settings", "account", "help", "about", "static", "assets", "www", "app", "me", "new", "user", "users", "party",
-  "dm", "support", "root", "system", "official", "dndbeyond", "player"];
+  "dm", "support", "root", "system", "official", "dndbeyond", "player",
+  // look official or invite scams: staff titles, the app's and companies' names, money and security words
+  "administrator", "admins", "mod", "mods", "moderator", "moderators", "staff", "team", "owner", "operator", "sysop", "superuser",
+  "helpdesk", "service", "security", "abuse", "noreply", "no-reply", "postmaster", "webmaster", "hostmaster", "info", "contact",
+  "billing", "payment", "payments", "invoice", "verify", "verification", "password", "reset", "auth", "oauth", "sso", "mail", "email",
+  "dungeontracker", "dungeon-tracker", "tracker", "dnd", "dnd-beyond", "beyond", "wizards", "wotc", "hasbro", "dungeonsanddragons",
+  "status", "privacy", "legal", "terms", "tos", "blog", "news", "docs", "dev", "staging", "test", "demo", "media", "img", "fonts",
+  "profile", "profiles", "campaign", "campaigns", "invite", "invites", "home", "dashboard", "null", "undefined", "anonymous", "guest"];
 const NAME = /^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/;
 // a valid, free username, or a BadRequestError saying why not
 module.exports.checkUsername = function checkUsername(name, selfId) {

@@ -25,14 +25,17 @@
 
   // ── demo clips (web/media): load when near, play while a third is in view, pause when scrolled away.
   //    With reduce-motion they never start by themselves: the poster shows, with the browser's play controls.
-  const clips = [...document.querySelectorAll('.clip video')];
-  if (still || !('IntersectionObserver' in window)) clips.forEach(v => { v.controls = true; v.preload = 'metadata'; });
+  // The hero's phone (.herovid) is decoration: with reduce-motion it just keeps its poster, without controls.
+  // Nothing loads before the page itself has (window load), so the videos never slow the first view.
+  const clips = [...document.querySelectorAll('.clip video, .herovid')];
+  if (still || !('IntersectionObserver' in window)) clips.forEach(v => { if (!v.classList.contains('herovid')) { v.controls = true; v.preload = 'metadata'; } });
   else {
     const near = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.preload = 'auto'; near.unobserve(e.target); } }), { rootMargin: '600px 0px' });
     const seen = new IntersectionObserver(es => es.forEach(e => {
       const v = e.target; if (e.isIntersecting) { const go = v.play(); if (go && go.catch) go.catch(() => { v.controls = true; }); } else v.pause();
     }), { threshold: 0.35 });
-    clips.forEach(v => { near.observe(v); seen.observe(v); });
+    const watch = () => clips.forEach(v => { near.observe(v); seen.observe(v); });
+    if (document.readyState === 'complete') watch(); else addEventListener('load', watch, { once: true });
   }
 
   // ── dice tray ───────────────────────────────────────────────────────────────────────────────────────

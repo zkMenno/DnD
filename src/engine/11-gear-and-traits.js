@@ -119,7 +119,7 @@ let ITEMS = null;
 async function loadItems(){
   if (ITEMS) return ITEMS;
   const el = document.getElementById('items-data');
-  ITEMS = el ? JSON.parse(el.textContent) : await (await fetch('/items.json')).json();
+  ITEMS = el ? JSON.parse(el.textContent) : await (await fetch(window.withV ? window.withV('/items.json') : '/items.json')).json();
   return ITEMS;
 }
 const IT_CATS = [['all','All'],['weapon','⚔️ Weapons'],['armor','🛡️ Armour'],['gear','🎒 Gear'],['tool','🧰 Tools'],['potion','🧪 Potions'],['magic','✨ Magic']];

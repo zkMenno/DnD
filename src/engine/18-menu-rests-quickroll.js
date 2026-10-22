@@ -53,8 +53,8 @@ function paintMenu(){
     + '<div style="height:8px"></div>'
     + '<button class="menulink'+(diceOpen?' open':'')+'" data-act="menuview" data-v="dice" aria-expanded="'+diceOpen+'">'+sw(DICE_SETS[cur]).replace('class="dsw"','class="dsw one"')+'<span class="dst"><b>Dice Sets</b><span>'+esc(DICE_SETS[cur].name)+'</span></span>'+chev(diceOpen)+'</button>'
     + (diceOpen ? diceBody : '')
-    // web app: the way home and the legal page (claude.ai sheets have neither)
-    + (window.SHEET && !diceEdit ? '<p class="menulinks small"><a href="/">← Your characters</a> · <a href="/legal.html">Privacy &amp; terms</a></p>' : '')
+    // web app: the way back to your characters (claude.ai sheets have none). Privacy & terms lives in the home page footer.
+    + (window.SHEET && !diceEdit ? '<a class="btn homebtn" href="/"><span aria-hidden="true">‹</span> Your characters</a>' : '')
     + (diceEdit ? '' : done);
 }
 // open / close the ☰ menu

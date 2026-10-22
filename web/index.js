@@ -173,14 +173,36 @@ function signOut() {
 async function renderHome() {
   header();
   const me = pb.authStore.record, auto = isAuto(me.username);
-  $('#main').innerHTML = (auto ? nameCard(me) : '') + `
+  $('#main').innerHTML = '<div id="cont"></div>' + (auto ? nameCard(me) : '') + `
     <section class="card"><h2>Your characters</h2><div id="mine" class="list"><p class="muted">Loading…</p></div>
       <form id="add" class="addrow"><input name="url" placeholder="Add a character: paste its D&amp;D Beyond link" required autocomplete="off" inputmode="url" aria-label="D&amp;D Beyond character link"><button class="btn primary">Add</button></form>
       <p class="small muted">The character must be public on D&amp;D Beyond (Character Settings → Character Privacy → Public). Dungeon Tracker only reads it.</p></section>
-    <section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + (auto ? '' : nameCard(me)) + dataCard();
+    <section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + (auto ? '' : nameCard(me)) + dataCard();
   $('#add').addEventListener('submit', addCharacter); $('#uname').addEventListener('submit', saveName);
-  $('#export').onclick = exportData; $('#delacct').onclick = askDelete;
+  $('#export').onclick = exportData; $('#delacct').onclick = askDelete; bindInvite();
   await loadLists();
+}
+
+// Invite your party: the front page's address with a short note, through the phone's share sheet or the clipboard.
+// No referral codes or tracking: the link is the plain front page.
+const INVITE = 'I track my D&D Beyond character with Dungeon Tracker: every roll one tap away, HP and spell slots kept as we play. Free, and it never changes your D&D Beyond sheet.';
+const inviteCard = () => `<section class="card invite"><h2>Invite your party</h2>
+    <p class="small muted">Playing with friends who use D&amp;D Beyond? Send them the link. Once their characters are in the same campaign, you can share trackers and a party log.</p>
+    <div class="row"><button class="btn primary" id="invshare">📨 Share invite</button><button class="btn" id="invcopy">🔗 Copy link</button></div></section>`;
+function bindInvite() {
+  const url = location.origin + '/';
+  const copy = async () => { try { await navigator.clipboard.writeText(INVITE + ' ' + url); msg('Copied. Paste it in your group chat.'); } catch (_) { msg('Copy this link: ' + url); } };
+  $('#invcopy').onclick = copy;
+  $('#invshare').onclick = async () => {
+    if (navigator.share) { try { await navigator.share({ title: 'Dungeon Tracker', text: INVITE, url }); } catch (_) {} } else copy();
+  };
+}
+
+// "Continue with …": the last sheet opened on this device, if it's still in one of your lists
+function continueCard(list) {
+  let last = null; try { last = JSON.parse(localStorage.getItem('last-sheet')); } catch (_) {}
+  const c = last && list.find(x => x.id === last.id);
+  $('#cont').innerHTML = c ? `<a class="btn cta contbtn" href="${esc(sheetLink(c))}"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Continue with ${esc(c.name || last.name)}</a>` : '';
 }
 
 // a sheet's address: /<username>/<D&D Beyond id>
@@ -204,7 +226,7 @@ async function saveName(e) {
 
 // Your data (GDPR, see /legal.html): download everything this app keeps about you, or delete it all
 const dataCard = () => `<section class="card"><h2>Your data</h2>
-    <p class="small muted">Everything this app keeps about you, stored in the EU. Details in <a href="/legal.html">Privacy &amp; terms</a>.</p>
+    <p class="small muted">Everything this app keeps about you, stored in the EU.</p>
     <div class="row"><button class="btn" id="export">⬇️ Download my data</button><button class="btn danger" id="delacct">Delete my account</button></div>
     <div id="delbox" hidden></div></section>`;
 async function exportData() {
@@ -244,7 +266,7 @@ function askDelete() {
 async function loadLists() {
   const me = pb.authStore.record.id;
   let list = [];
-  try { list = await pb.collection('characters').getFullList({ sort: 'name', fields: 'id,name,owner,handle,campaign,visibility,verified,ddb_id,updated,data.race.name,data.classes,data.campaign' });
+  try { list = await pb.collection('characters').getFullList({ sort: 'name', fields: 'id,name,owner,handle,campaign,visibility,verified,ddb_id,updated,pinned,archived,sort,data.race.name,data.classes,data.campaign' });
     try { localStorage.setItem('sheet-list', JSON.stringify(list)); } catch (_) {} }
   catch (e) {   // offline: the last list this device saw (sheets opened before open offline too)
     try { list = JSON.parse(localStorage.getItem('sheet-list')) || []; } catch (_) { list = []; }
@@ -253,21 +275,60 @@ async function loadLists() {
     const d = c.data || {}, cls = (d.classes || []).map(k => k.name + ' ' + k.level).join(' / ');
     const camp = d.campaign && d.campaign.name ? d.campaign.name : '';
     const own = c.owner === me;
-    return `<div class="ch"><a class="open" href="${esc(sheetLink(c))}"><b>${esc(c.name || 'Character')}</b>
+    const tools = own ? `<button class="chstar${c.pinned ? ' on' : ''}" data-pin="${esc(c.id)}" aria-pressed="${!!c.pinned}" title="${c.pinned ? 'Playing now' : 'Mark as playing now'}" aria-label="${c.pinned ? 'Playing now: tap to unmark' : 'Mark as playing now'}">${c.pinned ? '★' : '☆'}</button>` : '';
+    const more = own ? `<details class="chmore"><summary aria-label="More for ${esc(c.name || 'this character')}">⋯</summary><div class="chmenu">
+        ${c.archived ? '' : `<button class="btn small" data-move="${esc(c.id)}" data-d="-1">↑ Move up</button><button class="btn small" data-move="${esc(c.id)}" data-d="1">↓ Move down</button>`}
+        <button class="btn small" data-arch="${esc(c.id)}">${c.archived ? '↩︎ Unarchive' : '🗄️ Archive'}</button>
+        <button class="btn small danger" data-rm="${esc(c.id)}">Remove…</button></div></details>` : '';
+    return `<div class="ch${c.archived ? ' archived' : ''}">${tools}<a class="open" href="${esc(sheetLink(c))}"><b>${esc(c.name || 'Character')}</b>
         <span class="small muted">${esc([d.race && d.race.name, cls].filter(Boolean).join(' · ') || 'Not synced yet')}${camp ? ' · ' + esc(camp) : ''}${!own && c.handle ? ' · @' + esc(c.handle) : ''}</span></a>
       ${own ? `<div class="chctl">${c.verified ? '<span class="vbadge" title="You proved this is your D&amp;D Beyond character">✓ Verified</span>' : `<button class="btn small" data-claim="${esc(c.id)}">Verify</button>`}
         <select data-vis="${esc(c.id)}" aria-label="Who can see the tracker">${Object.entries(VIS).map(([k, t]) => `<option value="${k}"${c.visibility === k ? ' selected' : ''}${k === 'party' && !c.verified ? ' disabled' : ''}>${t}${k === 'party' && !c.verified ? ' (verify first)' : ''}</option>`).join('')}</select></div>`
-        : `<span class="small muted">${esc(VIS[c.visibility] || '')}</span>`}</div>
+        : `<span class="small muted">${esc(VIS[c.visibility] || '')}</span>`}${more}</div>
       <div class="claim" id="claim-${esc(c.id)}" hidden></div>`;
   };
-  const mine = list.filter(c => c.owner === me), shared = list.filter(c => c.owner !== me);
-  $('#mine').innerHTML = mine.length ? mine.map(card).join('') : '<p class="muted">None yet. Paste a D&amp;D Beyond link above.</p>';
+  continueCard(list);
+  // your list: ⭐ playing now first, then your own order (sort), then by name; archived ones folded away below
+  const order = (a, b) => (b.pinned - a.pinned) || ((a.sort || 1e6) - (b.sort || 1e6)) || String(a.name).localeCompare(String(b.name));
+  const mine = list.filter(c => c.owner === me).sort(order), shared = list.filter(c => c.owner !== me);
+  const active = mine.filter(c => !c.archived), arch = mine.filter(c => c.archived);
+  $('#mine').innerHTML = (active.length ? active.map(card).join('') : '<p class="muted">' + (arch.length ? 'All your characters are archived.' : 'None yet. Paste a D&amp;D Beyond link below.') + '</p>')
+    + (arch.length ? `<details class="archlist"><summary>🗄️ Archived (${arch.length})</summary>${arch.map(card).join('')}</details>` : '');
+  bindListTools(active);
   $('#shared').innerHTML = shared.length ? shared.map(card).join('') : '<p class="muted">Nobody has shared a sheet with you yet. Party members can share theirs from their own list.</p>';
   document.querySelectorAll('[data-claim]').forEach(b => b.addEventListener('click', () => startClaim(b.dataset.claim)));
   document.querySelectorAll('[data-vis]').forEach(s => s.addEventListener('change', async () => {
     try { await pb.collection('characters').update(s.dataset.vis, { visibility: s.value }); msg('Saved: ' + VIS[s.value] + '.'); }
     catch (e) { msg('Couldn’t change who can see it.', true); }
   }));
+}
+
+// your list's tools: ⭐ playing now, move up/down, archive, remove (with a confirm that says what goes and what stays)
+function bindListTools(active) {
+  const save = async (id, data, done) => { try { await pb.collection('characters').update(id, data); if (done) msg(done); loadLists(); } catch (e) { msg('Couldn’t save that. Try again.', true); } };
+  document.querySelectorAll('[data-pin]').forEach(b => b.onclick = () => save(b.dataset.pin, { pinned: b.getAttribute('aria-pressed') !== 'true' }));
+  document.querySelectorAll('[data-arch]').forEach(b => b.onclick = () => { const c = active.find(x => x.id === b.dataset.arch);
+    save(b.dataset.arch, c ? { archived: true, pinned: false } : { archived: false }, c ? 'Archived. It’s under “Archived” at the bottom of your list.' : 'Back in your list.'); });
+  document.querySelectorAll('[data-move]').forEach(b => b.onclick = async () => {
+    // number the active list in its shown order, swap this one with its neighbour, save the changed ones
+    const ids = active.map(c => c.id), i = ids.indexOf(b.dataset.move), j = i + +b.dataset.d;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    try { await Promise.all(ids.map((id, k) => (active.find(c => c.id === id).sort !== k + 1) ? pb.collection('characters').update(id, { sort: k + 1 }) : null)); loadLists(); }
+    catch (e) { msg('Couldn’t save the order. Try again.', true); }
+  });
+  document.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
+    const ch = b.closest('.ch'), name = ch.querySelector('.open b').textContent, box = document.getElementById('claim-' + b.dataset.rm);
+    ch.querySelector('.chmore').open = false; box.hidden = false;
+    box.innerHTML = `<div class="rmbox"><p><b>Remove ${esc(name)} from Dungeon Tracker?</b> Its tracker here (HP, slots, uses) and your notes for it are deleted,
+        party log posts too. Don’t worry: ${esc(name)} is still on D&amp;D Beyond, and you can import it again any time.</p>
+      <div class="row"><button class="btn danger" data-rmgo>Remove</button><button class="btn" data-rmno>Keep</button></div></div>`;
+    box.querySelector('[data-rmno]').onclick = () => { box.hidden = true; };
+    box.querySelector('[data-rmgo]').onclick = async () => {
+      try { await pb.collection('characters').delete(b.dataset.rm); msg(name + ' is removed. Paste its D&D Beyond link to bring it back.'); loadLists(); }
+      catch (e) { msg('Couldn’t remove it. Try again.', true); }
+    };
+  });
 }
 
 // Optional: prove this account can edit the D&D Beyond sheet. Unlocks party sharing and the party log.
@@ -299,14 +360,26 @@ function addCharacter(e) {
   return addById(id, !!document.querySelector('form.onb'));
 }
 // first = during onboarding: go on to the username step (if the name is still player-xxxxx), else straight to the sheet
+// a short "reading your character" overlay while the import runs (a spinning d20; still with reduce-motion), then
+// a brief ✓ with the name, under a second in all
+function importFx(state, name) {
+  let el = $('#importfx');
+  if (state === 'off') { if (el) el.remove(); return Promise.resolve(); }
+  if (!el) { el = document.createElement('div'); el.id = 'importfx'; el.className = 'importfx'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.innerHTML = state === 'done'
+    ? '<div class="ifbox done"><span class="ifok" aria-hidden="true">✓</span><p><b>' + esc(name || 'Your character') + '</b> is in!</p></div>'
+    : '<div class="ifbox"><svg class="ifd20" viewBox="0 0 100 100" aria-hidden="true"><use href="#d20"/></svg><p>Reading your character from D&amp;D Beyond…</p></div>';
+  return new Promise(r => setTimeout(r, state === 'done' ? 450 : 0));
+}
 async function addById(id, first) {
-  msg('Reading your character from D&D Beyond…');
+  msg(''); importFx('on');
   try {
     const c = await pb.collection('characters').create({ ddb_id: id, owner: pb.authStore.record.id, visibility: 'private', data: {} });
-    msg('');
+    await importFx('done', c.name); importFx('off');
     if (first && isAuto(pb.authStore.record.username)) return renderUsernameStep(c);
     location.href = sheetLink(c);
   } catch (err) {
+    importFx('off');
     const t = (err && err.response && (err.response.message || JSON.stringify(err.response.data || ''))) || '';
     if (/ddb_id|unique/i.test(t)) { msg('That character is already in your list.'); return renderHome(); }
     if (!document.querySelector('#add')) renderOnboarding();

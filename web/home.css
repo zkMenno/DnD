@@ -240,7 +240,7 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .landing{position:relative}
 .landing > :not(.bgdice){position:relative;z-index:1}
 .bgdice{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
-.bd{position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.6)}
+.bd{position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.5)}
 @media (prefers-reduced-motion:no-preference){
   .bd{animation:tumble var(--t,40s) ease-in-out var(--d,0s) infinite}
   @keyframes tumble{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(var(--dx,12px),var(--dy,-16px)) rotate(180deg)}100%{transform:translate(0,0) rotate(360deg)}}
@@ -261,3 +261,32 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .clip figcaption{text-align:left;line-height:1.5;font-size:1.02rem;color:var(--muted)} .clip figcaption b{color:var(--ink)}
 @media (max-width:860px){ .features{grid-template-columns:1fr 1fr} .clips{gap:34px} }
 @media (max-width:520px){ .features{grid-template-columns:1fr} .demo h2{font-size:1.9rem} .clip{width:min(272px,86vw)} }
+
+/* ── Account page extras (22 Oct, evening): import overlay, Continue button, invite card ─────────────────────────── */
+.importfx{position:fixed;inset:0;z-index:80;display:grid;place-items:center;background:rgba(8,12,18,.55);animation:fxin .12s ease-out}
+.ifbox{display:flex;flex-direction:column;align-items:center;gap:10px;padding:22px 26px;border-radius:18px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);text-align:center;max-width:80vw}
+.ifbox p{margin:0}
+.ifd20{width:54px;height:54px;color:var(--brass)}
+.ifok{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:var(--brass);color:var(--sea-ink,#0c141c);font-size:1.8rem;font-weight:700}
+@media (prefers-reduced-motion:no-preference){ .ifd20{animation:ifspin .7s linear infinite} @keyframes ifspin{to{transform:rotate(360deg)}}
+  .ifbox.done{animation:ifpop .25s cubic-bezier(.2,.8,.2,1.4)} @keyframes ifpop{from{transform:scale(.85)}} }
+.contbtn{width:100%;box-sizing:border-box;justify-content:center;margin:0 0 14px}
+.invite .row{flex-wrap:wrap}
+
+/* ── Your characters: ⭐ playing now, ⋯ menu (order, archive, remove), archived list (22 Oct) ───────────────────── */
+.ch{position:relative}
+.chstar{appearance:none;background:none;border:0;padding:4px 6px;margin-right:4px;font-size:1.35rem;line-height:1;color:var(--muted);cursor:pointer;align-self:center}
+.chstar.on{color:var(--brass)} .chstar:hover{color:var(--brass)}
+.chmore{position:relative} .chmore summary{list-style:none;cursor:pointer;padding:4px 10px;border-radius:8px;border:1px solid var(--line);font-weight:700;line-height:1.2}
+.chmore summary::-webkit-details-marker{display:none}
+.chmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:grid;gap:6px;min-width:170px;padding:10px;border-radius:12px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
+.chmenu .btn{width:100%;text-align:left}
+.ch.archived{opacity:.75}
+.archlist{margin-top:10px} .archlist summary{cursor:pointer;color:var(--muted);padding:6px 0}
+.rmbox{border:1px solid var(--hp);border-radius:12px;padding:12px 14px;margin:6px 0 10px}
+
+/* ── Real phone recordings (22 Oct, 21:20): the crit attack in the hero phone, the ability check lower down ─────── */
+.phone video{display:block;width:100%;height:auto;border-radius:26px;aspect-ratio:544/910;background:#0f1720}
+.clip{width:300px}
+.clipphone video{aspect-ratio:544/922}
+@media (max-width:520px){ .clip{width:min(300px,86vw)} }

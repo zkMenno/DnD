@@ -21,7 +21,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved);
   await p.evaluate(() => notesStore.add({ text: 'A note to take home', kind: 'story', done: false, at: Date.now(), session: 1 })); await p.waitForTimeout(1200);
   await p.evaluate(() => { menuOpen = true; paintMenu(); });
-  ok('the sheet\'s ☰ menu links home and to Privacy & terms', !!(await p.$('#menubox a[href="/legal.html"]')) && !!(await p.$('#menubox a[href="/"]')));
+  ok('the sheet\'s ☰ menu has a Your characters button (Privacy & terms is only in the home footer)', !!(await p.$('#menubox a.homebtn[href="/"]')) && !(await p.$('#menubox a[href="/legal.html"]')));
   ok('nothing loads from another site (fonts, scripts: all from this server)', outside.size === 0 || console.log('   outside:', [...outside]));
 
   await p.goto(B + '/'); await p.waitForSelector('#export');

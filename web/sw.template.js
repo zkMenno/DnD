@@ -20,7 +20,8 @@ self.addEventListener('fetch', e => {
     return;
   }
   e.respondWith(caches.match(r).then(hit => {
-    const net = fetch(r).then(res => { if (res.ok) caches.open(CACHE).then(c => c.put(r, res.clone())); return res; }).catch(() => hit);
+    const net = fetch(r).then(res => { if (res.ok) caches.open(CACHE).then(c => c.put(r, res.clone())); return res; })
+      .catch(() => hit || caches.match(r, { ignoreSearch: true }));   // offline: the saved copy, whatever its ?v= build tag
     return hit || net;
   }));
 });

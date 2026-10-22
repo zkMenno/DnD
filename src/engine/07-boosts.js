@@ -12,7 +12,14 @@ let chkEmoji = '🎲';
 const CHECK_EMOJI = {Perception:'👁️', Stealth:'👣', Insight:'🧐', Investigation:'🔍', Athletics:'💪', Acrobatics:'🤸', Persuasion:'🤝', Deception:'🎭', Intimidation:'😠', Performance:'🎻',
   'Sleight of Hand':'🪙', Arcana:'🔮', History:'📜', Nature:'🌿', Religion:'🕯️', Medicine:'🩹', Survival:'🧭', 'Animal Handling':'🐾', 'Thieves’ Tools':'🗝️', 'Herbalism Kit':'🌿', 'Dice Set':'🎲', 'Dice set':'🎲'};
 // emoji for a check/save label in the result card
-function checkEmoji(label){ if (/ save$/.test(label)) return '🛡️'; if (/ check$/.test(label)) return '💪'; return CHECK_EMOJI[label] || '🎲'; }
+// a raw ability check gets its ability's emoji (the same as on the Stats tab's Abilities card), saves a shield
+const CHECK_ABIL_EMOJI = {str:'💪', dex:'🤸', con:'❤️', int:'🧠', wis:'🦉', cha:'🎭'};
+function checkEmoji(label){
+  if (/ save$/.test(label)) return '🛡️';
+  const m = label.match(/^(.+) check$/);
+  if (m) { const a = Object.keys(ABIL_NAME).find(k => ABIL_NAME[k] === m[1]); return (a && CHECK_ABIL_EMOJI[a]) || '🎲'; }
+  return CHECK_EMOJI[label] || '🎲';
+}
 FX.chk = { d:750, html:() => '<span class="ring"></span><span class="e pulse">'+chkEmoji+'</span>'+fxParts('✦',6,'spark') };
 const BOOST_NAME = {bless:'Bless', guidance:'Guidance', bardic:'Bardic', tactical:'Tactical Mind'};
 // total of the boost dice on a roll

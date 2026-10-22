@@ -1534,3 +1534,4 @@ button.chip.ic.term{text-decoration:none}
 
 /* ☰ menu, web app only: links home and to Privacy & terms */
 .menulinks{margin:10px 0 0;text-align:center;color:var(--muted)} .menulinks a{color:inherit}
+.homebtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;margin:12px 0 0;text-decoration:none;font-weight:700}
