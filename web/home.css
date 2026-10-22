@@ -477,3 +477,16 @@ body > #msg:empty{display:none}
 .authfoot{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 .authfoot .btn{text-decoration:none;display:inline-flex}
 @media (max-width:520px){ .auth{padding:22px 18px 18px;margin-top:14px} .authrow{flex-direction:column} .authrow .btn{width:100%} .auth h2{font-size:1.7rem} }
+
+/* try picker, cleaner (23 Oct): emoji beside name + class, race and level under it, no gold side stripe; × spins like the app's */
+.trycard{border-left:1px solid var(--line);gap:6px;padding:16px 18px}
+.trycard:hover,.trycard:focus-visible{border-color:var(--brass)}
+.tryhead{display:flex;align-items:center;gap:12px}
+.tryhead > span:last-child{display:grid;gap:1px}
+.trycard .tryico{font-size:1.9rem;margin:0;line-height:1}
+.trycard .bk{margin-top:2px}
+.trycard .trytxt{margin-top:2px}
+.tryclose .btn{transition:transform .2s ease,background .15s,border-color .15s}
+.tryclose .btn:hover{transform:rotate(90deg);border-color:var(--brass)}
+/* How it works boxes: no gold stripe on the left either */
+.steps > li{border-left-width:1px}
