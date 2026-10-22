@@ -345,3 +345,19 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .howside .limits{margin:14px 4px 0;color:var(--muted);font-size:1rem;line-height:1.5}
 .howcta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:20px 4px 0} .howcta span{color:var(--muted);font-size:1rem}
 @media (max-width:520px){ .howcta{flex-direction:column;align-items:stretch;text-align:center} }
+
+/* ── The party: five characters in a row under the hero (22 Oct, late). Each fades out at the bottom into the page; hover
+   or focus lifts one and shows its class in the app's tooltip style. Phones show the middle three. ───────────────────── */
+.party{display:flex;justify-content:center;align-items:flex-end;height:320px;margin:4px auto -10px;position:relative;overflow-x:clip}
+.pc{position:relative;margin:0 -30px;flex:none;outline:none;transition:transform .25s ease,filter .25s ease}
+.pc img{display:block;height:100%;width:auto;-webkit-mask-image:linear-gradient(#000 70%,transparent 100%);mask-image:linear-gradient(#000 70%,transparent 100%);user-select:none}
+.pc-barbarian{height:320px;z-index:3} .pc-pirate,.pc-bard{height:290px;z-index:2} .pc-wizard,.pc-ranger{height:260px;z-index:1}
+.pc figcaption{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);background:var(--ink);color:var(--bg);border-radius:12px;padding:6px 12px;
+  font-family:var(--f-display);font-weight:700;font-size:1rem;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .14s,transform .14s}
+.pc figcaption::after{content:"";position:absolute;left:50%;bottom:-5px;width:12px;height:12px;background:var(--ink);transform:translateX(-50%) rotate(45deg);border-radius:2px}
+.pc:hover,.pc:focus-visible{z-index:5;transform:translateY(-8px);filter:brightness(1.08) drop-shadow(0 0 14px color-mix(in srgb,var(--brass) 35%,transparent))}
+.pc:hover figcaption,.pc:focus-visible figcaption{opacity:1;transform:translate(-50%,calc(-100% - 4px))}
+.pc figcaption{top:18%}
+@media (prefers-reduced-motion:reduce){ .pc,.pc figcaption{transition:none} .pc:hover,.pc:focus-visible{transform:none} }
+@media (max-width:860px){ .party{height:250px} .pc{margin:0 -24px} .pc-barbarian{height:250px} .pc-pirate,.pc-bard{height:225px} .pc-wizard,.pc-ranger{height:200px} }
+@media (max-width:520px){ .party{height:190px;margin-top:14px} .pc{margin:0 -16px} .pc-wizard,.pc-ranger{display:none} .pc-barbarian{height:190px} .pc-pirate,.pc-bard{height:170px} }
