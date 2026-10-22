@@ -43,7 +43,6 @@
   // picture of that set's real 3D d20 once three.js is here. Tap a set: it's chosen and throws three random dice of it.
   const D = window.HomeDice; if (!D) return;
   const keys = D.order.flatMap(g => g[1]), tray = $('#tray'), sw = $('#swatches');
-  const groupOf = k => (D.order.find(g => g[1].includes(k)) || [''])[0];
   let cur = keys.includes(store.get('dt-front-dice')) ? store.get('dt-front-dice') : D.def, rolling = false, rolled = false;
   $('#dice-count').textContent = keys.length;
   sw.innerHTML = D.order.map(([label, ks]) => '<div class="sgroup" role="group" aria-label="' + label + '"><h4>' + label + '</h4><div class="srow">'
@@ -54,7 +53,7 @@
   const pick = k => {
     cur = k; D.use(k); store.set('dt-front-dice', k);
     sw.querySelectorAll('.sw').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; });
-    const s = D.sets[k]; $('#setname').innerHTML = '<b>' + s.name + '</b> <span>' + s.desc + ' · ' + groupOf(k) + '</span>';
+    const s = D.sets[k]; $('#setname').innerHTML = '<b>' + s.name + ':</b> <span>' + s.desc + '</span>';
   };
   pick(cur); tray.hidden = false;
 
