@@ -44,7 +44,7 @@ const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<titl
   + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96"><link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">'
   + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css">'
   + '<script src="/sw-register.js"></script>';   // offline (web/sw.template.js); no inline scripts (CSP)
-fs.writeFileSync(out+'/web/sheet.html', head('Character') + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/home.css">\n'
+fs.writeFileSync(out+'/web/sheet.html', head('Character') + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/sheet.css">\n'
   + '<div id="app"><div class="boot"><p>Loading…</p></div></div>\n<script src="/pocketbase.umd.js"></script>\n<script src="/sheet-boot.js"></script>\n</body></html>');
 // try-out sheets (web/try-boot.js): two made-up characters anyone can open without an account
 fs.mkdirSync(out+'/web/trial', {recursive:true});
