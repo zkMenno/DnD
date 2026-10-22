@@ -32,7 +32,7 @@
   // A die that comes to rest goes back to tumbling where it stopped.
   {
     const layer = document.querySelector('.bgdice'), dice = layer ? [...layer.querySelectorAll('.bd')] : [];
-    const busy = 'a,button,input,textarea,select,label,summary,video,.sw,#tray,.phone,.clip';
+    const busy = 'a,button,input,textarea,select,label,summary,video,.sw,#tray,.phone,.clip,.card,.features li,.steps > li,.dicebox,.quicklink,.pc,.msg';
     const hit = (x, y, t) => { if (!t || (t.closest && t.closest(busy))) return null;
       for (let i = dice.length - 1; i >= 0; i--) { const r = dice[i].getBoundingClientRect(), pad = Math.max(0, 22 - r.width / 2);
         if (x > r.left - pad && x < r.right + pad && y > r.top - pad && y < r.bottom + pad) return dice[i]; } return null; };

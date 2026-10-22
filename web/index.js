@@ -13,7 +13,14 @@ const PENDING = 'pending-ddb';   // a character link pasted on the front page, a
 const isAuto = u => /^player-[a-z0-9]{5}$/.test(u || '');   // the name every new account starts with
 
 // status line under the header (bad = shown as an error)
-function msg(t, bad) { const m = $('#msg'); m.textContent = t || ''; m.className = 'msg' + (bad ? ' bad' : ''); }
+// a short note in a pop-up at the top of the screen: gone after a few seconds (problems stay longer), or tap it away.
+// Something still in progress ("Sending a code…", ending in …) stays until the next message replaces it.
+let msgTimer = 0;
+function msg(t, bad) {
+  const m = $('#msg'); clearTimeout(msgTimer);
+  m.textContent = t || ''; m.className = 'msg' + (bad ? ' bad' : '') + (t ? ' show' : '');
+  if (t && !/…$/.test(t)) msgTimer = setTimeout(() => { m.classList.remove('show'); setTimeout(() => { if (!m.classList.contains('show')) m.textContent = ''; }, 250); }, bad ? 12000 : 3500);
+}
 // a D&D Beyond character id from a link (or a bare number), else null
 const ddbId = t => { const m = String(t || '').match(/characters\/(\d{4,12})/) || String(t || '').match(/^\s*(\d{4,12})\s*$/); return m ? +m[1] : null; };
 const ss = { get: k => { try { return sessionStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (_) {} } };
@@ -23,6 +30,7 @@ function showLanding() {
   const l = $('#landing'); l.hidden = false; $('#main').innerHTML = ''; $('#who').innerHTML = '<a class="btn login toplogin" href="#signin" data-go="signin">Log in <span aria-hidden="true">→</span></a>';
   document.body.classList.add('front');
 }
+$('#msg').addEventListener('click', () => msg(''));
 // clicks on "Get started" / "Sign in" anywhere on the page
 document.addEventListener('click', e => { const a = e.target.closest('[data-go]'); if (!a || pb.authStore.isValid) return; e.preventDefault(); renderLogin(a.dataset.go); });
 // "Have your character link ready?": keep it for after sign-in
@@ -187,10 +195,10 @@ async function renderHome() {
 
 // Invite your party: the front page's address with a short note, through the phone's share sheet or the clipboard.
 // No referral codes or tracking: the link is the plain front page.
-const INVITE = 'I track my D&D Beyond character with Dungeon Tracker: every roll one tap away, HP and spell slots kept as we play. Free, and it never changes your D&D Beyond sheet.';
+const INVITE = 'Hey! I found an awesome new way to track my D&D Beyond character, check it out!';
 const inviteCard = () => `<section class="card invite"><h2>Invite your party</h2>
     <p class="small muted">Playing with friends who use D&amp;D Beyond? Send them the link. Once their characters are in the same campaign, you can share trackers and a party log.</p>
-    <div class="row"><button class="btn primary" id="invshare">📨 Share invite</button><button class="btn" id="invcopy">🔗 Copy link</button></div></section>`;
+    <div class="row"><button class="btn primary" id="invshare">✉️ Share invite</button><button class="btn" id="invcopy">🔗 Copy link</button></div></section>`;
 function bindInvite() {
   const url = location.origin + '/';
   const copy = async () => { try { await navigator.clipboard.writeText(INVITE + ' ' + url); msg('Copied. Paste it in your group chat.'); } catch (_) { msg('Copy this link: ' + url); } };
@@ -314,6 +322,8 @@ async function loadLists() {
 }
 
 // your list's tools: ⭐ playing now, move up/down, archive, remove (with a confirm that says what goes and what stays)
+// a ⋯ menu closes when you tap anywhere outside it (or open another one)
+document.addEventListener('click', e => { document.querySelectorAll('details.chmore[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }); });
 function bindListTools(active) {
   const save = async (id, data, done) => { try { await pb.collection('characters').update(id, data); if (done) msg(done); loadLists(); } catch (e) { msg('Couldn’t save that. Try again.', true); } };
   document.querySelectorAll('[data-pin]').forEach(b => b.onclick = () => save(b.dataset.pin, { pinned: b.getAttribute('aria-pressed') !== 'true' }));
