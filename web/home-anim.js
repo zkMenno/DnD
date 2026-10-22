@@ -23,64 +23,92 @@
       document.querySelectorAll('.reveal:not(.in)').forEach(el => { const r = el.getBoundingClientRect(); if (r.height && r.bottom < 0) show(el); }); }); }, { passive: true });
   }
 
-  // ── background dice: pick one up and throw it ──────────────────────────────────────────────────────
+  // ── background dice: pick one up, throw it, knock others ──────────────────────────────────────────
   // The dice sit behind the page (.bgdice, no pointer events), so a press is matched to a die by position, and only
-  // when it doesn't land on something you can use (link, button, video, dice tray). Mouse: grab straight away.
-  // Touch: hold still on a die for a moment first, so a swipe over one still just scrolls the page.
-  // Thrown, it slides, spins and bounces off the window edges; when it stops it goes back to tumbling where it landed.
+  // when it doesn't land on something you can use (link, button, video, dice tray). Mouse: hovering one lights it up,
+  // grab straight away. Touch: hold still on a die for a moment first, so a swipe over one still just scrolls the page.
+  // One small physics loop runs while anything moves: thrown dice slide, spin and bounce off the window edges, and a
+  // die that hits another passes on speed along the line between them (bigger dice are heavier; a held die just pushes).
+  // A die that comes to rest goes back to tumbling where it stopped.
   {
     const layer = document.querySelector('.bgdice'), dice = layer ? [...layer.querySelectorAll('.bd')] : [];
     const busy = 'a,button,input,textarea,select,label,summary,video,.sw,#tray,.phone,.clip';
     const hit = (x, y, t) => { if (!t || (t.closest && t.closest(busy))) return null;
       for (let i = dice.length - 1; i >= 0; i--) { const r = dice[i].getBoundingClientRect(), pad = Math.max(0, 22 - r.width / 2);
         if (x > r.left - pad && x < r.right + pad && y > r.top - pad && y < r.bottom + pad) return dice[i]; } return null; };
-    let held = null, hold = 0;
-    // take a die out of its tumble: freeze it where it is, as left/top (px, in the layer) + rotate
-    const lift = d => {
-      const m = new DOMMatrix(getComputedStyle(d).transform === 'none' ? undefined : getComputedStyle(d).transform);
-      const r = d.getBoundingClientRect(), L = layer.getBoundingClientRect(), w = d.clientWidth, h = d.clientHeight;
-      const st = { d, w, h, x: r.left + r.width / 2 - L.left - w / 2, y: r.top + r.height / 2 - L.top - h / 2,
-        a: (parseFloat(d.style.rotate) || 0) + Math.atan2(m.b, m.a) * 180 / Math.PI, vx: 0, vy: 0, va: 0, t: performance.now() };
-      cancelAnimationFrame(d._fly); d.classList.add('held'); d.style.animation = 'none'; place(st); return st;
-    };
+    const live = new Map();   // die → { x, y (top-left px in the layer), a (deg), vx, vy (px per frame), va, w, h, m, held }
+    let held = null, hold = 0, hot = null, raf = 0, last = 0;
     const place = s => { s.d.style.left = s.x + 'px'; s.d.style.top = s.y + 'px'; s.d.style.rotate = s.a + 'deg'; };
+    // take a die out of its tumble: freeze it where it is, as left/top + rotate
+    const lift = d => {
+      if (live.has(d)) return live.get(d);
+      const cs = getComputedStyle(d).transform, m = new DOMMatrix(cs === 'none' ? undefined : cs);
+      const r = d.getBoundingClientRect(), L = layer.getBoundingClientRect(), w = d.clientWidth, h = d.clientHeight;
+      const st = { d, w, h, m: w * w, x: r.left + r.width / 2 - L.left - w / 2, y: r.top + r.height / 2 - L.top - h / 2,
+        a: (parseFloat(d.style.rotate) || 0) + Math.atan2(m.b, m.a) * 180 / Math.PI, vx: 0, vy: 0, va: 0, held: false };
+      d.style.animation = 'none'; place(st); live.set(d, st); return st;
+    };
+    const rest = s => { live.delete(s.d); s.d.style.animation = ''; s.d.style.animationDelay = '0s'; };   // tumble on from here
+    // where a still (tumbling) die's centre is right now
+    const centre = (d, L) => { const r = d.getBoundingClientRect(); return { x: r.left + r.width / 2 - L.left, y: r.top + r.height / 2 - L.top }; };
+    const step = now => {
+      const k = Math.min(3, (now - last) / 16.7); last = now;
+      const W = layer.clientWidth, H = layer.clientHeight, L = layer.getBoundingClientRect(), f = Math.pow(0.95, k);
+      for (const s of live.values()) if (!s.held) {
+        s.x += s.vx * k; s.y += s.vy * k; s.a += s.va * k;
+        if (s.x < 0) { s.x = 0; s.vx = Math.abs(s.vx) * 0.7; s.va = -s.va; } if (s.x > W - s.w) { s.x = W - s.w; s.vx = -Math.abs(s.vx) * 0.7; s.va = -s.va; }
+        if (s.y < 0) { s.y = 0; s.vy = Math.abs(s.vy) * 0.7; } if (s.y > H - s.h) { s.y = H - s.h; s.vy = -Math.abs(s.vy) * 0.7; }
+        s.vx *= f; s.vy *= f; s.va *= f;
+      }
+      // collisions: every moving (or held) die against every other die
+      for (const a of [...live.values()]) {
+        if (!a.held && Math.abs(a.vx) + Math.abs(a.vy) < 0.05) continue;
+        for (const d of dice) {
+          if (d === a.d) continue;
+          const b0 = live.get(d), ca = { x: a.x + a.w / 2, y: a.y + a.h / 2 }, cb = b0 ? { x: b0.x + b0.w / 2, y: b0.y + b0.h / 2 } : centre(d, L);
+          const bw = b0 ? b0.w : d.clientWidth, min = (a.w + bw) * 0.42, dx = cb.x - ca.x, dy = cb.y - ca.y, dist = Math.hypot(dx, dy);
+          if (dist >= min || dist < 0.01) continue;
+          const b = lift(d), nx = dx / dist, ny = dy / dist, ia = a.held ? 0 : 1 / a.m, ib = b.held ? 0 : 1 / b.m;
+          if (!ia && !ib) continue;
+          const over = min - dist; a.x -= nx * over * ia / (ia + ib); a.y -= ny * over * ia / (ia + ib); b.x += nx * over * ib / (ia + ib); b.y += ny * over * ib / (ia + ib);
+          const rvx = a.vx - b.vx, rvy = a.vy - b.vy, rel = rvx * nx + rvy * ny;
+          if (rel <= 0) continue;   // already moving apart
+          const j = 1.8 * rel / (ia + ib);   // restitution 0.8
+          a.vx -= j * ia * nx; a.vy -= j * ia * ny; b.vx += j * ib * nx; b.vy += j * ib * ny;
+          const spin = (nx * rvy - ny * rvx) * 0.9; b.va += spin; if (!a.held) a.va -= spin * ib / (ia + ib);   // a glancing hit sets it spinning
+        }
+      }
+      for (const s of [...live.values()]) { place(s); if (!s.held && Math.abs(s.vx) + Math.abs(s.vy) < 0.15 && Math.abs(s.va) < 1) rest(s); }
+      raf = live.size ? requestAnimationFrame(step) : 0;
+    };
+    const run = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(step); } };
+    const setHot = d => { if (hot === d) return; if (hot) hot.classList.remove('hot'); hot = d; if (d) d.classList.add('hot'); document.documentElement.classList.toggle('grab-die', !!d); };
     const start = (e, d) => {
-      held = lift(d); held.px = e.clientX; held.py = e.clientY; held.id = e.pointerId;
-      document.documentElement.classList.add('grabbing-die'); e.preventDefault && e.preventDefault();
+      held = lift(d); held.held = true; held.vx = held.vy = held.va = 0; held.px = e.clientX; held.py = e.clientY; held.t = performance.now();
+      d.classList.add('held'); setHot(null); document.documentElement.classList.add('grabbing-die'); run();
     };
     addEventListener('pointerdown', e => {
       if (held || e.button > 0) return; const d = hit(e.clientX, e.clientY, e.target); if (!d) return;
-      if (e.pointerType === 'mouse' || e.pointerType === 'pen') return start(e, d);
+      if (e.pointerType === 'mouse' || e.pointerType === 'pen') { e.preventDefault(); return start(e, d); }
       const x0 = e.clientX, y0 = e.clientY;   // touch: a short still hold picks it up
-      hold = setTimeout(() => { hold = 0; start({ clientX: x0, clientY: y0, pointerId: e.pointerId }, d); if (navigator.vibrate) navigator.vibrate(8); }, 220);
+      hold = setTimeout(() => { hold = 0; start({ clientX: x0, clientY: y0 }, d); if (navigator.vibrate) navigator.vibrate(8); }, 220);
     });
     addEventListener('pointermove', e => {
       if (hold && e.pointerType !== 'mouse') { clearTimeout(hold); hold = 0; }   // moved: it's a scroll
-      if (!held) { if (e.pointerType === 'mouse') { const on = !!hit(e.clientX, e.clientY, e.target); document.documentElement.classList.toggle('grab-die', on); } return; }
+      if (!held) { if (e.pointerType === 'mouse') setHot(hit(e.clientX, e.clientY, e.target)); return; }
       const now = performance.now(), dt = Math.max(8, now - held.t), dx = e.clientX - held.px, dy = e.clientY - held.py;
       held.x += dx; held.y += dy; held.a += dx * 0.4;
-      held.vx = held.vx * 0.3 + (dx / dt) * 0.7; held.vy = held.vy * 0.3 + (dy / dt) * 0.7;   // px per ms, smoothed
-      held.px = e.clientX; held.py = e.clientY; held.t = now; place(held);
+      held.vx = held.vx * 0.3 + (dx / dt) * 16.7 * 0.7; held.vy = held.vy * 0.3 + (dy / dt) * 16.7 * 0.7;   // px per frame, smoothed
+      held.px = e.clientX; held.py = e.clientY; held.t = now;
     });
+    addEventListener('mouseout', e => { if (!e.relatedTarget) setHot(null); });
     // while a die is held, a finger drags the die, not the page
     addEventListener('touchmove', e => { if (held) e.preventDefault(); }, { passive: false });
     const drop = () => {
       clearTimeout(hold); hold = 0; if (!held) return; const s = held; held = null;
-      document.documentElement.classList.remove('grabbing-die');
-      if (performance.now() - s.t > 90) { s.vx = s.vy = 0; }   // stopped before letting go: no throw
-      s.vx *= 16; s.vy *= 16; s.va = s.vx * 1.6;   // px per frame
-      let last = performance.now();
-      const fly = now => {
-        const k = Math.min(3, (now - last) / 16.7); last = now;
-        const W = layer.clientWidth, H = layer.clientHeight;
-        s.x += s.vx * k; s.y += s.vy * k; s.a += s.va * k;
-        if (s.x < 0) { s.x = 0; s.vx = Math.abs(s.vx) * 0.7; s.va = -s.va; } if (s.x > W - s.w) { s.x = W - s.w; s.vx = -Math.abs(s.vx) * 0.7; s.va = -s.va; }
-        if (s.y < 0) { s.y = 0; s.vy = Math.abs(s.vy) * 0.7; } if (s.y > H - s.h) { s.y = H - s.h; s.vy = -Math.abs(s.vy) * 0.7; }
-        const f = Math.pow(0.95, k); s.vx *= f; s.vy *= f; s.va *= f; place(s);
-        if (Math.abs(s.vx) + Math.abs(s.vy) > 0.15) s.d._fly = requestAnimationFrame(fly);
-        else { s.d.classList.remove('held'); s.d.style.animation = ''; s.d.style.animationDelay = '0s'; }   // tumble on from here
-      };
-      s.d._fly = requestAnimationFrame(fly);
+      s.held = false; s.d.classList.remove('held'); document.documentElement.classList.remove('grabbing-die');
+      if (performance.now() - s.t > 90) s.vx = s.vy = 0;   // stopped before letting go: no throw
+      s.va = s.vx * 1.6; run();
     };
     addEventListener('pointerup', drop); addEventListener('pointercancel', drop); addEventListener('blur', drop);
   }

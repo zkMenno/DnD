@@ -239,7 +239,8 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .landing > :not(.bgdice){position:relative;z-index:1}
 .bgdice{position:absolute;top:0;bottom:0;left:calc(50% - 50vw);width:100vw;overflow:hidden;pointer-events:none;z-index:0}   /* the whole window width, not just the text column */
 body.front{overflow-x:clip}   /* 100vw includes the scrollbar: never a sideways scroll */
-.bd.held{opacity:.55;animation:none;transition:opacity .15s}
+.bd{transition:opacity .2s,filter .2s}
+.bd.hot,.bd.held{opacity:.6;filter:drop-shadow(0 0 4px var(--brass)) drop-shadow(0 0 12px color-mix(in srgb,var(--brass) 70%,transparent))}   /* you can pick this one up */
 html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.grabbing-die *{cursor:grabbing!important;user-select:none!important}
 .bd{position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.5)}
 @media (prefers-reduced-motion:no-preference){
