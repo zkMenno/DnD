@@ -298,24 +298,28 @@ function dice3d(dice, done){
   const objs = dice.map((d, i) => {
     const { die, mat, fin } = d3Die(d, diceSet());
     const row = Math.floor(i / perRow), inRow = Math.min(perRow, n - row*perRow), col = i % perRow;
-    // each die stops a little off its grid spot: some roll less far, some drift left or right (never enough to touch)
-    const jx = (Math.random() - .5) * .4 * gapPx, jy = (Math.random() * .5 - .35) * gapPx;
+    // each die stops somewhere in a wide patch around its grid spot (shorter or longer, left or right) and comes in
+    // from its own angle; dice that end up touching knock each other aside (see the collision pass in frame())
+    const jx = (Math.random() - .5) * .9 * gapPx, jy = (Math.random() * .8 - .55) * gapPx;
     const tx = ((col - (inRow-1)/2) * gapPx + jx) * px, ty = (-(row - (Math.ceil(n/perRow)-1)/2) * gapPx + jy) * px;
-    const sx = desk ? tx + (Math.random()-.5) * 4 : -W/2*px - 1.5 - Math.random()*1.5;
-    const sy = desk ? -Hh/2*px - 1.2 - Math.random()*1.2 : ty + (Math.random()-.5) * 3;
+    const sx = desk ? tx + (Math.random()-.5) * 9 : -W/2*px - 1.5 - Math.random()*1.5;
+    const sy = desk ? -Hh/2*px - 1.2 - Math.random()*2 : ty + (Math.random()-.5) * 3;
     // rolling: turn about the axis across the direction of travel (plus a little wobble), so the die tumbles forward
     const dir = new T.Vector3(tx - sx, ty - sy, 0).normalize();
     const axis = desk ? new T.Vector3(-dir.y, dir.x, 0).add(new T.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).multiplyScalar(.45)).normalize()
                       : new T.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).normalize();
     die.scale.setScalar(size); D3.scene.add(die);
-    return { die, mat, d, fin, tx, ty, sx, sy, axis, spin: desk ? -Math.PI*(6 + Math.random()*3) : Math.PI*(3 + Math.random()*2), delay: i*(desk ? 110 : 80), landed: 0 };
+    return { die, mat, d, fin, tx, ty, sx, sy, axis, spin: desk ? -Math.PI*(5 + Math.random()*5) : Math.PI*(3 + Math.random()*2), delay: i*(desk ? 110 : 80) + Math.random()*60,
+      dur: (desk ? 1250 : 760) * (.85 + Math.random()*.3), landed: 0,
+      ox: 0, oy: 0, vx: 0, vy: 0, px: null, py: null, kick: 0, kaxis: new T.Vector3(0, 0, 1) };
   });
-  const DUR = desk ? 1250 : 760, t0 = performance.now(), end = DUR + (n-1)*(desk ? 110 : 80) + 1400;   // landed dice stay on screen a while before the sheet
+  const t0 = performance.now(), end = Math.max(...objs.map(o => o.dur + o.delay)) + 1400;   // landed dice stay on screen a while before the sheet
+  const minD = size * 1.9, maxX = W/2*px - size, maxY = Hh/2*px - size, kickQ = new T.Quaternion();
   const ease = t => 1 - Math.pow(1-t, 3), spinQ = new T.Quaternion();
   (function frame(now){
     const el = now - t0;
     objs.forEach(o => {
-      const t = Math.max(0, Math.min(1, (el - o.delay) / DUR)), e = ease(t);
+      const t = Math.max(0, Math.min(1, (el - o.delay) / o.dur)), e = ease(t); o.t = t;
       if (desk) {
         // up the table with a slight overshoot, three bounces that die away, spin slowing to a stop
         const e2 = 1 - Math.pow(1-t, 3.2), over = Math.sin(Math.PI*Math.min(1, t*1.15)) * .35 * (1-t);
@@ -324,11 +328,36 @@ function dice3d(dice, done){
       } else {
         o.die.position.set(o.sx + (o.tx - o.sx)*e, o.sy + (o.ty - o.sy)*e + Math.sin(Math.PI*Math.min(1, t*1.25)) * .6 * (1-t), Math.sin(Math.PI*t) * 1.2);
         spinQ.setFromAxisAngle(o.axis, (1-e) * o.spin);
-      } o.die.quaternion.copy(spinQ).multiply(o.fin);
+      }
+      // knocked: the push from collisions rides on top of the scripted path and slows down; a hit also adds a wobble
+      // that dies away, so the die still settles showing its rolled face
+      o.ox += o.vx; o.oy += o.vy; o.vx *= .9; o.vy *= .9; o.kick *= .9;
+      o.die.position.x = Math.max(-maxX, Math.min(maxX, o.die.position.x + o.ox));
+      o.die.position.y = Math.max(-maxY, Math.min(maxY, o.die.position.y + o.oy));
+      kickQ.setFromAxisAngle(o.kaxis, o.kick);
+      o.die.quaternion.copy(kickQ).multiply(spinQ).multiply(o.fin);
       if (t >= 1 && !o.landed) { o.landed = now; if (o.d.off) o.mat.opacity = .38; if (o.d.s===20 && o.d.v===1) o.mat.color.setHex(0x8A8A8A); }
       const k = o.landed ? Math.min(1, (now - o.landed) / 220) : 0;
       o.die.scale.setScalar(size * (1 + (o.landed ? .16*Math.sin(Math.PI*k) : 0) + (o.d.s===20 && o.d.v===20 && o.landed ? .08 : 0)));
     });
+    // collisions between dice on the table: push overlapping dice apart and pass on speed along the line between them
+    // (equal weights; speed = how far each moved since the last frame)
+    for (let a = 0; a < objs.length; a++) for (let b = a + 1; b < objs.length; b++) {
+      const A = objs[a], B = objs[b]; if (!A.t || !B.t) continue;
+      const pa = A.die.position, pb = B.die.position, dx = pb.x - pa.x, dy = pb.y - pa.y, dist = Math.hypot(dx, dy);
+      if (dist >= minD || dist < 1e-4) continue;
+      const nx = dx / dist, ny = dy / dist, push = (minD - dist) / 2;
+      A.ox -= nx * push; A.oy -= ny * push; B.ox += nx * push; B.oy += ny * push;
+      pa.x -= nx * push; pa.y -= ny * push; pb.x += nx * push; pb.y += ny * push;
+      const avx = A.px === null ? 0 : pa.x - A.px, avy = A.py === null ? 0 : pa.y - A.py, bvx = B.px === null ? 0 : pb.x - B.px, bvy = B.py === null ? 0 : pb.y - B.py;
+      const rel = (avx - bvx) * nx + (avy - bvy) * ny;
+      if (rel <= 0) continue;
+      const j = rel * .8;   // restitution .8, split between two equal dice
+      A.vx -= j * nx; A.vy -= j * ny; B.vx += j * nx; B.vy += j * ny;
+      const tang = (avx - bvx) * -ny + (avy - bvy) * nx;   // a glancing hit sets them wobbling
+      A.kick += tang * 3; B.kick -= tang * 3; A.kaxis.set(-ny, nx, .4).normalize(); B.kaxis.set(-ny, nx, .4).normalize();
+    }
+    objs.forEach(o => { o.px = o.die.position.x; o.py = o.die.position.y; });
     D3.r.render(D3.scene, D3.cam);
     if (el < end) return requestAnimationFrame(frame);
     wrap.classList.add('out');
