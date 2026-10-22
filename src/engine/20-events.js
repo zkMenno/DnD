@@ -4,7 +4,7 @@
 // Read-only (a shared sheet): what a viewer may still do — look things up, move around, change their own view prefs
 const VIEW_OK = new Set(['close','rollview','tipclose','tabprev','tabnext','tabl','tabr','reload','spfav','cbfav','fav','qrfav','trf','trs','trall','spf','spe',
   'restclose','rollboxclose','hpclose','menu','menuview','diceset','dsprev','diceedit','dsmove','dsgmove','jump','jumpto','jumpedit','secmove','atkedit','wmove',
-  'notescope','notefilter','copychanges','concopen']);
+  'notescope','notefilter','copychanges','concopen','diceask','diceaskno']);
 const viewAllowed = el => !!(el.dataset.term || el.dataset.tab || VIEW_OK.has(el.dataset.act) || el.closest('.bubble') && !el.dataset.act && !el.dataset.pip);
 let viewNoteT = null;
 // a short note at the bottom when a viewer taps something that would change the tracker
@@ -141,6 +141,8 @@ document.addEventListener('click', e => {
     case 'dsmove': return moveDiceSet(ds.k, +ds.d);
     case 'fav': return toggleFav(ds.k);
     case 'dsgmove': return moveDiceGroup(ds.g, +ds.d);
+    case 'diceask': closeDiceAsk(); if (!menuOpen) toggleMenu(); menuView = 'dice'; return paintMenu();
+    case 'diceaskno': ui.diceAuto = false; saveUi(); return closeDiceAsk();
     case 'menuview': menuView = menuView === ds.v ? 'main' : ds.v; if (menuView !== 'dice') diceEdit = false; return paintMenu();
     case 'tabprev': return stepTab(-1);
     case 'tabnext': return stepTab(1);

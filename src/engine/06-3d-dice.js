@@ -249,6 +249,9 @@ function d3Label(text, ink, rim, pips, bold, font){
 // Dice sets come from the theme (see #themes). Every die in a set shares one look; picked in the ☰ menu.
 const DICE_SETS = THEME.dice;
 const DEFAULT_DICE = THEME.defaultDice || Object.keys(DICE_SETS)[0];
+// a new player starts with a random set, not always the first one; after their first throw they're asked whether they'd
+// like another (dicePromptMaybe, §18). Only on a sheet: the front page's dice bundle has no saveUi.
+if (typeof saveUi === 'function' && !ui.dice) { const ks = Object.keys(DICE_SETS); ui.dice = ks[Math.floor(Math.random() * ks.length)]; ui.diceAuto = true; saveUi(); }
 // the dice set picked in the menu (or the theme default)
 let DICE_PREVIEW = null;   // a set being previewed from the picker (not selected)
 // the dice set to roll with (the one being previewed wins)
@@ -363,6 +366,7 @@ function dice3d(dice, done){
     wrap.classList.add('out');
     setTimeout(() => { objs.forEach(o => { D3.scene.remove(o.die); o.mat.dispose(); o.die.children.forEach(c => { c.geometry.dispose(); c.material.dispose(); }); }); wrap.remove(); }, 160);
     done();
+    if (typeof dicePromptMaybe === 'function') dicePromptMaybe();
   })(t0);
 }
 // a d20 roll as 3D dice (the dropped die of advantage/disadvantage shown dimmed)

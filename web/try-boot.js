@@ -20,8 +20,8 @@ window.withV = withV;
     trial: true, mine: true, partyLog: false, character: { id: T },
     async pull() { throw new Error('This is a try-out character. Import your own from D&amp;D Beyond to sync it.'); },
   };
-  const bar = document.createElement('div'); bar.className = 'trialbar';
-  bar.innerHTML = '<span>🎲 <b>Try-out sheet.</b> Tap around: your changes stay on this device.</span><a class="btn" href="/#signin">Use my own character →</a>';
+  const bar = document.createElement('div'); bar.className = 'trialbar wrap';
+  bar.innerHTML = '<div class="trialin"><span>🎲 <b>Try-out character sheet.</b> Tap around: your changes stay on this device.</span><a class="btn" href="/#signin">Use my own character →</a></div>';
   document.body.insertBefore(bar, app);
   for (const src of ['/engine/themes.js', '/engine/classes.js', '/packs/' + T + '.js', '/engine/main.js']) await loadScript(withV(src));
 })();

@@ -27,5 +27,5 @@ function homeThumb(k, px){
     return url;
   } catch (_) { return null; }
 }
-window.HomeDice = { sets: DICE_SETS, order: homeOrder(), def: DEFAULT_DICE, use: k => { ui.dice = k; },
+window.HomeDice = { sets: DICE_SETS, order: homeOrder(), def: Object.keys(DICE_SETS)[Math.floor(Math.random() * Object.keys(DICE_SETS).length)], use: k => { ui.dice = k; },
   roll: dice3d, ready: d3Ready, fonts: homeFontsReady, thumb: homeThumb };

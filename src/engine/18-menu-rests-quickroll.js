@@ -115,8 +115,18 @@ function previewDiceSet(k){
   if (!fxBusy) DICE_PREVIEW = null;   // reduced motion: nothing was thrown
 }
 // select a set (no throw; preview is the row itself)
+// after a new player's first 3D throw (with the random set they were given): a small note offering the dice picker, once
+function dicePromptMaybe(){
+  if (!ui.diceAuto || ui.dicePrompted || VIEW) return;
+  ui.dicePrompted = true; saveUi();
+  const s = DICE_SETS[ui.dice] || {}, el = document.createElement('div'); el.className = 'diceask'; el.setAttribute('role', 'status');
+  el.innerHTML = '<span>🎲 You just rolled the <b>'+esc(s.name||'')+'</b> dice. Fancy a different set?</span>'
+    + '<span class="diceaskbtns"><button class="btn small" data-act="diceask">Choose dice</button><button class="btn small ghost" data-act="diceaskno">Keep these</button></span>';
+  document.body.appendChild(el); setTimeout(() => el.remove(), 15000);
+}
+function closeDiceAsk(){ const el = document.querySelector('.diceask'); if (el) el.remove(); }
 function pickDiceSet(k){
-  if (!DICE_SETS[k]) return; ui.dice = k; saveUi(); paintMenu();
+  if (!DICE_SETS[k]) return; ui.dice = k; ui.diceAuto = false; saveUi(); paintMenu();
   const b = document.querySelector('.dspick.on'); if (b && b.animate && !reduceMotion()) b.animate([{transform:'scale(.6)'},{transform:'scale(1.15)'},{transform:'scale(1)'}], {duration:260, easing:'cubic-bezier(.2,.8,.2,1)'});
 }
 let restMode = null, restLog = [];
