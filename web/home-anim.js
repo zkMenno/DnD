@@ -108,7 +108,7 @@
   let cur = keys.includes(store.get('dt-front-dice')) ? store.get('dt-front-dice') : D.def, rolling = false, rolled = false;
   $('#dice-count').textContent = keys.length;
   sw.innerHTML = D.order.map(([label, ks]) => '<div class="sgroup" role="group" aria-label="' + label + '"><h4>' + label + '</h4><div class="srow">'
-    + ks.map(k => { const s = D.sets[k]; return '<button type="button" class="sw" role="radio" data-k="' + k + '" aria-label="' + s.name + '" title="' + s.name + ': ' + s.desc + '"><span>20</span></button>'; }).join('')
+    + ks.map(k => { const s = D.sets[k]; return '<button type="button" class="sw" role="radio" data-k="' + k + '" aria-label="' + s.name + ': ' + s.desc + '"><span>20</span></button>'; }).join('')
     + '</div></div>').join('');
   sw.querySelectorAll('.sw').forEach(b => { const c = D.sets[b.dataset.k].css;
     b.style.setProperty('--a', c[0]); b.style.setProperty('--b', c[1]); b.style.setProperty('--ink', c[2]); });
@@ -145,8 +145,27 @@
     if (!(await loadThree())) { rolling = false; return; }
     D.use(cur); D.roll(dice, () => { rolling = false; });
   }
-  const three3 = () => roll([0, 1, 2].map(() => { const s = SIZES[rnd(SIZES.length) - 1]; return { s, v: rnd(s) }; }));
+  // three different dice (never two d20s): shuffle the six shapes, take three
+  const three3 = () => { const z = SIZES.slice(); for (let i = z.length - 1; i > 0; i--) { const j = rnd(i + 1) - 1; [z[i], z[j]] = [z[j], z[i]]; }
+    roll(z.slice(0, 3).map(s => ({ s, v: rnd(s) }))); };
   sw.addEventListener('click', e => { const b = e.target.closest('.sw'); if (!b) return; pick(b.dataset.k); three3(); });
+  // the set's name in a bubble above it, like the app's tooltips: on mouse hover and keyboard focus (on touch the
+  // name already shows under the tray when you tap)
+  let tip = null;
+  const showTip = b => {
+    hideTip(); const s = D.sets[b.dataset.k]; tip = document.createElement('div'); tip.className = 'dtip'; tip.setAttribute('aria-hidden', 'true');
+    tip.innerHTML = '<span class="bk">' + (D.order.find(g => g[1].includes(b.dataset.k)) || [''])[0] + '</span><span class="bt">' + s.name + '</span>' + s.desc;
+    document.body.appendChild(tip);
+    const r = b.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, cx = r.left + r.width / 2;
+    const left = Math.max(12, Math.min(innerWidth - w - 12, cx - w / 2));
+    tip.style.left = left + 'px'; tip.style.top = Math.max(8, r.top - h - 10) + 'px'; tip.style.setProperty('--tx', (cx - left) + 'px');
+  };
+  const hideTip = () => { if (tip) { tip.remove(); tip = null; } };
+  sw.addEventListener('pointerover', e => { const b = e.target.closest('.sw'); if (b && e.pointerType === 'mouse') showTip(b); });
+  sw.addEventListener('pointerout', e => { const b = e.target.closest('.sw'); if (b && !b.contains(e.relatedTarget)) hideTip(); });
+  sw.addEventListener('focusin', e => { const b = e.target.closest('.sw'); if (b && b.matches(':focus-visible')) showTip(b); });
+  sw.addEventListener('focusout', hideTip); addEventListener('scroll', hideTip, { passive: true });
+
   // arrow keys move between swatches (a radio group), in the order shown
   sw.addEventListener('keydown', e => {
     const i = keys.indexOf(cur), d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]; if (!d) return;

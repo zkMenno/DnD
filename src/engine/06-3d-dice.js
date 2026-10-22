@@ -298,7 +298,9 @@ function dice3d(dice, done){
   const objs = dice.map((d, i) => {
     const { die, mat, fin } = d3Die(d, diceSet());
     const row = Math.floor(i / perRow), inRow = Math.min(perRow, n - row*perRow), col = i % perRow;
-    const tx = (col - (inRow-1)/2) * gapPx * px, ty = -(row - (Math.ceil(n/perRow)-1)/2) * gapPx * px;
+    // each die stops a little off its grid spot: some roll less far, some drift left or right (never enough to touch)
+    const jx = (Math.random() - .5) * .4 * gapPx, jy = (Math.random() * .5 - .35) * gapPx;
+    const tx = ((col - (inRow-1)/2) * gapPx + jx) * px, ty = (-(row - (Math.ceil(n/perRow)-1)/2) * gapPx + jy) * px;
     const sx = desk ? tx + (Math.random()-.5) * 4 : -W/2*px - 1.5 - Math.random()*1.5;
     const sy = desk ? -Hh/2*px - 1.2 - Math.random()*1.2 : ty + (Math.random()-.5) * 3;
     // rolling: turn about the axis across the direction of travel (plus a little wobble), so the die tumbles forward

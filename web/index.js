@@ -26,12 +26,13 @@ function showLanding() {
 // clicks on "Get started" / "Sign in" anywhere on the page
 document.addEventListener('click', e => { const a = e.target.closest('[data-go]'); if (!a || pb.authStore.isValid) return; e.preventDefault(); renderLogin(a.dataset.go); });
 // "Have your character link ready?": keep it for after sign-in
-$('#quicklink').addEventListener('submit', e => {
+// (the same box is in the hero and in How it works, step II)
+document.querySelectorAll('form.quicklink').forEach(f => f.addEventListener('submit', e => {
   e.preventDefault();
   const id = ddbId(e.target.url.value), m = e.target.querySelector('.ql-msg');
   if (!id) { m.textContent = 'That doesn’t look like a D&D Beyond character link. It looks like dndbeyond.com/characters/12345678.'; return; }
   ss.set(PENDING, String(id)); renderLogin('signup');
-});
+}));
 
 // ── Sign in ─────────────────────────────────────────────────────────────────────────────────────────
 let otpId = null, otpEmail = '', providers = null;
