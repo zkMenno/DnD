@@ -351,13 +351,28 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .party{display:flex;justify-content:center;align-items:flex-end;height:320px;margin:4px auto -10px;position:relative;overflow-x:clip}
 .pc{position:relative;margin:0 -30px;flex:none;outline:none;transition:transform .25s ease,filter .25s ease}
 .pc img{display:block;height:100%;width:auto;-webkit-mask-image:linear-gradient(#000 70%,transparent 100%);mask-image:linear-gradient(#000 70%,transparent 100%);user-select:none}
-.pc-barbarian{height:320px;z-index:3} .pc-pirate,.pc-bard{height:290px;z-index:2} .pc-wizard,.pc-ranger{height:260px;z-index:1}
-.pc figcaption{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);background:var(--ink);color:var(--bg);border-radius:12px;padding:6px 12px;
-  font-family:var(--f-display);font-weight:700;font-size:1rem;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .14s,transform .14s}
-.pc figcaption::after{content:"";position:absolute;left:50%;bottom:-5px;width:12px;height:12px;background:var(--ink);transform:translateX(-50%) rotate(45deg);border-radius:2px}
+.pc-barbarian{height:320px;z-index:3} .pc-pirate,.pc-bard{height:290px;z-index:2} .pc-wizard,.pc-ranger{height:260px;z-index:1} .pc-ranger{height:275px}
+.pc figcaption{position:absolute;left:50%;bottom:6%;transform:translate(-50%,6px);background:var(--ink);color:var(--bg);border-radius:12px;padding:8px 13px 9px;
+  font-size:.92rem;line-height:1.35;white-space:nowrap;text-align:left;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:6}
+.pc figcaption::after{content:"";position:absolute;left:50%;top:-5px;width:12px;height:12px;background:var(--ink);transform:translateX(-50%) rotate(45deg);border-radius:2px}
+.pc figcaption .bk{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;opacity:.65}
+.pc figcaption .bt{display:block;font-family:var(--f-display);font-weight:700;font-size:1.05rem;margin:1px 0 2px}
 .pc:hover,.pc:focus-visible{z-index:5;transform:translateY(-8px);filter:brightness(1.08) drop-shadow(0 0 14px color-mix(in srgb,var(--brass) 35%,transparent))}
-.pc:hover figcaption,.pc:focus-visible figcaption{opacity:1;transform:translate(-50%,calc(-100% - 4px))}
-.pc figcaption{top:18%}
+.pc:hover figcaption,.pc:focus-visible figcaption{opacity:1;transform:translate(-50%,0)}
+.pc-wizard{height:290px}
 @media (prefers-reduced-motion:reduce){ .pc,.pc figcaption{transition:none} .pc:hover,.pc:focus-visible{transform:none} }
-@media (max-width:860px){ .party{height:250px} .pc{margin:0 -24px} .pc-barbarian{height:250px} .pc-pirate,.pc-bard{height:225px} .pc-wizard,.pc-ranger{height:200px} }
+@media (max-width:1100px){ .party{height:250px} .pc{margin:0 -24px} .pc-barbarian{height:250px} .pc-pirate,.pc-bard{height:225px} .pc-wizard,.pc-ranger{height:200px} }
 @media (max-width:520px){ .party{height:190px;margin-top:14px} .pc{margin:0 -16px} .pc-wizard,.pc-ranger{display:none} .pc-barbarian{height:190px} .pc-pirate,.pc-bard{height:170px} }
+/* the outer characters' bubbles open inwards, so they never run off the screen */
+.pc-wizard figcaption{left:22%;transform:translate(0,6px)} .pc-wizard figcaption::after{left:28px}
+.pc-ranger figcaption{left:auto;right:24%;transform:translate(0,6px)} .pc-ranger figcaption::after{left:auto;right:22px;transform:rotate(45deg)}
+.pc-wizard:hover figcaption,.pc-wizard:focus-visible figcaption,.pc-ranger:hover figcaption,.pc-ranger:focus-visible figcaption{transform:none}
+@media (max-width:520px){
+  .pc-pirate figcaption{left:22%;transform:translate(0,6px)} .pc-pirate figcaption::after{left:28px}
+  .pc-bard figcaption{left:auto;right:12%;transform:translate(0,6px)} .pc-bard figcaption::after{left:auto;right:22px;transform:rotate(45deg)}
+  .pc-pirate:hover figcaption,.pc-pirate:focus-visible figcaption,.pc-bard:hover figcaption,.pc-bard:focus-visible figcaption{transform:none}
+}
+/* hover only counts on a character's middle, not on the see-through edges of the picture next to it */
+.pc{pointer-events:none} .pc::before{content:"";position:absolute;inset:6% 24% 0;pointer-events:auto;z-index:1}
+/* How it works: the video starts level with the top of step I */
+.howgrid{align-items:start}
