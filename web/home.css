@@ -240,7 +240,7 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .bgdice{position:absolute;top:0;bottom:0;left:calc(50% - 50vw);width:100vw;overflow:hidden;pointer-events:none;z-index:0}   /* the whole window width, not just the text column */
 body.front{overflow-x:clip}   /* 100vw includes the scrollbar: never a sideways scroll */
 .bd{transition:opacity .2s,filter .2s}
-.bd.hot,.bd.held{opacity:.4;filter:drop-shadow(0 0 3px color-mix(in srgb,var(--brass) 55%,transparent))}   /* you can pick this one up */
+.bd.hot,.bd.held{color:#F2C14E;opacity:.75;filter:drop-shadow(0 0 1.5px rgba(242,193,78,.6))}   /* bright gold, barely any glow */   /* you can pick this one up */
 html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.grabbing-die *{cursor:grabbing!important;user-select:none!important}
 .bd{position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.5)}
 @media (prefers-reduced-motion:no-preference){
@@ -388,3 +388,11 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
   body.front .foot{padding-bottom:96px}
 }
 @media (prefers-reduced-motion:reduce){ .stickycta{transition:none} }
+
+/* bottom of the front page: a divider above the read-only / free / EU line, less empty space before the footer */
+.rule-trust{margin:34px auto 22px}
+.how{margin-bottom:8px}
+.landing{padding-bottom:12px}
+.foot{padding-top:28px}
+.euflag{width:1.35em;height:.9em;vertical-align:-.08em;margin-right:.1em}   /* a drawn flag: Windows shows the 🇪🇺 emoji as the letters "EU" */
+body.front #main:empty,body.front #msg:empty{display:none}   /* the app area is empty on the front page: no blank band before the footer */
