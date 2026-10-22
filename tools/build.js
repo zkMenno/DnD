@@ -68,7 +68,7 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
 // offline: the service worker gets this build's file list and a version hash (a new build = a fresh cache)
 { const crypto = require('crypto'), files = [], walk = d => fs.readdirSync(path.join(out, 'web', d)).forEach(f => { const rel = d ? d+'/'+f : f;
     if (fs.statSync(path.join(out, 'web', rel)).isDirectory()) walk(rel); else files.push(rel); });
-  walk(''); const keep = files.filter(f => !/^sw\.js$/.test(f)).sort(), h = crypto.createHash('sha1');
+  walk(''); const keep = files.filter(f => !/^sw\.js$/.test(f) && !/^media\//.test(f)).sort(), h = crypto.createHash('sha1');   // media/: the front page's demo videos load only when seen, never precached
   keep.forEach(f => h.update(f).update(fs.readFileSync(path.join(out, 'web', f))));
   fs.writeFileSync(out+'/web/sw.js', R('web/sw.template.js').replace('__VERSION__', h.digest('hex').slice(0, 12)).replace('/*__FILES__*/[]', JSON.stringify(['/'].concat(keep.map(f => '/' + f))))); }
 console.log('built', SHEETS.map(s=>s.out).join(', '), '+ web');

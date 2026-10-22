@@ -23,6 +23,18 @@
       document.querySelectorAll('.reveal:not(.in)').forEach(el => { const r = el.getBoundingClientRect(); if (r.height && r.bottom < 0) show(el); }); }); }, { passive: true });
   }
 
+  // ── demo clips (web/media): load when near, play while a third is in view, pause when scrolled away.
+  //    With reduce-motion they never start by themselves: the poster shows, with the browser's play controls.
+  const clips = [...document.querySelectorAll('.clip video')];
+  if (still || !('IntersectionObserver' in window)) clips.forEach(v => { v.controls = true; v.preload = 'metadata'; });
+  else {
+    const near = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.preload = 'auto'; near.unobserve(e.target); } }), { rootMargin: '600px 0px' });
+    const seen = new IntersectionObserver(es => es.forEach(e => {
+      const v = e.target; if (e.isIntersecting) { const go = v.play(); if (go && go.catch) go.catch(() => { v.controls = true; }); } else v.pause();
+    }), { threshold: 0.35 });
+    clips.forEach(v => { near.observe(v); seen.observe(v); });
+  }
+
   // ── dice tray ───────────────────────────────────────────────────────────────────────────────────────
   // Swatches grouped like the sheet's ☰ → Dice Sets. Each starts as a flat d20 shape in the set's colours and becomes a
   // picture of that set's real 3D d20 once three.js is here. Tap a set: it's chosen and throws three random dice of it.

@@ -11,6 +11,7 @@ self.addEventListener('fetch', e => {
   const r = e.request, u = new URL(r.url);
   if (r.method !== 'GET') return;
   if (u.origin !== location.origin || u.pathname.startsWith('/api/') || u.pathname.startsWith('/_/')) return;
+  if (u.pathname.startsWith('/media/')) return;   // the front page's demo videos: streamed (range requests), never cached here
   const key = SHEET_PATH.test(u.pathname) ? new Request(u.origin + '/sheet.html')                     // every sheet address is one page
     : u.pathname.endsWith('.html') || u.pathname.endsWith('/') ? new Request(u.origin + u.pathname) : r;   // pages: one copy, whatever the ?query
   if (r.mode === 'navigate') {
