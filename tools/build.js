@@ -9,6 +9,8 @@ const SHEETS = [   // pack file, data file, page title, output name
   { pack:'tester', data:'tester', title:'AppTester-01',     out:'apptester.html' },
   { pack:'wick',   data:'wick',   title:'Wick Softtoppoms', out:'wick.html' },
   { pack:'tester2', data:'tester2', title:'AppTester-02',    out:'apptester2.html' },
+  { pack:'trial-brute', data:'trial-brute', title:'Torgan Ironvow', out:'trial-brute.html' },
+  { pack:'trial-mage',  data:'trial-mage',  title:'Vexa Emberscale', out:'trial-mage.html' },
 ];
 // The engine lives in src/engine/ as one file per section (00-header … 21-sync). They are joined in name order into one
 // script: the claude.ai page keeps it as its single #main part (buildDoc writes it back on sync), the web app gets engine/main.js.
@@ -39,11 +41,16 @@ fs.cpSync(path.join(__dirname,'..','web'), out+'/web', { recursive: true, filter
 // Fonts: the web app serves its own copies (web/fonts, GDPR: no visitor ever contacts Google); claude.ai sheets keep Google Fonts.
 const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<title>'+title+'</title>')
     .replace(/<link rel="preconnect"[^>]*>\n?/g, '').replace(/<link href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/fonts/fonts.css">')
-  + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=3" type="image/png" sizes="104x104"><link rel="icon" href="/favicon.ico?v=3" sizes="48x48"><link rel="apple-touch-icon" href="/icon-192.png">'
+  + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96"><link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">'
   + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css">'
   + '<script src="/sw-register.js"></script>';   // offline (web/sw.template.js); no inline scripts (CSP)
 fs.writeFileSync(out+'/web/sheet.html', head('Character') + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/home.css">\n'
   + '<div id="app"><div class="boot"><p>Loading…</p></div></div>\n<script src="/pocketbase.umd.js"></script>\n<script src="/sheet-boot.js"></script>\n</body></html>');
+// try-out sheets (web/try-boot.js): two made-up characters anyone can open without an account
+fs.mkdirSync(out+'/web/trial', {recursive:true});
+for (const t of ['trial-brute','trial-mage']) fs.copyFileSync(path.join(__dirname,'..','data',t+'.json'), out+'/web/trial/'+t+'.json');
+fs.writeFileSync(out+'/web/try.html', head('Try Dungeon Tracker') + '<meta name="robots" content="noindex"><link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/sheet.css">\n'
+  + '<div id="app"><div class="boot"><p>Loading…</p></div></div>\n<script src="/try-boot.js"></script>\n</body></html>');
 // home: the public front page (src/landing.html, signed out) and the app's own screens (#main, drawn by web/index.js)
 fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyond character at the table')
   + '<meta name="description" content="Dungeon Tracker turns your D&amp;D Beyond character into a quick play sheet: every roll one tap away, HP, spell slots and uses tracked as you play. Read-only, free, hosted in the EU.">\n'
@@ -75,7 +82,7 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
     if (fs.statSync(path.join(out, 'web', rel)).isDirectory()) walk(rel); else if (!/\.html$|^sw\.js$|^media\//.test(rel)) files.push(rel); });
   walk(''); files.sort().forEach(f => h.update(f).update(fs.readFileSync(path.join(out, 'web', f))));
   const v = h.digest('hex').slice(0, 10);
-  for (const page of ['index.html', 'sheet.html', 'legal.html']) {
+  for (const page of ['index.html', 'sheet.html', 'legal.html', 'try.html']) {
     const f = path.join(out, 'web', page);
     fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/(<(?:script|link)\b[^>]*?\b(?:src|href)=")(\/[^"?#]+\.(?:js|css))"/g, '$1$2?v=' + v + '"'));
   } }

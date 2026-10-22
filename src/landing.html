@@ -47,6 +47,7 @@
         <span class="or-word">or</span>
         <a class="btn login" href="#signin" data-go="signin">Log in <span aria-hidden="true">→</span></a>
       </div>
+      <p class="tryrow">Want to look around first? <a class="btn trybtn" href="#try">🎲 Try a sample character</a></p>
       <form id="quicklink" class="quicklink">
         <label for="ql-url">Have your character link ready? Paste it here.</label>
         <div class="ql-row"><input id="ql-url" name="url" placeholder="https://www.dndbeyond.com/characters/12345678" autocomplete="off" inputmode="url">
@@ -129,6 +130,16 @@
     <li>🎁 Free, no ads, no tracking</li>
     <li><svg class="euflag" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" rx="2" fill="#003399"/><g fill="#FFCC00"><circle cx="21.00" cy="10.00" r="1.15"/><circle cx="20.20" cy="13.00" r="1.15"/><circle cx="18.00" cy="15.20" r="1.15"/><circle cx="15.00" cy="16.00" r="1.15"/><circle cx="12.00" cy="15.20" r="1.15"/><circle cx="9.80" cy="13.00" r="1.15"/><circle cx="9.00" cy="10.00" r="1.15"/><circle cx="9.80" cy="7.00" r="1.15"/><circle cx="12.00" cy="4.80" r="1.15"/><circle cx="15.00" cy="4.00" r="1.15"/><circle cx="18.00" cy="4.80" r="1.15"/><circle cx="20.20" cy="7.00" r="1.15"/></g></svg> Hosted in the EU</li>
   </ul>
+  <!-- "Try a sample character": two made-up characters (data/trial-*.json), opened by web/try-boot.js without an account -->
+  <dialog id="try" class="trydlg" aria-labelledby="try-h">
+    <form method="dialog" class="tryclose"><button class="btn" aria-label="Close">×</button></form>
+    <h2 id="try-h">Try a sample character</h2>
+    <p class="muted">No account needed. Roll attacks, cast spells, take damage and rest: what you change stays on this device.</p>
+    <div class="trypick">
+      <a class="trycard" href="/try.html?c=brute"><span class="tryico" aria-hidden="true">⚔️</span><span class="bk">Goliath · level 11</span><b>Torgan Ironvow</b><span class="trycls">Barbarian 7 / Paladin 4</span><span class="trytxt">Rages, cleaves with a greataxe and adds a smite or a blessing.</span></a>
+      <a class="trycard" href="/try.html?c=mage"><span class="tryico" aria-hidden="true">🔮</span><span class="bk">Dragonborn · level 4</span><b>Vexa Emberscale</b><span class="trycls">Warlock 4 · Fiend Patron</span><span class="trytxt">Eldritch Blast and Hex first, a pact blade when foes get close.</span></a>
+    </div>
+  </dialog>
   <!-- phones: Get started stays in reach while scrolling (shown by web/home-anim.js when no other Get started is on screen) -->
   <div class="stickycta" aria-hidden="true"><a class="btn cta" href="#signin" data-go="signup" tabindex="-1"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Get started</a></div>
 </section>

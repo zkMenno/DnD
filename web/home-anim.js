@@ -113,6 +113,17 @@
     addEventListener('pointerup', drop); addEventListener('pointercancel', drop); addEventListener('blur', drop);
   }
 
+  // ── Try a sample character: the picker dialog (links work on their own too; #try opens it) ─────────────────────
+  {
+    const dlg = $('#try');
+    if (dlg && dlg.showModal) {
+      const open = () => { if (!dlg.open) dlg.showModal(); };
+      document.addEventListener('click', e => { if (e.target.closest('a[href="#try"]')) { e.preventDefault(); open(); } });
+      dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // a tap on the backdrop closes it
+      if (location.hash === '#try') open();
+    }
+  }
+
   // ── phones: the sticky Get started bar shows while no other Get started (hero, How it works) is on screen ────────
   {
     const bar = $('.stickycta'), own = [...document.querySelectorAll('#landing .btn.cta')].filter(b => !bar.contains(b)), seen = new Set();

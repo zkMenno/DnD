@@ -35,7 +35,7 @@ function paintMenu(){
     + (PACK.sync && PACK.sync.pushTask && !window.SHEET ? opt('push', '⬆️', pend ? 'Push '+pend+' change'+(pend===1?'':'s') : 'Push changes', pend ? 'This app → D&amp;D Beyond, via Chrome on your computer.' : 'Nothing to push: matches D&amp;D Beyond.', !pend) : '')
     // moving to the web app: the claude.ai sheet gives a code, your own web-app copy takes it (§22)
     + (!window.SHEET ? opt('moveout', '📦', 'Move to the web app', 'Copy this tracker and your notes as a code to paste there.')
-      : !VIEW ? opt('movein', '📥', 'Bring over from claude.ai', 'Paste the code from the claude.ai sheet.') : '')
+      : !VIEW && !window.SHEET.trial ? opt('movein', '📥', 'Bring over from claude.ai', 'Paste the code from the claude.ai sheet.') : '')
     + '</div></div>';
   const diceBody = '<div class="msub"><div class="jumprow dshint" style="margin:0 0 6px"><span class="small muted">'+(diceEdit?'Move groups or sets up and down.':'Tap a set to see it roll · tick the circle to use it.')+'</span><button class="btn small'+(diceEdit?' done':'')+'" data-act="diceedit">'+(diceEdit?''+WORD.ok+'':'↕ Reorder')+'</button></div>'
       + diceGroups().map(([gl, keys, gk], gi, groups) => (gl ? (diceEdit && gk
@@ -54,7 +54,7 @@ function paintMenu(){
     + '<button class="menulink'+(diceOpen?' open':'')+'" data-act="menuview" data-v="dice" aria-expanded="'+diceOpen+'">'+sw(DICE_SETS[cur]).replace('class="dsw"','class="dsw one"')+'<span class="dst"><b>Dice Sets</b><span>'+esc(DICE_SETS[cur].name)+'</span></span>'+chev(diceOpen)+'</button>'
     + (diceOpen ? diceBody : '')
     // web app: the way back to your characters (claude.ai sheets have none). Privacy & terms lives in the home page footer.
-    + (window.SHEET && !diceEdit ? '<a class="btn homebtn" href="/"><span aria-hidden="true">‹</span> Your characters</a>' : '')
+    + (window.SHEET && !diceEdit ? '<a class="btn homebtn" href="/"><span aria-hidden="true">‹</span> '+(window.SHEET.trial ? 'Dungeon Tracker' : 'Your characters')+'</a>' : '')
     + (diceEdit ? '' : done);
 }
 // open / close the ☰ menu

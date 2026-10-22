@@ -396,3 +396,22 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .foot{padding-top:28px}
 .euflag{width:1.35em;height:.9em;vertical-align:-.08em;margin-right:.1em}   /* a drawn flag: Windows shows the 🇪🇺 emoji as the letters "EU" */
 body.front #main:empty,body.front #msg:empty{display:none}   /* the app area is empty on the front page: no blank band before the footer */
+
+/* Try a sample character: a quiet link under the hero buttons, and the picker dialog */
+.tryrow{margin:14px 0 18px;color:var(--muted);font-size:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn.trybtn{text-decoration:none;font-size:.98rem;padding:8px 16px;background:transparent;border:1.5px dashed color-mix(in srgb,var(--brass) 70%,transparent);color:var(--ink)}
+.btn.trybtn:hover{border-style:solid;border-color:var(--brass);color:var(--brass)}
+.trydlg{max-width:min(620px,calc(100vw - 32px));width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:18px;padding:22px 22px 24px;
+  background:var(--surface);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.trydlg::backdrop{background:rgba(5,10,15,.6);backdrop-filter:blur(2px)}
+.trydlg h2{font-family:var(--f-display);margin:0 0 6px;font-size:1.6rem}
+.trydlg > p{margin:0 0 16px;line-height:1.5}
+.tryclose{position:absolute;top:10px;right:10px;margin:0} .tryclose .btn{width:38px;height:38px;padding:0;font-size:1.3rem;line-height:1}
+.trypick{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.trycard{display:flex;flex-direction:column;gap:2px;padding:16px;border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:14px;background:var(--raised);color:var(--ink);text-decoration:none;transition:transform .2s ease,border-color .2s ease}
+.trycard:hover,.trycard:focus-visible{transform:translateY(-3px);border-color:var(--brass)}
+.trycard .tryico{font-size:1.6rem;margin-bottom:4px} .trycard .bk{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--muted)}
+.trycard b{font-family:var(--f-display);font-size:1.2rem} .trycard .trycls{font-weight:700;color:var(--brass);font-size:.95rem}
+.trycard .trytxt{margin-top:6px;color:var(--muted);line-height:1.45;font-size:.95rem}
+@media (max-width:520px){ .trypick{grid-template-columns:1fr} .tryrow{justify-content:center;text-align:center} }
+@media (prefers-reduced-motion:reduce){ .trycard{transition:none} .trycard:hover{transform:none} }
