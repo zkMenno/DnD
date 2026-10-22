@@ -3,27 +3,48 @@
      Motion and the dice tray come from web/home-anim.js (reveal-on-scroll, the 3D dice from the sheet); without
      scripts, or with "reduce motion" on, the page is the same, just still. -->
 <section id="landing" class="landing" hidden>
+  <div class="bgdice" aria-hidden="true">
+    <svg class="bd" viewBox="0 0 100 100" style="top:2%;left:46%;width:34px;--o:0.12;--t:46s;--dx:18px;--dy:-24px;--d:-0s"><use href="#d20"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:6%;left:90%;width:26px;--o:0.11;--t:38s;--dx:-14px;--dy:20px;--d:-7s"><use href="#d6"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:13%;left:3%;width:30px;--o:0.1;--t:52s;--dx:16px;--dy:18px;--d:-14s"><use href="#d8"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:22%;left:60%;width:20px;--o:0.13;--t:34s;--dx:-12px;--dy:-16px;--d:-21s"><use href="#d4"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:28%;left:94%;width:32px;--o:0.09;--t:58s;--dx:-18px;--dy:14px;--d:-28s"><use href="#d12"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:33%;left:30%;width:22px;--o:0.12;--t:40s;--dx:14px;--dy:-20px;--d:-35s"><use href="#d10"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:40%;left:2%;width:24px;--o:0.1;--t:44s;--dx:20px;--dy:12px;--d:-42s"><use href="#d20"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:46%;left:74%;width:30px;--o:0.09;--t:50s;--dx:-16px;--dy:-18px;--d:-49s"><use href="#d6"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:53%;left:48%;width:18px;--o:0.13;--t:36s;--dx:12px;--dy:16px;--d:-20s"><use href="#d8"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:59%;left:8%;width:26px;--o:0.1;--t:48s;--dx:18px;--dy:-14px;--d:-15s"><use href="#d12"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:64%;left:88%;width:28px;--o:0.1;--t:42s;--dx:-20px;--dy:12px;--d:-28s"><use href="#d4"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:71%;left:36%;width:30px;--o:0.09;--t:54s;--dx:14px;--dy:22px;--d:-23s"><use href="#d10"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:77%;left:64%;width:22px;--o:0.12;--t:40s;--dx:-12px;--dy:-18px;--d:-4s"><use href="#d20"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:83%;left:14%;width:20px;--o:0.12;--t:36s;--dx:16px;--dy:-12px;--d:-19s"><use href="#d6"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:88%;left:82%;width:34px;--o:0.09;--t:60s;--dx:-18px;--dy:16px;--d:-38s"><use href="#d8"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:94%;left:52%;width:24px;--o:0.1;--t:46s;--dx:12px;--dy:-14px;--d:-13s"><use href="#d12"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:97%;left:26%;width:30px;--o:0.09;--t:52s;--dx:16px;--dy:10px;--d:-8s"><use href="#d4"/></svg>
+    <svg class="bd" viewBox="0 0 100 100" style="top:99%;left:96%;width:22px;--o:0.11;--t:38s;--dx:-14px;--dy:-12px;--d:-5s"><use href="#d10"/></svg>
+  </div>
   <div class="hero">
-    <div class="drift" aria-hidden="true">
-      <svg class="dr dr1" viewBox="0 0 100 100"><use href="#d20"/></svg><svg class="dr dr2" viewBox="0 0 100 100"><use href="#d20"/></svg>
-      <svg class="dr dr3" viewBox="0 0 100 100"><use href="#d20"/></svg><svg class="dr dr4" viewBox="0 0 100 100"><use href="#d20"/></svg>
-      <svg class="dr dr5" viewBox="0 0 100 100"><use href="#d20"/></svg>
-    </div>
     <div class="hero-text">
       <p class="eyebrow">For D&amp;D Beyond players</p>
       <h1 class="hero-title">Your character, ready at the table.</h1>
-      <p class="lede">Dungeon Tracker turns your D&amp;D Beyond character into a quick play sheet for game night. Every roll is one tap away,
-        with the numbers already worked out. HP, spell slots and class uses are tracked as you play. It only reads your sheet,
-        so your D&amp;D Beyond character stays exactly as it is.</p>
+      <p class="lede">The easiest way to role-play your D&amp;D Beyond character.</p>
+      <ul class="perks">
+        <li>Tap any rule, spell or feature for a quick explanation.</li>
+        <li>See which dice to roll at the table, or roll the built-in 3D dice.</li>
+        <li>Find strong combos between your abilities.</li>
+        <li>Track HP, spell slots and class uses as you play.</li>
+      </ul>
       <div class="cta-row">
         <a class="btn cta" href="#signin" data-go="signup"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Get started</a>
-        <a class="cta-alt" href="#signin" data-go="signin">Already playing? Sign in</a>
+        <span class="or-word">or</span>
+        <a class="btn login" href="#signin" data-go="signin">Log in <span aria-hidden="true">→</span></a>
       </div>
       <form id="quicklink" class="quicklink">
         <label for="ql-url">Have your character link ready? Paste it here.</label>
         <div class="ql-row"><input id="ql-url" name="url" placeholder="https://www.dndbeyond.com/characters/12345678" autocomplete="off" inputmode="url">
           <button class="btn">Start</button></div>
         <p class="ql-msg small" aria-live="polite"></p>
+        <p class="ql-note">📖 Dungeon Tracker only reads your sheet and can’t change anything on D&amp;D Beyond. Levelled up there? Sync the changes over with one tap.</p>
       </form>
     </div>
     <div class="hero-art" aria-hidden="true">
@@ -45,8 +66,8 @@
     <div class="dice-text">
       <p class="eyebrow">Roll in style</p>
       <h2 id="dice-h">Pick your dice</h2>
-      <p>Every roll in your sheet is thrown with real-looking 3D dice. Choose from <span id="dice-count">24</span> sets: gold doubloons,
-        carved wood, sea glass, gems, even dragonfire. Swap them any time from the sheet's menu.</p>
+      <p>Every roll in your sheet is thrown with real-looking 3D dice. Choose from <span id="dice-count">24</span> sets in six styles: gold doubloons,
+        carved wood, sea glass, gems, even dragonfire. Tap a set to throw three of its dice; swap sets any time from the sheet's menu.</p>
     </div>
     <div class="tray" id="tray" hidden>
       <div class="swatches" id="swatches" role="radiogroup" aria-label="Dice sets"></div>
@@ -60,6 +81,7 @@
 
   <section class="how">
     <h2 class="reveal">How it works</h2>
+    <p class="public-note reveal">🔓 Dungeon Tracker only works with <b>public</b> D&amp;D Beyond characters. It reads the same sheet anyone with the link can see, so set your character to Public first (step I).</p>
     <ol class="steps">
       <li class="reveal"><span class="num">I</span><div><h3>Make your character public</h3><p>On D&amp;D Beyond: open your character, then <b>Character Settings</b> → <b>Character Privacy</b>, and pick <b>Public</b>. Dungeon Tracker only reads it.</p></div></li>
       <li class="reveal"><span class="num">II</span><div><h3>Paste the link</h3><p>Sign in with your email, no password needed, and paste your character's link.</p></div></li>
@@ -75,8 +97,19 @@
   </ul>
 </section>
 
-<!-- the d20 used above (an icosahedron seen face-on), drawn once -->
+<!-- the dice drawn above (d4 … d20, each seen face-on), defined once -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="d4" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round">
+    <polygon points="50,6 94,88 6,88"/><path d="M50 6 50 62M6 88 50 62 94 88"/></g></symbol>
+  <symbol id="d6" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round">
+    <polygon points="50,6 90,28 90,72 50,94 10,72 10,28"/><path d="M10 28 50 50 90 28M50 50 50 94"/></g></symbol>
+  <symbol id="d8" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round">
+    <polygon points="50,4 90,50 50,96 10,50"/><path d="M10 50 58 58 90 50M50 4 58 58 50 96"/></g></symbol>
+  <symbol id="d10" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round">
+    <polygon points="50,4 92,44 50,96 8,44"/><path d="M8 44 50 58 92 44M50 58 50 96M50 4 30 50M50 4 70 50"/></g></symbol>
+  <symbol id="d12" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round">
+    <polygon points="50,4 95,37 78,92 22,92 5,37"/><polygon points="50,26 73,43 64,70 36,70 27,43"/>
+    <path d="M50 4 50 26M95 37 73 43M78 92 64 70M22 92 36 70M5 37 27 43"/></g></symbol>
   <symbol id="d20" viewBox="0 0 100 100">
     <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round">
       <polygon points="50,4 91,27 91,73 50,96 9,73 9,27"/>

@@ -254,6 +254,36 @@ let DICE_PREVIEW = null;   // a set being previewed from the picker (not selecte
 // the dice set to roll with (the one being previewed wins)
 const diceSet = () => DICE_SETS[DICE_PREVIEW || ui.dice] || DICE_SETS[DEFAULT_DICE];
 const D3_LBL = {20:.6, 12:.58, 10:.5, 8:.58, 6:.82, 4:.52};
+// one die of a set as a mesh, oriented so face d.v faces the camera (number upright, tipped back a little):
+// used by the throw below, and by the front page's dice swatches (tools/build.js → home-dice.js)
+function d3Die(d, SET){
+  const T = THREE, sides = [4,6,8,10,12,20].includes(d.s) ? d.s : 6, shp = d3Shape(sides), pips = !!SET.pips && sides===6, ls = pips ? .95 : D3_LBL[sides];
+  if (SET.grad) {   // sea-depth gradient: light at the top-left of the die, deep at the bottom-right, each facet a touch different
+    const pos = shp.g.attributes.position, col = new Float32Array(pos.count*3), a = new T.Color(SET.grad[0]), b = new T.Color(SET.grad[1]), c = new T.Color();
+    for (let v = 0; v < pos.count; v++) {
+      const f = Math.floor(v/3), jit = ((f*37) % 11) / 11 * .14 - .07;
+      const t = Math.max(0, Math.min(1, (-pos.getX(v)*.45 - pos.getY(v)*.85 + 1.2) / 2.4 + jit));
+      c.copy(a).lerp(b, t); col[v*3] = c.r; col[v*3+1] = c.g; col[v*3+2] = c.b;
+    }
+    shp.g.setAttribute('color', new T.BufferAttribute(col, 3));
+  }
+  // matte sets use a light-only (Lambert) material: no highlight at all, like raw wood
+  const mat = SET.matte ? new T.MeshLambertMaterial({color: SET.dim ? new T.Color(SET.dim, SET.dim, SET.dim) : SET.grad ? 0xffffff : SET.body, vertexColors: !!SET.grad, flatShading: true, transparent: true, opacity: SET.alpha || 1, map: SET.tex ? d3Surface(SET.tex) : null})
+                        : new T.MeshStandardMaterial({color: SET.grad ? 0xffffff : SET.body, vertexColors: !!SET.grad, roughness: SET.rough, metalness: SET.metal, flatShading: true, transparent: true, opacity: SET.alpha || 1, map: SET.tex ? d3Surface(SET.tex) : null, envMap: SET.shine ? d3Studio(SET.studio) : null, emissive: SET.tex === 'char' ? 0xff6a1a : SET.glow != null ? SET.glow : 0x000000, emissiveMap: SET.tex === 'char' || SET.glow != null ? d3Glow(SET.tex) : null, emissiveIntensity: SET.tex === 'char' ? 1.2 : SET.glow != null ? 1.3 : 1, envMapIntensity: SET.shine ? 1.15 : 1});
+  const die = new T.Mesh(shp.g, mat);
+  shp.faces.forEach((f, k) => {
+    const lbl = new T.Mesh(new T.PlaneGeometry(ls, ls), new T.MeshBasicMaterial({map: d3Label(String(k+1), SET.ink, SET.rim, pips, SET.bold, SET.font), transparent: true, depthWrite: false}));
+    lbl.position.copy(f.c).addScaledVector(f.n, .004); lbl.lookAt(new T.Vector3().copy(f.c).add(f.n)); die.add(lbl); f.lbl = lbl;
+  });
+  // orientation that shows face (value) to the camera, number upright, tipped back a little so it reads as 3D
+  const face = shp.faces[Math.max(0, Math.min(shp.faces.length-1, d.v-1))];
+  const q1 = new T.Quaternion().setFromUnitVectors(face.n.clone().normalize(), new T.Vector3(0,0,1));
+  const up = new T.Vector3(0,1,0).applyQuaternion(face.lbl.quaternion).applyQuaternion(q1);
+  const q2 = new T.Quaternion().setFromAxisAngle(new T.Vector3(0,0,1), Math.atan2(up.x, up.y));
+  const tilt = new T.Quaternion().setFromEuler(new T.Euler(-.32, .18, 0));
+  const fin = tilt.multiply(q2.multiply(q1));
+  return { die, mat, fin };
+}
 // throw 3D dice that land showing the given values, then call done
 function dice3d(dice, done){
   if (!d3Ready()) return diceFx(dice, done);
@@ -266,31 +296,7 @@ function dice3d(dice, done){
   const desk = true;   // since V237 every device gets the rolling throw from the bottom
   const n = dice.length, perRow = Math.min(n, 4), gapPx = n > 2 ? 92 : 130, size = (n > 2 ? 46 : 58) * px;
   const objs = dice.map((d, i) => {
-    const sides = [4,6,8,10,12,20].includes(d.s) ? d.s : 6, shp = d3Shape(sides), SET = diceSet(), pips = !!SET.pips && sides===6, ls = pips ? .95 : D3_LBL[sides];
-    if (SET.grad) {   // sea-depth gradient: light at the top-left of the die, deep at the bottom-right, each facet a touch different
-      const pos = shp.g.attributes.position, col = new Float32Array(pos.count*3), a = new T.Color(SET.grad[0]), b = new T.Color(SET.grad[1]), c = new T.Color();
-      for (let v = 0; v < pos.count; v++) {
-        const f = Math.floor(v/3), jit = ((f*37) % 11) / 11 * .14 - .07;
-        const t = Math.max(0, Math.min(1, (-pos.getX(v)*.45 - pos.getY(v)*.85 + 1.2) / 2.4 + jit));
-        c.copy(a).lerp(b, t); col[v*3] = c.r; col[v*3+1] = c.g; col[v*3+2] = c.b;
-      }
-      shp.g.setAttribute('color', new T.BufferAttribute(col, 3));
-    }
-    // matte sets use a light-only (Lambert) material: no highlight at all, like raw wood
-    const mat = SET.matte ? new T.MeshLambertMaterial({color: SET.dim ? new T.Color(SET.dim, SET.dim, SET.dim) : SET.grad ? 0xffffff : SET.body, vertexColors: !!SET.grad, flatShading: true, transparent: true, opacity: SET.alpha || 1, map: SET.tex ? d3Surface(SET.tex) : null})
-                          : new T.MeshStandardMaterial({color: SET.grad ? 0xffffff : SET.body, vertexColors: !!SET.grad, roughness: SET.rough, metalness: SET.metal, flatShading: true, transparent: true, opacity: SET.alpha || 1, map: SET.tex ? d3Surface(SET.tex) : null, envMap: SET.shine ? d3Studio(SET.studio) : null, emissive: SET.tex === 'char' ? 0xff6a1a : SET.glow != null ? SET.glow : 0x000000, emissiveMap: SET.tex === 'char' || SET.glow != null ? d3Glow(SET.tex) : null, emissiveIntensity: SET.tex === 'char' ? 1.2 : SET.glow != null ? 1.3 : 1, envMapIntensity: SET.shine ? 1.15 : 1});
-    const die = new T.Mesh(shp.g, mat);
-    shp.faces.forEach((f, k) => {
-      const lbl = new T.Mesh(new T.PlaneGeometry(ls, ls), new T.MeshBasicMaterial({map: d3Label(String(k+1), SET.ink, SET.rim, pips, SET.bold, SET.font), transparent: true, depthWrite: false}));
-      lbl.position.copy(f.c).addScaledVector(f.n, .004); lbl.lookAt(new T.Vector3().copy(f.c).add(f.n)); die.add(lbl); f.lbl = lbl;
-    });
-    // orientation that shows face (value) to the camera, number upright, tipped back a little so it reads as 3D
-    const face = shp.faces[Math.max(0, Math.min(shp.faces.length-1, d.v-1))];
-    const q1 = new T.Quaternion().setFromUnitVectors(face.n.clone().normalize(), new T.Vector3(0,0,1));
-    const up = new T.Vector3(0,1,0).applyQuaternion(face.lbl.quaternion).applyQuaternion(q1);
-    const q2 = new T.Quaternion().setFromAxisAngle(new T.Vector3(0,0,1), Math.atan2(up.x, up.y));
-    const tilt = new T.Quaternion().setFromEuler(new T.Euler(-.32, .18, 0));
-    const fin = tilt.multiply(q2.multiply(q1));
+    const { die, mat, fin } = d3Die(d, diceSet());
     const row = Math.floor(i / perRow), inRow = Math.min(perRow, n - row*perRow), col = i % perRow;
     const tx = (col - (inRow-1)/2) * gapPx * px, ty = -(row - (Math.ceil(n/perRow)-1)/2) * gapPx * px;
     const sx = desk ? tx + (Math.random()-.5) * 4 : -W/2*px - 1.5 - Math.random()*1.5;
