@@ -49,27 +49,37 @@ async function renderLogin(mode) {
   if (location.hash !== '#signin') history.replaceState(null, '', '/#signin');
   if (providers === null) { try { const m = await pb.collection('users').listAuthMethods(); providers = (m.oauth2 && m.oauth2.enabled && m.oauth2.providers) || []; } catch (_) { providers = []; } }
   const pend = ss.get(PENDING);
+  // one card: sign-in providers on top when the server has any (Google, Apple, Microsoft, Proton… as they're switched on),
+  // then email with a one-time code, then an optional password; every choice is a real button
+  const ICON = { google: 'G', apple: '', microsoft: '⊞', proton: '🟣' };
   $('#main').innerHTML = `
     <form id="login" class="card auth">
+      <p class="eyebrow">${mode === 'signin' ? 'Sign in' : 'Create your account'}</p>
       <h2>${mode === 'signin' ? 'Welcome back' : 'Start your adventure'}</h2>
-      <p class="small muted">${pend ? 'Sign in and we’ll add your character straight away. ' : ''}New here? Signing in makes your account. No password needed.</p>
-      ${providers.length ? `<div class="oauth">${providers.map(p => `<button class="btn wide" type="button" data-oauth="${esc(p.name)}">Continue with ${esc(p.displayName || p.name)}</button>`).join('')}</div>
+      <p class="muted authlede">${pend ? 'Sign in and we’ll add your character straight away. ' : ''}New here? Signing in makes your account. No password needed.</p>
+      ${providers.length ? `<div class="oauth">${providers.map(p => `<button class="btn oauthbtn" type="button" data-oauth="${esc(p.name)}"><span class="oico" aria-hidden="true">${esc(ICON[p.name] || '🔑')}</span>Continue with ${esc(p.displayName || p.name)}</button>`).join('')}</div>
         <p class="or"><span>or with your email</span></p>` : ''}
-      <label>Email <input name="email" type="email" autocomplete="email" required value="${esc(otpEmail)}"></label>
-      <div id="codebox" ${otpId ? '' : 'hidden'}>
-        <p class="small">We sent a 6-digit code to <b>${esc(otpEmail)}</b>. It works for 10 minutes.</p>
-        <label>Code <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456"></label>
+      <label class="authlbl" for="authemail">Email</label>
+      <div class="authrow">
+        <input id="authemail" name="email" type="email" autocomplete="email" required value="${esc(otpEmail)}" placeholder="you@example.com">
+        ${otpId ? '' : '<button class="btn primary" name="go" value="code">📧 Email me a code</button>'}
       </div>
-      <div class="row">${otpId ? '<button class="btn primary" name="go" value="otp">Sign in</button><button class="btn" name="go" value="resend" formnovalidate>Send a new code</button>'
-        : '<button class="btn primary" name="go" value="code">📧 Email me a code</button>'}</div>
-      <p class="small muted">${otpId ? 'Not there? Check spam, or <a href="#" id="otpback">use another email</a>.' : 'We email you a code to sign in.'}</p>
-      <details class="pwbox"><summary class="small">Use a password instead</summary>
-        <label>Password <input name="password" type="password" autocomplete="current-password" minlength="8"></label>
-        <div class="row"><button class="btn" name="go" value="in">Sign in</button><button class="btn" name="go" value="up">Create account</button></div>
+      ${otpId ? `<div id="codebox" class="codebox">
+        <p>We sent a 6-digit code to <b>${esc(otpEmail)}</b>. It works for 10 minutes.</p>
+        <div class="authrow"><input name="code" class="codein" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456" aria-label="Code">
+          <button class="btn primary" name="go" value="otp">Sign in</button></div>
+        <div class="row authsub"><button class="btn" name="go" value="resend" formnovalidate>Send a new code</button><button class="btn" type="button" id="otpback">Use another email</button></div>
+        <p class="small muted">Not there? Check your spam folder.</p>
+      </div>` : '<p class="small muted authhint">We email you a 6-digit code. No password to remember.</p>'}
+      <details class="pwbox"><summary class="btn">🔑 Use a password instead</summary>
+        <label class="authlbl" for="authpw">Password</label>
+        <input id="authpw" name="password" type="password" autocomplete="current-password" minlength="8" placeholder="At least 8 characters">
+        <div class="row authsub"><button class="btn primary" name="go" value="in">Sign in</button><button class="btn" name="go" value="up">Create account</button></div>
       </details>
-      <p class="small"><a href="/" id="tofront">← Back to the front page</a></p>
+      <div class="authfoot"><a class="btn" href="/" id="tofront">← Back to the front page</a></div>
     </form>`;
   const back = $('#otpback'); if (back) back.onclick = e => { e.preventDefault(); otpId = null; renderLogin(mode); };
+  if (otpId) { const c = document.querySelector('[name=code]'); if (c) c.focus(); }
   $('#tofront').onclick = e => { e.preventDefault(); history.replaceState(null, '', '/'); msg(''); showLanding(); };
   document.querySelectorAll('[data-oauth]').forEach(b => b.onclick = async () => {
     msg('Opening ' + b.textContent.replace('Continue with ', '') + '…');
@@ -185,6 +195,7 @@ async function renderHome() {
   $('#main').innerHTML = '<div id="cont"></div>' + (auto ? nameCard(me) : '') + `
     <section class="card"><h2>Your characters</h2><div id="mine" class="list"><p class="muted">Loading…</p></div>
       <form id="add" class="addrow"><input name="url" placeholder="Add a character: paste its D&amp;D Beyond link" required autocomplete="off" inputmode="url" aria-label="D&amp;D Beyond character link"><button class="btn primary">Add</button></form>
+      <p class="small muted visinfo"><b>Who can see your tracker?</b> <i>Only me</i>: just you. <i>My party can see</i>: other verified players whose characters are in the same D&amp;D Beyond campaign can look at it (read-only), and you share a party log under Notes. <i>Anyone signed in</i>: anyone with the link. Verify a character first to share it with your party.</p>
       <p class="small muted">The character must be public on D&amp;D Beyond (Character Settings → Character Privacy → Public). Dungeon Tracker only reads it.</p></section>
     <section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + (auto ? '' : nameCard(me)) + dataCard();
   $('#add').addEventListener('submit', addCharacter); $('#uname').addEventListener('submit', saveName);
