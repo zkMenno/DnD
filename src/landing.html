@@ -1,0 +1,63 @@
+<!-- The public front page of dungeontracker.com (signed out). tools/build.js puts it into web/index.html; web/index.js
+     shows it only to visitors who aren't signed in. Text is plain HTML so it shows before any script runs. -->
+<section id="landing" class="landing" hidden>
+  <div class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">For D&amp;D Beyond players</p>
+      <h1 class="hero-title">Your character, ready at the table.</h1>
+      <p class="lede">Dungeon Tracker turns your D&amp;D Beyond character into a quick play sheet for game night. Every roll is one tap away,
+        with the numbers already worked out. HP, spell slots and class uses are tracked as you play. It only reads your sheet,
+        so your D&amp;D Beyond character stays exactly as it is.</p>
+      <div class="cta-row">
+        <a class="btn cta" href="#signin" data-go="signup"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Get started</a>
+        <a class="cta-alt" href="#signin" data-go="signin">Already playing? Sign in</a>
+      </div>
+      <form id="quicklink" class="quicklink">
+        <label for="ql-url">Have your character link ready? Paste it here.</label>
+        <div class="ql-row"><input id="ql-url" name="url" placeholder="https://www.dndbeyond.com/characters/12345678" autocomplete="off" inputmode="url">
+          <button class="btn">Start</button></div>
+        <p class="ql-msg small" aria-live="polite"></p>
+      </form>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg class="d20-big" viewBox="0 0 100 100"><use href="#d20"/></svg>
+      <div class="phone"><img src="/img/sheet-preview.webp" width="390" height="720" alt=""></div>
+    </div>
+  </div>
+
+  <div class="rule" aria-hidden="true"><span></span></div>
+
+  <ul class="features">
+    <li><span class="ficon">🎲</span><h3>Every roll, one tap</h3><p>Attacks, saves, checks and spells with the bonuses added up. Roll on screen, or use your own dice and read off what to add.</p></li>
+    <li><span class="ficon">❤️</span><h3>Track as you play</h3><p>HP, spell slots, rage, focus points, ammo, potions and concentration. Short and long rests reset what they should.</p></li>
+    <li><span class="ficon">📜</span><h3>Notes and a party log</h3><p>Keep your own session notes, and share a running log with the rest of your party.</p></li>
+    <li><span class="ficon">🌙</span><h3>Works offline</h3><p>Add it to your phone's home screen. It keeps working in a cellar with no signal, and saves when you're back online.</p></li>
+  </ul>
+
+  <section class="how">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><span class="num">I</span><div><h3>Make your character public</h3><p>On D&amp;D Beyond: open your character, then <b>Character Settings</b> → <b>Character Privacy</b>, and pick <b>Public</b>. Dungeon Tracker only reads it.</p></div></li>
+      <li><span class="num">II</span><div><h3>Paste the link</h3><p>Sign in with your email, no password needed, and paste your character's link.</p></div></li>
+      <li><span class="num">III</span><div><h3>Play</h3><p>Open it on your phone at the table. When you level up on D&amp;D Beyond, pull the new version in with one tap.</p></div></li>
+    </ol>
+    <p class="center"><a class="btn cta" href="#signin" data-go="signup"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Get started</a></p>
+  </section>
+
+  <ul class="trust">
+    <li>📖 Read-only: never changes your D&amp;D Beyond sheet</li>
+    <li>🪙 Free, no ads, no tracking</li>
+    <li>🏰 Hosted in the EU</li>
+  </ul>
+</section>
+
+<!-- the d20 used above (an icosahedron seen face-on), drawn once -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="d20" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round">
+      <polygon points="50,4 91,27 91,73 50,96 9,73 9,27"/>
+      <polygon points="50,25 74,66 26,66"/>
+      <path d="M50 4 50 25M9 27 50 25 91 27M9 27 26 66M91 27 74 66M9 73 26 66M91 73 74 66M50 96 26 66M50 96 74 66"/>
+    </g>
+  </symbol>
+</svg>

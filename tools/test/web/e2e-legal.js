@@ -15,9 +15,9 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   ok('every {{placeholder}} is filled in', !/\{\{/.test(await p.content()));
 
   await p.goto(B + '/'); ok('the home page links to it', !!(await p.$('footer a[href="/legal.html"]')));
-  await p.fill('input[name=email]', 'leaver@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-leaver');
+  await p.click('.hero .btn.cta'); await p.fill('input[name=email]', 'leaver@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-leaver');
   await p.click('button[value=up]'); await p.waitForSelector('#add');
-  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button');
+  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved);
   await p.evaluate(() => notesStore.add({ text: 'A note to take home', kind: 'story', done: false, at: Date.now(), session: 1 })); await p.waitForTimeout(1200);
   await p.evaluate(() => { menuOpen = true; paintMenu(); });
@@ -33,7 +33,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const uid = await p.evaluate(() => pb.authStore.record.id);
   await p.click('#delacct'); await p.fill('#delname', 'not-me'); await p.click('#delgo'); await p.waitForTimeout(500);
   ok('delete asks for the username typed out', /not your username/.test(await p.textContent('#msg')) && !!(await p.$('#add')));
-  await p.fill('#delname', await p.evaluate(() => pb.authStore.record.username)); await p.click('#delgo'); await p.waitForSelector('#login');
+  await p.fill('#delname', await p.evaluate(() => pb.authStore.record.username)); await p.click('#delgo'); await p.waitForSelector('#landing:not([hidden])');
   const su = (await (await fetch(B + '/api/collections/_superusers/auth-with-password', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ identity: 'admin@example.test', password: 'TestPass-12345' }) })).json()).token;
   const count = async (col, f) => (await (await fetch(B + '/api/collections/' + col + '/records?filter=' + encodeURIComponent(f), { headers: { Authorization: su } })).json()).totalItems;
   ok('delete my account: account, characters, trackers and notes are gone', (await count('users', 'id="' + uid + '"')) === 0 && (await count('characters', 'owner="' + uid + '"')) === 0

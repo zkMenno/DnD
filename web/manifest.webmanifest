@@ -1,6 +1,6 @@
 {
- "name": "Character sheets",
- "short_name": "Sheets",
+ "name": "Dungeon Tracker",
+ "short_name": "Dungeon Tracker",
  "start_url": "/",
  "display": "standalone",
  "background_color": "#0f1720",
@@ -18,5 +18,6 @@
    "type": "image/png",
    "purpose": "any maskable"
   }
- ]
+ ],
+ "description": "Your D&D Beyond character at the table"
 }

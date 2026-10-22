@@ -10,8 +10,8 @@ const api = async (path, opt={}) => (await fetch(B+path, {...opt, headers:{'cont
   const player = async (email, link) => {
     const ctx = await b.newContext({viewport:{width:390,height:844}, colorScheme:'dark'}); const p = await ctx.newPage(); p.setDefaultTimeout(30000);
     p.errs = []; watch(p, p.errs);
-    await p.goto(B+'/'); await p.fill('input[name=email]', email); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-x1'); await p.click('button[value=up]'); await p.waitForSelector('#add');
-    await p.fill('#add input[name=url]', link); await p.click('#add button'); await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals'); await p.waitForTimeout(800);
+    await p.goto(B+'/#signin'); await p.fill('input[name=email]', email); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-x1'); await p.click('button[value=up]'); await p.waitForSelector('#add');
+    await p.fill('#add input[name=url]', link); await p.click('#add button'); await watch.onboard(p); await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals'); await p.waitForTimeout(800);
     p.cid = await p.evaluate(() => window.SHEET.character.id); p.path = new URL(p.url()).pathname; return p;
   };
   const a = await player('viewer'+t+'@example.test', 'https://www.dndbeyond.com/characters/165157421');   // Wick

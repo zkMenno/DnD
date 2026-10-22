@@ -40,3 +40,84 @@ input,select{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid 
 .legal table{border-collapse:collapse;width:100%;font-size:.9rem} .legal td,.legal th{border-top:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}
 .btn.danger{border-color:var(--hp);color:var(--hp)}
 .legal a{color:var(--sea)}
+
+/* ── Dungeon Tracker: brand, front page, sign-in, onboarding (22 Oct) ─────────────────────────────────
+   Colours and fonts are the sheet's theme tokens (engine/theme.css), so light/dark follow the device like the sheet. */
+.top{position:relative;z-index:2}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-family:var(--f-display);font-size:1.55rem;font-weight:700;letter-spacing:.01em}
+.brand-d20{width:30px;height:30px;color:var(--brass);flex:none}
+.brand:hover .brand-d20{transform:rotate(-18deg);transition:transform .3s}
+#who a{color:var(--ink);font-weight:700}
+.btn{transition:background .15s,border-color .15s,transform .08s,box-shadow .15s}
+.btn:hover{border-color:var(--brass)} .btn:active{transform:translateY(1px) scale(.98)}
+.btn.primary:hover{filter:brightness(1.08)} .btn:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.btn.wide{width:100%}
+
+/* front page */
+body.front{background:
+  radial-gradient(ellipse 70% 45% at 75% 8%,color-mix(in srgb,var(--brass) 16%,transparent),transparent 70%),
+  radial-gradient(ellipse 60% 40% at 10% 0%,color-mix(in srgb,var(--sea) 14%,transparent),transparent 70%),
+  var(--bg)}
+.landing{max-width:1080px;margin:0 auto;padding:8px 20px 40px}
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding:24px 0 36px}
+.eyebrow{font-family:var(--f-num);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:0 0 10px}
+.hero-title{font-family:var(--f-display);font-size:clamp(2.3rem,5.4vw,3.9rem);line-height:1.04;margin:0 0 18px;letter-spacing:-.005em}
+.lede{font-size:1.16rem;line-height:1.55;color:var(--ink);opacity:.92;max-width:34em;margin:0 0 26px}
+.cta-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:26px}
+.btn.cta{display:inline-flex;align-items:center;gap:10px;font-size:1.2rem;padding:14px 28px;background:var(--brass);border-color:var(--brass);color:var(--sea-ink,#0c141c);text-decoration:none;box-shadow:0 6px 22px color-mix(in srgb,var(--brass) 35%,transparent)}
+.btn.cta:hover{filter:brightness(1.1);box-shadow:0 8px 28px color-mix(in srgb,var(--brass) 50%,transparent)}
+.btn.cta .d20i{width:22px;height:22px}
+.cta-alt{color:var(--ink);font-weight:700} .cta-alt:hover{color:var(--brass)}
+.quicklink{max-width:34em;padding:14px 16px;border:1px dashed var(--line);border-radius:14px;background:color-mix(in srgb,var(--surface) 70%,transparent)}
+.quicklink label{font-weight:600;font-size:.95rem;margin:0 0 8px;display:block}
+.ql-row{display:flex;gap:8px} .ql-row input{flex:1;min-width:0}
+.ql-msg{margin:6px 0 0;color:var(--hp)} .ql-msg:empty{display:none}
+.hero-art{position:relative;display:flex;justify-content:center;min-height:420px}
+.d20-big{position:absolute;width:340px;height:340px;top:4%;left:50%;transform:translateX(-50%) rotate(-12deg);color:var(--brass);opacity:.16}
+.phone{position:relative;width:272px;border-radius:34px;padding:10px;background:linear-gradient(160deg,#2b2620,#121010);box-shadow:0 30px 60px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06) inset;transform:rotate(3deg)}
+.phone img{display:block;width:100%;height:auto;border-radius:26px;aspect-ratio:390/720;object-fit:cover;object-position:top}
+.rule{display:flex;align-items:center;gap:14px;margin:8px auto 30px;max-width:520px}
+.rule::before,.rule::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--brass),transparent)}
+.rule span{width:10px;height:10px;transform:rotate(45deg);border:1px solid var(--brass)}
+.features{list-style:none;padding:0;margin:0 0 46px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.features li{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 18px;box-shadow:var(--shadow)}
+.features h3{font-family:var(--f-display);font-size:1.15rem;margin:10px 0 6px}
+.features p{margin:0;line-height:1.5;color:var(--muted)}
+.ficon{font-size:1.7rem}
+.how{text-align:left;max-width:860px;margin:0 auto 40px}
+.how h2{font-family:var(--f-display);font-size:2rem;text-align:center;margin:0 0 22px}
+.steps{list-style:none;padding:0;margin:0 0 26px;display:grid;gap:14px}
+.steps li{display:flex;gap:16px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:12px;padding:16px 18px}
+.steps .num{font-family:var(--f-display);font-weight:700;font-size:1.3rem;color:var(--brass);min-width:2.2em;text-align:center}
+.steps h3{margin:0 0 4px;font-size:1.1rem} .steps p{margin:0;line-height:1.5}
+.center{text-align:center}
+.trust{list-style:none;padding:0;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;color:var(--muted);font-size:.95rem}
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;gap:10px}
+  .hero-art{min-height:0;order:-1;margin:0 auto 6px}
+  .phone{width:200px;transform:rotate(2deg)} .d20-big{width:240px;height:240px}
+  .features{grid-template-columns:1fr 1fr}
+}
+@media (max-width:520px){ .features{grid-template-columns:1fr} .ql-row{flex-direction:column} .btn.cta{width:100%;box-sizing:border-box;justify-content:center} .hero-art{order:0;margin:18px auto 0} .phone{width:210px} }
+
+/* sign-in and onboarding */
+.auth,.onb{max-width:520px;margin:10px auto 0;width:100%;box-sizing:border-box}
+.auth h2,.onb h2{font-family:var(--f-display);font-size:1.6rem}
+.oauth{display:grid;gap:8px;margin:14px 0 4px}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.85rem;margin:14px 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.stepno{font-family:var(--f-num);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);margin:0 0 4px}
+.onb label input{width:100%;box-sizing:border-box}
+.howto{margin-top:18px;padding:14px 16px;border-radius:12px;background:var(--raised);border:1px solid var(--line)}
+.howto h3{margin:0 0 6px;font-size:1rem} .howto ol{margin:0 0 10px;padding-left:20px;display:grid;gap:4px;line-height:1.45}
+.promise{margin:0;font-size:.95rem}
+.linkpreview code{font-family:var(--f-num);font-size:.95rem;word-break:break-all}
+.addrow{display:flex;gap:8px;margin:14px 0 4px} .addrow input{flex:1;min-width:0}
+.ch:hover{border-color:var(--brass)}
+.foot .small{display:inline-block;margin-top:4px}
+body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
+.auth a,.onb a,.foot a{color:var(--ink)} .auth a:hover,.onb a:hover,.foot a:hover{color:var(--brass)}
+.auth .btn.primary,.onb .btn.primary,.addrow .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--sea-ink,#0c141c)}
+.brand span{white-space:nowrap} #who{text-align:right}
+@media (max-width:520px){ .brand{font-size:1.2rem;gap:8px} .brand-d20{width:24px;height:24px} #who{font-size:.8rem} .top{gap:8px;padding-left:14px;padding-right:14px} }
+.linkpreview code{word-break:normal;overflow-wrap:anywhere;font-size:.88rem}

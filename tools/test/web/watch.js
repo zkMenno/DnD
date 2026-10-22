@@ -5,3 +5,9 @@ module.exports = (p, errs) => {
   p.on('console', m => { if (m.type() === 'error' && /Content Security Policy|Refused to (execute|load|apply|connect|frame)/i.test(m.text())) errs.push('CSP: ' + m.text()); });
   return errs;
 };
+// After "Add" on a fresh account: onboarding step 2 (username) comes first; keep the name and open the sheet.
+// Returning players go straight to the sheet, so this just waits for either.
+module.exports.onboard = async p => {
+  await p.waitForFunction(() => document.querySelector('#ustep') || /^\/[a-z0-9-]+\/\d+$/.test(location.pathname), null, { timeout: 30000 });
+  if (await p.$('#ustep')) await p.click('#ustep button[value=go]');
+};

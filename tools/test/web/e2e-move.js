@@ -25,9 +25,9 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', DIST = path.join(__dirname
 
   // 2. web app: a new player adds Wick, then brings the tracker over
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage(); watch(p, errs); p.setDefaultTimeout(30000);
-  await p.goto(B + '/'); await p.fill('input[name=email]', 'mover@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-mover');
+  await p.goto(B + '/#signin'); await p.fill('input[name=email]', 'mover@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-mover');
   await p.click('button[value=up]'); await p.waitForSelector('#add');
-  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button');
+  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals'); await p.waitForTimeout(2500);
   const paste = async text => { await menuBtn(p, 'movein'); await p.fill('#movepaste', text); await p.click('.mbtns [data-m="1"]'); await p.waitForTimeout(400); };
   await paste('hello'); ok('a broken code is refused, in words', /isn’t a moving code/.test(await p.textContent('#syncmsg')));

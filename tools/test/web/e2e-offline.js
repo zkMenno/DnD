@@ -7,8 +7,8 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const ctx = await b.newContext({ viewport:{width:390, height:844} }); const p = await ctx.newPage(); p.setDefaultTimeout(30000);
   p.errs = []; watch(p, p.errs);
-  await p.goto(B+'/'); await p.fill('input[name=email]', 'off'+Date.now()+'@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-x1'); await p.click('button[value=up]'); await p.waitForSelector('#add');
-  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals');
+  await p.goto(B+'/#signin'); await p.fill('input[name=email]', 'off'+Date.now()+'@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-x1'); await p.click('button[value=up]'); await p.waitForSelector('#add');
+  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await watch.onboard(p); await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals');
   const url = p.url(), cid = await p.evaluate(() => window.SHEET.character.id), path = new URL(url).pathname;
   await p.goto(B+'/'); await p.waitForSelector('#mine .ch a.open');   // the home list, seen once online
   await p.goto(url); await p.waitForSelector('#vitals');   // opened twice online: the saved copy has the synced data
