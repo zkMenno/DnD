@@ -21,7 +21,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved);
   await p.evaluate(() => notesStore.add({ text: 'A note to take home', kind: 'story', done: false, at: Date.now(), session: 1 })); await p.waitForTimeout(1200);
   await p.evaluate(() => { menuOpen = true; paintMenu(); });
-  ok('the sheet\'s ☰ menu has a Your characters button (Privacy & terms is only in the home footer)', !!(await p.$('#menubox a.homebtn[href="/"]')) && !(await p.$('#menubox a[href="/legal.html"]')));
+  ok('the sheet\'s ☰ menu has a Back to all characters row (Privacy & terms is only in the home footer)', !!(await p.$('#menubox a.homelink[href="/"]')) && !(await p.$('#menubox a[href="/legal.html"]')));
   ok('nothing loads from another site (fonts, scripts: all from this server)', outside.size === 0 || console.log('   outside:', [...outside]));
 
   await p.goto(B + '/'); await p.waitForSelector('#export');
@@ -33,7 +33,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const uid = await p.evaluate(() => pb.authStore.record.id);
   await p.click('#delacct'); await p.fill('#delname', 'not-me'); await p.click('#delgo'); await p.waitForTimeout(500);
   ok('delete asks for the username typed out', /not your username/.test(await p.textContent('#msg')) && !!(await p.$('#add')));
-  await p.fill('#delname', await p.evaluate(() => pb.authStore.record.username)); await p.click('#delgo'); await p.waitForSelector('#landing:not([hidden])');
+  await p.fill('#delname', '"' + await p.evaluate(() => pb.authStore.record.username) + '"'); await p.click('#delgo'); await p.waitForSelector('#delyes'); await p.click('#delyes'); await p.waitForSelector('#landing:not([hidden])');
   const su = (await (await fetch(B + '/api/collections/_superusers/auth-with-password', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ identity: 'admin@example.test', password: 'TestPass-12345' }) })).json()).token;
   const count = async (col, f) => (await (await fetch(B + '/api/collections/' + col + '/records?filter=' + encodeURIComponent(f), { headers: { Authorization: su } })).json()).totalItems;
   ok('delete my account: account, characters, trackers and notes are gone', (await count('users', 'id="' + uid + '"')) === 0 && (await count('characters', 'owner="' + uid + '"')) === 0

@@ -60,8 +60,7 @@ window.withV = withV;
     async pull(compact) {
       if (!mine) throw new Error('Only the owner can sync this sheet.');
       const raw = await pb.send('/api/ddb/' + ch.ddb_id, {});
-      await pb.collection('characters').update(ch.id, { data: compact(raw) });
-      location.reload();
+      await pb.collection('characters').update(ch.id, { data: compact(raw) });   // the sync window (§21) shows ✓ and reloads
     },
   };
   window.claude = { use: async name => name === 'db' ? sheetDb(pb, ch, me, mine) : null };

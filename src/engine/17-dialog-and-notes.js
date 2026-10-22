@@ -2,11 +2,11 @@
    §17 CONFIRM DIALOG AND NOTES — every delete or wipe asks first
    ============================================================================ */
 // read(wrap): optional, called just before the dialog closes, to pick up what was typed in it
-function confirmBox(title, body, ok, danger, read){
+function confirmBox(title, body, ok, danger, read, no){
   return new Promise(res => {
     const prev = document.activeElement;
     const wrap = document.createElement('div'); wrap.className = 'modal'; wrap.setAttribute('role','alertdialog'); wrap.setAttribute('aria-modal','true'); wrap.setAttribute('aria-labelledby','mtitle');
-    wrap.innerHTML = '<div class="mbox"><h3 id="mtitle">'+title+'</h3>'+(body?(body[0]==='<'?body:'<p>'+body+'</p>'):'')+'<div class="mbtns"><button class="btn" data-m="0">'+WORD.cancel+'</button><button class="btn '+(danger===false?'primary':'danger solid')+'" data-m="1">'+ok+'</button></div></div>';
+    wrap.innerHTML = '<div class="mbox"><h3 id="mtitle">'+title+'</h3>'+(body?(body[0]==='<'?body:'<p>'+body+'</p>'):'')+'<div class="mbtns"><button class="btn" data-m="0">'+(no||WORD.cancel)+'</button><button class="btn '+(danger===false?'primary':'danger solid')+'" data-m="1">'+ok+'</button></div></div>';
     const done = v => { if (read) try { read(wrap); } catch(_){} document.removeEventListener('keydown', key, true); wrap.remove(); if (prev && prev.focus && prev.isConnected) try{ prev.focus({preventScroll:true}); }catch(_){} res(v); };
     const key = e => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
     wrap.addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) done(b.dataset.m === '1'); else if (e.target === wrap) done(false); });

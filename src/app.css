@@ -1554,3 +1554,37 @@ button.chip.ic.term{text-decoration:none}
 .jumpbtn{transition:opacity .15s,background .15s,color .15s,transform .15s,box-shadow .15s}
 @media (hover:hover){ .jumpbtn:hover{background:var(--brass);color:#1d1406;box-shadow:0 6px 18px rgba(0,0,0,.3);transform:translateY(-2px)} }
 @media (prefers-reduced-motion:reduce){ .jumpbtn:hover{transform:none} }
+/* web app: the "Sync with D&D Beyond" window (§21 syncWindow): two numbered parts, a table of what differs */
+.mbox:has(.syncwin){max-width:min(680px,calc(100vw - 32px));width:100%}
+.syncwin{max-height:min(62vh,620px);overflow:auto;margin:0 -4px 12px;padding:0 4px}
+.syncwin p{margin:0 0 10px;line-height:1.5}
+.syncwin .synclast{margin:-4px 0 12px}
+.synch{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-size:1.02rem}
+.synch:first-of-type{margin-top:0}
+.syncno{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--brass);color:#1d1406;font-weight:800;font-size:.9rem}
+.syncok{padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--good) 14%,transparent);border:1px solid color-mix(in srgb,var(--good) 40%,transparent)}
+.synctabw{overflow-x:auto;margin:0 0 10px;border:1px solid var(--line);border-radius:12px}
+.synctab{width:100%;border-collapse:collapse;font-size:.9rem}
+.synctab th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.synctab td{padding:8px 10px;vertical-align:top;border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.synctab tr:last-child td{border-bottom:0}
+.synctab td b{display:block}
+.synctab .chw{display:block;margin-top:2px;color:var(--muted);font-size:.8rem;line-height:1.35}
+.synctab .sv{white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums}
+.synctab .sv.here{color:var(--brass)}
+@media (max-width:480px){ .synctab th,.synctab td{padding:7px 8px} .synctab{font-size:.85rem} }
+/* the moment after a sync: a spinning die, then a ✓ before the page reloads */
+.syncfx{position:fixed;inset:0;z-index:120;display:grid;place-items:center;background:rgba(4,8,12,.55);animation:mfade .15s ease-out}
+.sfxbox{display:grid;justify-items:center;gap:6px;padding:22px 28px;border-radius:18px;background:var(--surface);border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.45);text-align:center}
+.sfxbox b{font-size:1.1rem} .sfxbox span:last-child{color:var(--muted);font-size:.9rem}
+.sfxspin{font-size:2.2rem;display:inline-block}
+.sfxok{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--good);color:#fff;font-size:2rem;font-weight:800}
+@media (prefers-reduced-motion:no-preference){
+  .sfxspin{animation:sfxspin .8s linear infinite} @keyframes sfxspin{to{transform:rotate(360deg)}}
+  .syncfx.done .sfxok{animation:sfxpop .45s cubic-bezier(.2,.8,.2,1.4)} @keyframes sfxpop{from{transform:scale(.3);opacity:0}}
+  .syncfx.done .sfxbox{animation:sfxbox .35s ease-out} @keyframes sfxbox{from{transform:translateY(6px)}}
+}
+/* ☰ menu: the "Back to all characters" row looks like the other rows (a link, so no visited purple) */
+a.menulink.homelink{text-decoration:none;color:var(--ink)} a.menulink.homelink:visited{color:var(--ink)}
+a.menulink.homelink .mico{font-size:1.6rem;line-height:1;font-weight:700;color:var(--brass);width:28px;text-align:center}
+.synctab td b{overflow-wrap:anywhere}

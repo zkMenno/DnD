@@ -124,7 +124,8 @@ document.addEventListener('click', e => {
       $('#hpamt').value = ''; save(); return paintVitals();
     }
     case 'hpclose': return closeHpMenu();
-    case 'sync': case 'pull': return pull();
+    case 'sync': case 'pull': return window.SHEET ? syncWindow() : pull();
+    case 'syncwin': return syncWindow();
     case 'moveout': return moveOut();
     case 'movein': return moveIn();
     case 'push': return push();

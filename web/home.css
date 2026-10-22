@@ -423,3 +423,11 @@ body.front #main:empty,body.front #msg:empty{display:none}   /* the app area is 
 .msg.bad::before{content:"⚠️";position:absolute;left:12px;top:10px}
 .msg:empty{display:none}
 @media (prefers-reduced-motion:no-preference){ .msg:not(:empty){animation:msgin .2s ease-out} @keyframes msgin{from{opacity:0;transform:translateY(-4px)}} }
+
+/* Your data → Delete my account: space above the box, the question on one line, then the field */
+#delbox{margin-top:14px}
+.delclaim{padding:14px 16px 12px;margin:0}
+.delclaim p{margin:0 0 10px;line-height:1.5}
+.delclaim .delask label{display:inline;font-weight:700}
+.delclaim input{width:100%;box-sizing:border-box;margin:0 0 12px}
+.btn.danger.solid{background:var(--hp);border-color:var(--hp);color:#fff}

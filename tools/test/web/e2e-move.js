@@ -29,7 +29,8 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', DIST = path.join(__dirname
   await p.click('button[value=up]'); await p.waitForSelector('#add');
   await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals'); await p.waitForTimeout(2500);
-  const paste = async text => { await menuBtn(p, 'movein'); await p.fill('#movepaste', text); await p.click('.mbtns [data-m="1"]'); await p.waitForTimeout(400); };
+  const paste = async text => { p.evaluate(() => { moveIn(); }); await p.waitForSelector('.mbox');   // the web app's menu no longer offers it (Menno, 23 Oct); the code path stays
+    await p.fill('#movepaste', text); await p.click('.mbtns [data-m="1"]'); await p.waitForTimeout(400); };
   await paste('hello'); ok('a broken code is refused, in words', /isn’t a moving code/.test(await p.textContent('#syncmsg')));
   await paste(henryCode); ok('a code for another character is refused', /This code is for Henry/.test(await p.textContent('#syncmsg')));
   await paste(code); await p.waitForSelector('.mbtns'); await p.click('.mbtns [data-m="1"]'); await p.waitForTimeout(2500);

@@ -162,26 +162,27 @@ function baseline(){ return S.base || freshState(); }
 function snapshotBase(){ const b = {}; TRACKED.forEach(k => b[k] = JSON.parse(JSON.stringify(S[k]))); return b; }
 // Each change says what moved and where to fix it in D&D Beyond.
 function changes(){
-  const f = baseline(), out = [], add = (t, where) => out.push({t, where});
-  if (S.hp !== f.hp) { const d = S.hp - f.hp; add('HP '+f.hp+' → '+S.hp+' (of '+D.hpMax+')', 'Tap Hit Points, enter '+Math.abs(d)+' and press '+(d<0?'Damage':'Heal')); }
-  if (S.temp !== f.temp) add('Temporary HP '+f.temp+' → '+S.temp, 'Hit Points panel → Temp HP: set to '+S.temp);
-  if (S.insp !== f.insp) add('Heroic Inspiration '+(S.insp?'gained':'used'), (S.insp?'Switch on':'Switch off')+' Inspiration at the top of the sheet');
+  // each change: t (one line), where (how to enter it on D&D Beyond), and for the sync table: what, here (this sheet), ddb
+  const f = baseline(), out = [], add = (t, where, what, here, ddb) => out.push({t, where, what, here: here == null ? '' : String(here), ddb: ddb == null ? '' : String(ddb)});
+  if (S.hp !== f.hp) { const d = S.hp - f.hp; add('HP '+f.hp+' → '+S.hp+' (of '+D.hpMax+')', 'Tap Hit Points, enter '+Math.abs(d)+' and press '+(d<0?'Damage':'Heal'), 'Hit points', S.hp+' / '+D.hpMax, f.hp+' / '+D.hpMax); }
+  if (S.temp !== f.temp) add('Temporary HP '+f.temp+' → '+S.temp, 'Hit Points panel → Temp HP: set to '+S.temp, 'Temporary HP', S.temp, f.temp);
+  if (S.insp !== f.insp) add('Heroic Inspiration '+(S.insp?'gained':'used'), (S.insp?'Switch on':'Switch off')+' Inspiration at the top of the sheet', 'Heroic Inspiration', S.insp?'Yes':'No', f.insp?'Yes':'No');
   RES.forEach(r => { const a = f[r.key]||0, b = S[r.key]||0, where = r.ddb || ('Actions → '+r.name); if (a === b) return;
-    if (r.pool) add(r.name+' '+(r.max-a)+' → '+(r.max-b)+' points left (of '+r.max+')', where+': '+(r.max-b)+' points left ('+b+' used)');
-    else if (r.max === 1) add(r.name+' '+(b>a?'spent':'recovered'), where+': '+(b?'tick':'untick')+' the box');
-    else add(r.name+' spent '+a+' → '+b+' (of '+r.max+')', where+': '+b+' box'+(b===1?'':'es')+' ticked'); });
+    if (r.pool) add(r.name+' '+(r.max-a)+' → '+(r.max-b)+' points left (of '+r.max+')', where+': '+(r.max-b)+' points left ('+b+' used)', r.name, (r.max-b)+' of '+r.max+' left', (r.max-a)+' of '+r.max+' left');
+    else if (r.max === 1) add(r.name+' '+(b>a?'spent':'recovered'), where+': '+(b?'tick':'untick')+' the box', r.name, b?'Used':'Ready', a?'Used':'Ready');
+    else add(r.name+' spent '+a+' → '+b+' (of '+r.max+')', where+': '+b+' box'+(b===1?'':'es')+' ticked', r.name, b+' of '+r.max+' used', a+' of '+r.max+' used'); });
   const newOnly = n => !ddbQty(n) && ADDED.some(x => x.inv.name === n);   // counted here, but D&D Beyond doesn't list it yet: the Add line covers it
   const sp0 = f.spent||{}, sp1 = S.spent||{};
   new Set([...Object.keys(sp0), ...Object.keys(sp1)]).forEach(n => { const a = sp0[n]||0, b = sp1[n]||0; if (a === b || newOnly(n)) return;
-    if (n==='Ball Bearings') add('Ball Bearings '+(b?'spilled':'picked back up'), 'Inventory → Ball Bearings: '+(b?'remove the bag':'keep the bag'));
-    else { const q = invQty(n); add(n+' '+(q-a)+' → '+(q-b), 'Inventory → '+n+': quantity '+(q-b)); } });
-  COINS.forEach(([k,n]) => { const a = f.coins[k]||0, b = S.coins[k]||0; if (a !== b) add(n+' '+a+' → '+b+' ('+sgn(b-a)+' '+k+')', 'Inventory → Currency: set '+n+' to '+b); });
-  D.hitDice.forEach(h => { const a = f.hd[h.cls]||0, b = S.hd[h.cls]||0; if (a !== b) add(h.cls+' hit dice spent '+a+' → '+b+' (of '+h.total+' '+h.die+')', 'Short Rest → '+h.cls+' '+h.die+': '+b+' used'); });
+    if (n==='Ball Bearings') add('Ball Bearings '+(b?'spilled':'picked back up'), 'Inventory → Ball Bearings: '+(b?'remove the bag':'keep the bag'), 'Ball Bearings', b?'Spilled':'In the bag', a?'Spilled':'In the bag');
+    else { const q = invQty(n); add(n+' '+(q-a)+' → '+(q-b), 'Inventory → '+n+': quantity '+(q-b), n, q-b, q-a); } });
+  COINS.forEach(([k,n]) => { const a = f.coins[k]||0, b = S.coins[k]||0; if (a !== b) add(n+' '+a+' → '+b+' ('+sgn(b-a)+' '+k+')', 'Inventory → Currency: set '+n+' to '+b, n, b+' '+k, a+' '+k); });
+  D.hitDice.forEach(h => { const a = f.hd[h.cls]||0, b = S.hd[h.cls]||0; if (a !== b) add(h.cls+' hit dice spent '+a+' → '+b+' (of '+h.total+' '+h.die+')', 'Short Rest → '+h.cls+' '+h.die+': '+b+' used', h.cls+' hit dice ('+h.die+')', b+' of '+h.total+' used', a+' of '+h.total+' used'); });
   ADDED.filter(x => !x.entered).forEach(x => { let i = x.inv;
     const q = !ddbQty(i.name) && (S.spent||{})[i.name] ? itemLeft(i.name) : i.qty;   // used or topped up at the table before it's in D&D Beyond
     if (q < 1) return;
     i = Object.assign({}, i, {qty: q});
-    add('Add '+(i.qty>1 ? i.qty+'× ' : '')+i.name, 'Inventory → Add Items → search “'+(x.find||i.name)+'”'+(x.pick ? ', pick '+x.pick : '')+(i.qty>1 ? ', quantity '+i.qty : '')+(i.equipped ? ', add it and tick Equipped' : ', add it')); });
+    add('Add '+(i.qty>1 ? i.qty+'× ' : '')+i.name, 'Inventory → Add Items → search “'+(x.find||i.name)+'”'+(x.pick ? ', pick '+x.pick : '')+(i.qty>1 ? ', quantity '+i.qty : '')+(i.equipped ? ', add it and tick Equipped' : ', add it'), i.name, i.qty+' (added here)', 'not there yet'); });
   return out;
 }
 // the change list as plain text (copy button)

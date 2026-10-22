@@ -47,14 +47,17 @@ function paintMenu(){
             : '<div class="dsopt dsrow'+(k===cur?' on':'')+'"><button class="dsprev" data-act="dsprev" data-k="'+k+'" aria-label="Preview '+esc(s.name)+'">'+sw(s)
               + '<span class="dst"><b>'+esc(s.name)+'</b><span>'+esc(s.desc)+'</span></span><span class="dsroll" aria-hidden="true">🎲</span></button>'
               + '<button class="dspick'+(k===cur?' on':'')+'" data-act="diceset" data-k="'+k+'" aria-pressed="'+(k===cur)+'" aria-label="'+(k===cur?'In use: ':'Use ')+esc(s.name)+'">'+(k===cur?'✓':'')+'</button></div>'; }).join('')+'</div>').join('') + '</div>';
+  const webSync = window.SHEET && !VIEW
+    ? '<button class="menulink" data-act="syncwin"><span class="mico" aria-hidden="true">🔄</span><span class="dst"><b>Sync with D&amp;D Beyond</b><span>Last synced '+esc(when)+(pend ? ' · '+pend+' difference'+(pend===1?'':'s') : '')+(DATA_OLD ? ' · sync for new details' : '')+'</span></span><span class="mchev" aria-hidden="true">›</span></button>'
+    : null;
   box.innerHTML = '<div class="cardhead" style="margin-bottom:8px"><h3>☰ Menu</h3><button class="x2" data-act="menu" aria-label="Close">×</button></div>'
-    + '<button class="menulink'+(syncOpen?' open':'')+'" data-act="menuview" data-v="sync" aria-expanded="'+syncOpen+'"><span class="mico" aria-hidden="true">🔄</span><span class="dst"><b>Sync D&amp;D Beyond</b><span>Last synced '+esc(when)+(pend ? ' · '+pend+' to push' : '')+(DATA_OLD ? ' · sync for new details' : '')+'</span></span>'+chev(syncOpen)+'</button>'
-    + (syncOpen ? syncBody : '')
+    // web app: first the way back to your characters (claude.ai sheets have none), then sync, then dice
+    + (window.SHEET && !diceEdit ? '<a class="menulink homelink" href="/"><span class="mico" aria-hidden="true">‹</span><span class="dst"><b>'+(window.SHEET.trial ? 'Back to Dungeon Tracker' : 'Back to all characters')+'</b></span></a><div style="height:8px"></div>' : '')
+    + (window.SHEET ? (webSync || '') : '<button class="menulink'+(syncOpen?' open':'')+'" data-act="menuview" data-v="sync" aria-expanded="'+syncOpen+'"><span class="mico" aria-hidden="true">🔄</span><span class="dst"><b>Sync D&amp;D Beyond</b><span>Last synced '+esc(when)+(pend ? ' · '+pend+' to push' : '')+(DATA_OLD ? ' · sync for new details' : '')+'</span></span>'+chev(syncOpen)+'</button>'
+    + (syncOpen ? syncBody : ''))
     + '<div style="height:8px"></div>'
     + '<button class="menulink'+(diceOpen?' open':'')+'" data-act="menuview" data-v="dice" aria-expanded="'+diceOpen+'">'+sw(DICE_SETS[cur]).replace('class="dsw"','class="dsw one"')+'<span class="dst"><b>Dice Sets</b><span>'+esc(DICE_SETS[cur].name)+'</span></span>'+chev(diceOpen)+'</button>'
     + (diceOpen ? diceBody : '')
-    // web app: the way back to your characters (claude.ai sheets have none). Privacy & terms lives in the home page footer.
-    + (window.SHEET && !diceEdit ? '<a class="btn homebtn" href="/"><span aria-hidden="true">‹</span> '+(window.SHEET.trial ? 'Dungeon Tracker' : 'Your characters')+'</a>' : '')
     + (diceEdit ? '' : done);
 }
 // open / close the ☰ menu

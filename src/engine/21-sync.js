@@ -60,10 +60,51 @@ function remoteMsg(code, what){
   })[code] || (what+' failed'+(code?' ('+esc(code)+')':'')+'. Try again in a moment.');
 }
 
+// ── Web app: one "Sync with D&D Beyond" window (☰ menu). Part 1 lists what differs between this sheet and D&D Beyond
+// (Dungeon Tracker can't write there, so the player changes it on D&D Beyond); part 2 fetches D&D Beyond's version into
+// this sheet, after a second "replace these values?" when something would be lost. A ✓ moment, then the page reloads.
+const syncWhen = () => new Date(DATA.syncedAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+function syncTableHtml(c){
+  return '<div class="synctabw"><table class="synctab"><thead><tr><th>What</th><th>This sheet</th><th>D&amp;D Beyond</th></tr></thead><tbody>'
+    + c.map(x => '<tr><td><b>'+esc(x.what || x.t)+'</b><span class="chw">'+esc(x.where)+'</span></td><td class="sv here">'+esc(x.here)+'</td><td class="sv">'+esc(x.ddb)+'</td></tr>').join('')
+    + '</tbody></table></div>';
+}
+function syncFx(state, el){
+  if (state === 'off') { if (el) el.remove(); return null; }
+  if (!el) { el = document.createElement('div'); el.className = 'syncfx'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.classList.toggle('done', state === 'done');
+  el.innerHTML = state === 'done'
+    ? '<div class="sfxbox"><span class="sfxok" aria-hidden="true">✓</span><b>Synced with D&amp;D Beyond</b><span>Loading '+esc(FIRST_NAME)+'’s fresh sheet…</span></div>'
+    : '<div class="sfxbox"><span class="sfxspin" aria-hidden="true">🎲</span><b>Reading D&amp;D Beyond…</b></div>';
+  return el;
+}
+async function syncWindow(){
+  if (syncing || !window.SHEET) return;
+  if (menuOpen) { menuOpen = false; paintMenu(); }
+  const c = changes(), n = c.length, vals = n+' value'+(n===1?'':'s');
+  const body = '<p class="small muted synclast">Last synced '+esc(syncWhen())+'</p>'
+    + '<h4 class="synch"><span class="syncno">1</span>Sync the values in this sheet with D&amp;D Beyond</h4>'
+    + (n ? '<p>Dungeon Tracker can only read your D&amp;D Beyond sheet, not write to it. To match this sheet, open D&amp;D Beyond on your phone or laptop and change these:</p>' + syncTableHtml(c)
+         : '<p class="syncok">✓ This sheet and D&amp;D Beyond match. Nothing to change there.</p>')
+    + '<h4 class="synch"><span class="syncno">2</span>Sync the values of D&amp;D Beyond to this sheet</h4>'
+    + '<p>Get your character’s latest version from D&amp;D Beyond: new levels, spells and items'+(n ? ', and D&amp;D Beyond’s numbers for the '+vals+' above.' : '.')+'</p>';
+  if (!await confirmBox('Sync with D&amp;D Beyond', '<div class="syncwin">'+body+'</div>', '⬇️ Get D&amp;D Beyond’s version', false, null, 'Close')) return;
+  if (n && !await confirmBox('Replace '+vals+' in this sheet?', 'Press Replace to use D&amp;D Beyond’s values. The '+vals+' that only this sheet has will be gone. To keep them, change them on D&amp;D Beyond first (part 1).', 'Replace', true, null, 'Go back')) return syncWindow();
+  syncing = true; let fx = syncFx('busy');
+  try {
+    await window.SHEET.pull(compact);
+    fx = syncFx('done', fx); setTimeout(() => location.reload(), reduceMotion() ? 600 : 1400);
+  } catch (e) {
+    syncing = false; syncFx('off', fx);
+    await confirmBox('Couldn’t sync', esc((e && e.message) || 'D&D Beyond didn’t answer. Try again in a moment.').replace(/&amp;amp;/g,'&amp;'), WORD.ok, false, null, 'Close');
+  }
+}
+
 // ⬇️ PULL: D&D Beyond → this page. Two confirmations when it would overwrite table changes.
 // Desktop app with its browser: done right here (fast). Anywhere else: a cloud scheduled task does it and
 // republishes the page, which reloads every open view (a few minutes).
 async function pull(){
+  if (window.SHEET) return syncWindow();   // web app: the Sync with D&D Beyond window
   if (syncing) return;
   const c = changes();
   if (c.length) {

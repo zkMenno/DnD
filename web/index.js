@@ -180,6 +180,7 @@ async function renderHome() {
       <p class="small muted">The character must be public on D&amp;D Beyond (Character Settings → Character Privacy → Public). Dungeon Tracker only reads it.</p></section>
     <section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + (auto ? '' : nameCard(me)) + dataCard();
   $('#add').addEventListener('submit', addCharacter); $('#uname').addEventListener('submit', saveName);
+  { const u = $('#uname [name=u]'); u.addEventListener('input', () => { $('#unpv').textContent = u.value.trim().toLowerCase() || 'name'; }); }   // the example link follows what you type
   $('#export').onclick = exportData; $('#delacct').onclick = askDelete; bindInvite();
   await loadLists();
 }
@@ -213,8 +214,8 @@ const sheetLink = c => '/' + c.handle + '/' + c.ddb_id;
 function nameCard(me) {
   const auto = /^player-[a-z0-9]{5}$/.test(me.username || '');
   return `<form id="uname" class="card"><h2>Your username</h2>
-      <p class="small muted">Your sheet links look like <code>${esc(location.host)}/<b>${esc(me.username || 'name')}</b>/170557047</code>${auto ? ' — pick your own before you share any.' : '. Changing it changes those links.'}</p>
-      <div class="row"><input name="u" value="${esc(me.username || '')}" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="20" pattern="[a-zA-Z0-9][a-zA-Z0-9-]{1,18}[a-zA-Z0-9]" aria-label="Username" required>
+      <p class="small muted">Your sheet links look like <code>${esc(location.host)}/<b id="unpv">${esc(me.username || 'name')}</b>/123456789</code>${auto ? ' — pick your own before you share any.' : '. Changing it changes those links.'}</p>
+      <div class="row"><input name="u" value="${esc(me.username || '')}" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="20" pattern="[a-zA-Z0-9][a-zA-Z0-9_\-]{1,18}[a-zA-Z0-9]" aria-label="Username" required>
       <button class="btn${auto ? ' primary' : ''}">Save</button></div></form>`;
 }
 async function saveName(e) {
@@ -248,18 +249,26 @@ async function exportData() {
     msg('Downloaded: your account, ' + characters.length + ' character' + (characters.length === 1 ? '' : 's') + ', trackers and ' + notes.length + ' note' + (notes.length === 1 ? '' : 's') + '.');
   } catch (e) { msg('Couldn’t collect your data. Try again in a moment.', true); }
 }
-// delete: say exactly what goes, and ask for the username typed out (no accidental taps)
+// delete: say exactly what goes, ask for the username typed out (with or without quotes), then one last yes/no
 function askDelete() {
   const me = pb.authStore.record, box = $('#delbox'); box.hidden = false;
-  box.innerHTML = `<div class="claim"><p><b>Delete your account?</b> Your account, all your characters, trackers and notes (party log posts too)
+  box.innerHTML = `<div class="claim delclaim"><p><b>Delete your account?</b> Your account, all your characters, trackers and notes (party log posts too)
       are deleted straight away and leave the backups within 15 days. This can’t be undone. Your D&amp;D Beyond characters aren’t touched.</p>
-    <label>Type your username, <b>${esc(me.username)}</b>, to confirm <input id="delname" autocomplete="off" autocapitalize="none"></label>
+    <p class="delask"><label for="delname">Type your username, “<b>${esc(me.username)}</b>”, to confirm.</label></p>
+    <input id="delname" autocomplete="off" autocapitalize="none" spellcheck="false">
     <div class="row"><button class="btn danger" id="delgo">Delete everything</button><button class="btn" id="delno">Keep my account</button></div></div>`;
   $('#delno').onclick = () => { box.hidden = true; };
-  $('#delgo').onclick = async () => {
-    if ($('#delname').value.trim().toLowerCase() !== me.username) return msg('That’s not your username.', true);
-    try { await pb.collection('users').delete(me.id); signOut(); msg('Your account and everything in it are deleted.'); }
-    catch (e) { msg('Couldn’t delete the account. Try again, or email the contact on the Privacy & terms page.', true); }
+  $('#delgo').onclick = () => {
+    const typed = $('#delname').value.trim().toLowerCase().replace(/^["“”'‘’]+|["“”'‘’]+$/g, '');
+    if (typed !== me.username) return msg('That’s not your username.', true);
+    msg('');
+    box.innerHTML = `<div class="claim delclaim dellast"><p><b>Last check.</b> Delete <b>@${esc(me.username)}</b> and everything in it, for good?</p>
+      <div class="row"><button class="btn danger solid" id="delyes">Yes, delete forever</button><button class="btn" id="delno2">No, keep my account</button></div></div>`;
+    $('#delno2').onclick = () => { box.hidden = true; };
+    $('#delyes').onclick = async () => {
+      try { await pb.collection('users').delete(me.id); signOut(); msg('Your account and everything in it are deleted.'); }
+      catch (e) { msg('Couldn’t delete the account. Try again, or email the contact on the Privacy & terms page.', true); }
+    };
   };
 }
 
