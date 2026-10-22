@@ -10,10 +10,13 @@
 name: Deploy
 on:
   push:
-    branches: [main]
+    branches: [main, staging]               # main → live (dnd), staging → staging.dungeontracker.com (dnd-staging)
   workflow_dispatch:
 env:
   APP: dnd                                 # service name in infra/compose.yml
+  # Where this push goes: `main` deploys the live service, the `staging` branch its staging copy (AppInfra PR #11).
+  # Same image either way; APP stays `dnd` so both share one build cache.
+  SERVICE: ${{ github.ref_name == 'staging' && 'dnd-staging' || 'dnd' }}
   IMAGE_NAME: dnd-tracker                   # image name compose.yml expects (garden-app / dnd-tracker / french-app); independent of the repo's name
   # Optional second image: the folder with the app's worker Dockerfile (garden: worker → image
   # <app>-worker, service <app>-worker in compose.yml). Leave empty for apps without one.
@@ -24,7 +27,7 @@ env:
   TEST_CMD: "npm run check"
   # The app's public address for the health check after deploying. Empty: https://<APP>.<DOMAIN variable>.
   # dnd: "https://dungeontracker.com".
-  PUBLIC_URL: "https://dungeontracker.com"
+  PUBLIC_URL: ${{ github.ref_name == 'staging' && 'https://staging.dungeontracker.com' || 'https://dungeontracker.com' }}
   TEST_POSTGIS: "false"                    # start a throwaway PostGIS for the tests
   # the image name must match infra/compose.yml (garden-app / dnd-tracker / french-app); it's lower-cased below
 concurrency: { group: deploy, cancel-in-progress: false }
@@ -148,7 +151,7 @@ jobs:
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
       - name: Deploy on the server
-        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "deploy ${{ env.APP }} ${{ github.sha }}"   # forced command: scripts/ci-entry.sh
+        run: ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "deploy ${{ env.SERVICE }} ${{ github.sha }}"   # forced command: scripts/ci-entry.sh
       - name: Check it's up
         env:
           DOMAIN: ${{ vars.DOMAIN }}
