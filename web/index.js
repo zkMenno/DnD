@@ -146,7 +146,7 @@ function renderUsernameStep(c) {
       <p>Pick a username for Dungeon Tracker. It’s in your sheet links, so your party can find your character:</p>
       <p class="linkpreview"><code>${esc(location.host)}/<b id="upv">${esc(me.username)}</b>/${esc(c.ddb_id)}</code></p>
       <label>Username <input name="u" value="${esc(me.username || '')}" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="20" required></label>
-      <p class="small muted">3–20 letters, digits or dashes. You can change it later.</p>
+      <p class="small muted">3–20 letters, digits, dashes or underscores. You can change it later.</p>
       <div class="row"><button class="btn primary" value="go">Open my sheet</button></div>
     </form>`;
   const inp = $('#ustep [name=u]');
@@ -384,7 +384,7 @@ async function addById(id, first) {
     const t = (err && err.response && (err.response.message || JSON.stringify(err.response.data || ''))) || '';
     if (/ddb_id|unique/i.test(t)) { msg('That character is already in your list.'); return renderHome(); }
     if (!document.querySelector('#add')) renderOnboarding();
-    msg(t.includes('D&D Beyond') ? t + ' (Character Settings → Character Privacy → Public)' : 'Couldn’t add it. Is the character public on D&D Beyond?', true);
+    msg(t.includes('D&D Beyond') ? t : 'Couldn’t add it. Is the character public on D&D Beyond? (Manage → Character Settings → Character Privacy → Public)', true);
   }
 }
 

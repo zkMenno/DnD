@@ -16,7 +16,7 @@ import (
 
 // Sheet links: /<username>/<D&D Beyond id> (someone's sheet) and /<D&D Beyond id> (your own copy).
 // They are pages, not files: both get sheet.html, which works out which sheet from the address.
-var sheetPath = regexp.MustCompile(`^/(?:[a-z0-9][a-z0-9-]{1,18}[a-z0-9]/)?\d{4,12}/?$`)
+var sheetPath = regexp.MustCompile(`^/(?:[a-z0-9][a-z0-9_-]{1,18}[a-z0-9]/)?\d{4,12}/?$`)
 
 // PocketBase with JS hooks/migrations and a static public dir: the same flags as the official binary.
 func main() {

@@ -19,7 +19,7 @@ window.withV = withV;
   try { await pb.collection('users').authRefresh(); } catch (e) { if (!offline(e)) { pb.authStore.clear(); location.href = '/'; return; } }
 
   const me = pb.authStore.record && pb.authStore.record.id;
-  const route = location.pathname.match(/^\/(?:([a-z0-9-]{3,20})\/)?(\d{4,12})\/?$/);   // [, username?, D&D Beyond id]
+  const route = location.pathname.match(/^\/(?:([a-z0-9_-]{3,20})\/)?(\d{4,12})\/?$/);   // [, username?, D&D Beyond id]
   const ALIAS = 'sheet-at-' + location.pathname;   // offline: which saved sheet this address showed last time
   let ch;
   try { ch = await findSheet(pb, me, route);

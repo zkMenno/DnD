@@ -12,11 +12,11 @@ const RESERVED = ["api", "admin", "sheet", "sheets", "engine", "packs", "index",
   "dungeontracker", "dungeon-tracker", "tracker", "dnd", "dnd-beyond", "beyond", "wizards", "wotc", "hasbro", "dungeonsanddragons",
   "status", "privacy", "legal", "terms", "tos", "blog", "news", "docs", "dev", "staging", "test", "demo", "media", "img", "fonts",
   "profile", "profiles", "campaign", "campaigns", "invite", "invites", "home", "dashboard", "null", "undefined", "anonymous", "guest"];
-const NAME = /^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$/;
+const NAME = /^[a-z0-9][a-z0-9_-]{1,18}[a-z0-9]$/;
 // a valid, free username, or a BadRequestError saying why not
 module.exports.checkUsername = function checkUsername(name, selfId) {
   const n = String(name || "").trim().toLowerCase();
-  if (!NAME.test(n) || n.indexOf("--") >= 0) throw new BadRequestError("Usernames are 3–20 letters, digits or dashes (no dash at the start or end).");
+  if (!NAME.test(n) || /[-_]{2}/.test(n)) throw new BadRequestError("Usernames are 3–20 letters, digits, dashes or underscores (not at the start or end, and not two in a row).");
   if (RESERVED.indexOf(n) >= 0) throw new BadRequestError("That username is taken.");
   try { const u = $app.findFirstRecordByFilter("users", "username = {:n}", { n }); if (u && u.id !== selfId) throw new BadRequestError("That username is taken."); }
   catch (e) { if (e instanceof BadRequestError) throw e; }   // not found: free
@@ -51,7 +51,9 @@ module.exports.ddbGet = function ddbGet(id) {
     method: "GET", timeout: 20,
     headers: { "accept": "application/json", "user-agent": "sheet-app/1.0" },
   });
-  if (res.statusCode !== 200) throw new BadRequestError("D&D Beyond answered " + res.statusCode + ". Is the character public?");
+  if (res.statusCode === 403 || res.statusCode === 401) throw new BadRequestError("This character sheet isn’t public yet. On D&D Beyond, open your character and go to Manage → Character Settings (scroll all the way down) → Character Privacy, and change it to Public. Then try again.");
+  if (res.statusCode === 404) throw new BadRequestError("D&D Beyond can’t find that character. Check the link: it looks like dndbeyond.com/characters/12345678.");
+  if (res.statusCode !== 200) throw new BadRequestError("D&D Beyond didn’t answer just now. Try again in a minute.");
   if (res.raw.length > MAX_BYTES) throw new BadRequestError("That character is too big to read.");
   const raw = String(res.raw);
   const st = $app.store(), now = Date.now();

@@ -229,8 +229,9 @@ main .wrap{padding-block:14px 120px}
 @media (prefers-reduced-motion:no-preference){ .bubble{animation:pop .14s ease-out} }
 
 /* roll dock */
-.dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding-bottom:env(safe-area-inset-bottom,0px);pointer-events:none}
-.dock .wrap{padding-block:0 12px;display:flex;justify-content:flex-end}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:30;pointer-events:none}
+.dock .wrap{padding-block:0;display:flex;justify-content:flex-end}
+#dock .roll{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-width:0;margin-bottom:0;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}   /* the roll sheet sits on the bottom edge of the screen */
 .roll{pointer-events:auto;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.25);width:100%;max-width:440px;display:grid;gap:4px}
 .roll .head{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .roll .title{font-weight:700}

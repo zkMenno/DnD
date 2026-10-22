@@ -415,3 +415,11 @@ body.front #main:empty,body.front #msg:empty{display:none}   /* the app area is 
 .trycard .trytxt{margin-top:6px;color:var(--muted);line-height:1.45;font-size:.95rem}
 @media (max-width:520px){ .trypick{grid-template-columns:1fr} .tryrow{justify-content:center;text-align:center} }
 @media (prefers-reduced-motion:reduce){ .trycard{transition:none} .trycard:hover{transform:none} }
+
+/* messages above the cards (#msg): a small callout in the card's width, not loose coloured text */
+.msg{max-width:520px;box-sizing:border-box;margin:6px auto 12px;padding:11px 14px;border-radius:12px;position:relative;line-height:1.5;font-size:.98rem;
+  color:var(--ink);background:color-mix(in srgb,var(--brass) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--brass) 40%,transparent)}
+.msg.bad{padding-left:40px;color:var(--ink);background:color-mix(in srgb,var(--hp) 12%,var(--surface));border-color:color-mix(in srgb,var(--hp) 50%,transparent)}
+.msg.bad::before{content:"⚠️";position:absolute;left:12px;top:10px}
+.msg:empty{display:none}
+@media (prefers-reduced-motion:no-preference){ .msg:not(:empty){animation:msgin .2s ease-out} @keyframes msgin{from{opacity:0;transform:translateY(-4px)}} }

@@ -3,7 +3,7 @@
 // from this site (engine, packs, item list): the saved copy at once, refreshed in the background. The API is never cached
 // here; sheet-boot.js keeps its own copy of the last character data for offline use.
 const VERSION = '__VERSION__', FILES = /*__FILES__*/[];
-const SHEET_PATH = /^\/(?:[a-z0-9-]{3,20}\/)?\d{4,12}\/?$/;   // /<username>/<D&D Beyond id>: the server answers with sheet.html
+const SHEET_PATH = /^\/(?:[a-z0-9_-]{3,20}\/)?\d{4,12}\/?$/;   // /<username>/<D&D Beyond id>: the server answers with sheet.html
 const CACHE = 'sheets-' + VERSION;   // fonts are self-hosted (/fonts), so they're in FILES like everything else
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('sheets-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
