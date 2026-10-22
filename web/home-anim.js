@@ -113,6 +113,16 @@
     addEventListener('pointerup', drop); addEventListener('pointercancel', drop); addEventListener('blur', drop);
   }
 
+  // ── phones: the sticky Get started bar shows while no other Get started (hero, How it works) is on screen ────────
+  {
+    const bar = $('.stickycta'), own = [...document.querySelectorAll('#landing .btn.cta')].filter(b => !bar.contains(b)), seen = new Set();
+    if (bar && 'IntersectionObserver' in window) {
+      const set = () => { const on = !seen.size && scrollY > 200; bar.classList.toggle('on', on); bar.setAttribute('aria-hidden', String(!on)); bar.firstElementChild.tabIndex = on ? 0 : -1; };
+      const io = new IntersectionObserver(es => { es.forEach(e => e.isIntersecting ? seen.add(e.target) : seen.delete(e.target)); set(); });
+      own.forEach(b => io.observe(b)); addEventListener('scroll', set, { passive: true });
+    }
+  }
+
   // ── demo clips (web/media): load when near, play while a third is in view, pause when scrolled away.
   //    With reduce-motion they never start by themselves: the poster shows, with the browser's play controls.
   // The hero's phone (.herovid) is decoration: with reduce-motion it just keeps its poster, without controls.

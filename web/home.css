@@ -376,3 +376,15 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .pc{pointer-events:none} .pc::before{content:"";position:absolute;inset:6% 24% 0;pointer-events:auto;z-index:1}
 /* How it works: the video starts level with the top of step I */
 .howgrid{align-items:start}
+
+/* How it works: the step boxes lift on hover like the feature cards */
+@media (prefers-reduced-motion:no-preference){ .steps > li{transition:transform .2s ease,border-color .2s ease} .steps > li:hover{transform:translateY(-4px);border-color:var(--brass)} }
+/* phones: a Get started bar at the bottom while neither of the page's own Get started buttons is in view */
+.stickycta{display:none}
+@media (max-width:860px){
+  .landing > .stickycta{display:block;position:fixed;left:16px;right:16px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:40;transform:translateY(140%);transition:transform .25s ease;pointer-events:none}
+  .stickycta .btn.cta{width:100%;box-sizing:border-box;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,244,205,.7)}
+  .stickycta.on{transform:none;pointer-events:auto}
+  body.front .foot{padding-bottom:96px}
+}
+@media (prefers-reduced-motion:reduce){ .stickycta{transition:none} }

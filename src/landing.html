@@ -52,7 +52,7 @@
         <div class="ql-row"><input id="ql-url" name="url" placeholder="https://www.dndbeyond.com/characters/12345678" autocomplete="off" inputmode="url">
           <button class="btn">Start</button></div>
         <p class="ql-msg small" aria-live="polite"></p>
-        <p class="ql-note">📖 Dungeon Tracker only reads your sheet and can’t change anything on D&amp;D Beyond. Levelled up there? Sync the changes over with one tap.</p>
+        <p class="ql-note">📖 Dungeon Tracker only reads your sheet and can’t change anything on D&amp;D Beyond.<br>Levelled up there? Sync the changes over with one tap.</p>
       </form>
     </div>
     <div class="hero-art" aria-hidden="true">
@@ -116,7 +116,7 @@
         <ul class="substeps"><li>Play at the table on your phone, tablet or laptop</li>
           <li>What changes in play is listed under <b>Notes</b>, ready to copy back into D&amp;D Beyond</li></ul></div></li>
     </ol>
-    <p class="limits">Levelling up and new actions or spells still happen on D&amp;D Beyond. Then sync your sheet here with one tap.</p>
+    <p class="limits">Levelling up and adding actions or spells happen on D&amp;D Beyond.<br>Then sync your sheet here with one tap.</p>
     <div class="howcta"><a class="btn cta" href="#signin" data-go="signup"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Get started</a>
       <span>Free, read-only, no password needed.</span></div>
     </div>
@@ -128,6 +128,8 @@
     <li>🪙 Free, no ads, no tracking</li>
     <li>🏰 Hosted in the EU</li>
   </ul>
+  <!-- phones: Get started stays in reach while scrolling (shown by web/home-anim.js when no other Get started is on screen) -->
+  <div class="stickycta" aria-hidden="true"><a class="btn cta" href="#signin" data-go="signup" tabindex="-1"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Get started</a></div>
 </section>
 
 <!-- the dice drawn above (d4 … d20, each seen face-on), defined once -->
