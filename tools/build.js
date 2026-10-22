@@ -51,7 +51,16 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
   + '<header class="top"><a class="brand" href="/"><svg class="brand-d20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><span>Dungeon Tracker</span></a><span id="who"></span></header>\n'
   + R('src/landing.html') + '\n<p id="msg" class="msg"></p><main id="main"></main>\n'
   + '<footer class="foot"><a href="/legal.html">Privacy &amp; terms</a> · Hosted in the EU (Germany)<br><span class="small">Unofficial fan project. Not affiliated with Wizards of the Coast or D&amp;D Beyond.</span></footer>\n'
-  + '<script src="/pocketbase.umd.js"></script>\n<script src="/index.js"></script>\n</body></html>');
+  + '<script src="/pocketbase.umd.js"></script>\n<script src="/index.js"></script>\n<script src="/home-dice.js" defer></script>\n<script src="/home-anim.js" defer></script>\n</body></html>');
+// front page dice (web/home-anim.js): the sheet's own 3D dice (src/engine/06-3d-dice.js) with the theme's dice sets, in one
+// closure so its names don't meet web/index.js. three.js is loaded by home-anim.js when it's needed, so the line that
+// loads it in the sheet is left out (the build stops if that line changes, rather than shipping two loaders).
+{ const d3 = R('src/engine/06-3d-dice.js'), loader = /^\(function\(\)\{ try \{ const s = document\.createElement\('script'\);.*\n/m;
+  if (!loader.test(d3)) throw new Error('home-dice: the three.js loader line in src/engine/06-3d-dice.js changed; update tools/build.js');
+  fs.writeFileSync(out+'/web/home-dice.js', '// Built by tools/build.js from src/themes.js + src/engine/06-3d-dice.js. Do not edit.\n(function(){\n' + R('src/themes.js')
+    + '\nconst THEME = THEMES.pirate || THEMES[Object.keys(THEMES)[0]];\nconst ui = { dice: null };\nconst diceFx = (dice, done) => done();   // no WebGL: the result just shows\n'
+    + d3.replace(loader, '')
+    + '\nwindow.HomeDice = { sets: DICE_SETS, groups: THEME.diceGroups || {}, def: DEFAULT_DICE, use: k => { ui.dice = k; }, roll: dice3d, ready: d3Ready };\n})();\n'); }
 // privacy & terms: src/legal.html with the operator details from src/site.json
 { const site = JSON.parse(R('src/site.json'));
   for (const [k, v] of Object.entries(site)) if (/^\[.*\]$/.test(String(v))) console.warn('⚠️  src/site.json: "' + k + '" is still a placeholder (' + v + '): fill it in before inviting players');

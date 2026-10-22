@@ -1,7 +1,14 @@
 <!-- The public front page of dungeontracker.com (signed out). tools/build.js puts it into web/index.html; web/index.js
-     shows it only to visitors who aren't signed in. Text is plain HTML so it shows before any script runs. -->
+     shows it only to visitors who aren't signed in. Text is plain HTML so it shows before any script runs.
+     Motion and the dice tray come from web/home-anim.js (reveal-on-scroll, the 3D dice from the sheet); without
+     scripts, or with "reduce motion" on, the page is the same, just still. -->
 <section id="landing" class="landing" hidden>
   <div class="hero">
+    <div class="drift" aria-hidden="true">
+      <svg class="dr dr1" viewBox="0 0 100 100"><use href="#d20"/></svg><svg class="dr dr2" viewBox="0 0 100 100"><use href="#d20"/></svg>
+      <svg class="dr dr3" viewBox="0 0 100 100"><use href="#d20"/></svg><svg class="dr dr4" viewBox="0 0 100 100"><use href="#d20"/></svg>
+      <svg class="dr dr5" viewBox="0 0 100 100"><use href="#d20"/></svg>
+    </div>
     <div class="hero-text">
       <p class="eyebrow">For D&amp;D Beyond players</p>
       <h1 class="hero-title">Your character, ready at the table.</h1>
@@ -28,23 +35,40 @@
   <div class="rule" aria-hidden="true"><span></span></div>
 
   <ul class="features">
-    <li><span class="ficon">🎲</span><h3>Every roll, one tap</h3><p>Attacks, saves, checks and spells with the bonuses added up. Roll on screen, or use your own dice and read off what to add.</p></li>
-    <li><span class="ficon">❤️</span><h3>Track as you play</h3><p>HP, spell slots, rage, focus points, ammo, potions and concentration. Short and long rests reset what they should.</p></li>
-    <li><span class="ficon">📜</span><h3>Notes and a party log</h3><p>Keep your own session notes, and share a running log with the rest of your party.</p></li>
-    <li><span class="ficon">🌙</span><h3>Works offline</h3><p>Add it to your phone's home screen. It keeps working in a cellar with no signal, and saves when you're back online.</p></li>
+    <li class="reveal"><span class="ficon">🎲</span><h3>Every roll, one tap</h3><p>Attacks, saves, checks and spells with the bonuses added up. 3D dice tumble across the screen, or use your own dice and read off what to add.</p></li>
+    <li class="reveal"><span class="ficon">❤️</span><h3>Track as you play</h3><p>HP, spell slots, rage, focus points, ammo, potions and concentration. Short and long rests reset what they should.</p></li>
+    <li class="reveal"><span class="ficon">📜</span><h3>Notes and a party log</h3><p>Keep your own session notes, and share a running log with the rest of your party.</p></li>
+    <li class="reveal"><span class="ficon">🌙</span><h3>Works offline</h3><p>Add it to your phone's home screen. It keeps working in a cellar with no signal, and saves when you're back online.</p></li>
   </ul>
 
+  <section class="dicebox reveal" aria-labelledby="dice-h">
+    <div class="dice-text">
+      <p class="eyebrow">Roll in style</p>
+      <h2 id="dice-h">Pick your dice</h2>
+      <p>Every roll in your sheet is thrown with real-looking 3D dice. Choose from <span id="dice-count">24</span> sets: gold doubloons,
+        carved wood, sea glass, gems, even dragonfire. Swap them any time from the sheet's menu.</p>
+    </div>
+    <div class="tray" id="tray" hidden>
+      <div class="swatches" id="swatches" role="radiogroup" aria-label="Dice sets"></div>
+      <p class="setname" id="setname"></p>
+      <div class="rollrow">
+        <button class="btn cta rollbtn" id="rollbtn" type="button"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Roll a d20</button>
+        <p class="rollout" id="rollout" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
   <section class="how">
-    <h2>How it works</h2>
+    <h2 class="reveal">How it works</h2>
     <ol class="steps">
-      <li><span class="num">I</span><div><h3>Make your character public</h3><p>On D&amp;D Beyond: open your character, then <b>Character Settings</b> → <b>Character Privacy</b>, and pick <b>Public</b>. Dungeon Tracker only reads it.</p></div></li>
-      <li><span class="num">II</span><div><h3>Paste the link</h3><p>Sign in with your email, no password needed, and paste your character's link.</p></div></li>
-      <li><span class="num">III</span><div><h3>Play</h3><p>Open it on your phone at the table. When you level up on D&amp;D Beyond, pull the new version in with one tap.</p></div></li>
+      <li class="reveal"><span class="num">I</span><div><h3>Make your character public</h3><p>On D&amp;D Beyond: open your character, then <b>Character Settings</b> → <b>Character Privacy</b>, and pick <b>Public</b>. Dungeon Tracker only reads it.</p></div></li>
+      <li class="reveal"><span class="num">II</span><div><h3>Paste the link</h3><p>Sign in with your email, no password needed, and paste your character's link.</p></div></li>
+      <li class="reveal"><span class="num">III</span><div><h3>Play</h3><p>Open it on your phone at the table. When you level up on D&amp;D Beyond, pull the new version in with one tap.</p></div></li>
     </ol>
     <p class="center"><a class="btn cta" href="#signin" data-go="signup"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Get started</a></p>
   </section>
 
-  <ul class="trust">
+  <ul class="trust reveal">
     <li>📖 Read-only: never changes your D&amp;D Beyond sheet</li>
     <li>🪙 Free, no ads, no tracking</li>
     <li>🏰 Hosted in the EU</li>
