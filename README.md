@@ -52,3 +52,12 @@ character: ☰ → Sync → 📥 Bring over from claude.ai → paste. The tracke
 - Server-set fields: name, campaign, pack, verified, party-log author. Stored data and trackers may not contain HTML.
 - Content-Security-Policy from PocketBase (scripts from the app only), rate limits per IP behind the proxy, dashboard behind
   a password prompt in Caddy. `tools/test/web/limits.py` checks headers and limits.
+
+## Licence
+The code is © Menno (github.com/zkMenno) and licensed under the **GNU Affero General Public License v3.0 or later** (see `LICENSE`):
+you may use, change and share it, and if you run a changed version as a website, you share its code too.
+
+Not covered by that licence:
+- the name and logo "Dungeon Tracker", and the character artwork in `web/media/` (all rights reserved);
+- rules text: `data/items.json` comes from the System Reference Document 5.2 by Wizards of the Coast LLC, used under
+  CC-BY-4.0. Dungeon Tracker is an unofficial fan project, not affiliated with Wizards of the Coast or D&D Beyond.
