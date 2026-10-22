@@ -42,7 +42,7 @@
   // Swatches grouped like the sheet's ☰ → Dice Sets. Each starts as a flat d20 shape in the set's colours and becomes a
   // picture of that set's real 3D d20 once three.js is here. Tap a set: it's chosen and throws three random dice of it.
   const D = window.HomeDice; if (!D) return;
-  const keys = D.order.flatMap(g => g[1]), tray = $('#tray'), out = $('#rollout'), btn = $('#rollbtn'), sw = $('#swatches');
+  const keys = D.order.flatMap(g => g[1]), tray = $('#tray'), sw = $('#swatches');
   const groupOf = k => (D.order.find(g => g[1].includes(k)) || [''])[0];
   let cur = keys.includes(store.get('dt-front-dice')) ? store.get('dt-front-dice') : D.def, rolling = false, rolled = false;
   $('#dice-count').textContent = keys.length;
@@ -70,36 +70,21 @@
   let thumbsDone = false;
   async function thumbs(){
     if (thumbsDone || !(await loadThree())) return; thumbsDone = true; await D.fonts();
-    const px = Math.round(Math.min(2, devicePixelRatio || 1) * 52), todo = [...sw.querySelectorAll('.sw')];
+    const px = Math.round(Math.min(2, devicePixelRatio || 1) * 84), todo = [...sw.querySelectorAll('.sw')];
     const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 400 }) : setTimeout(f, 30));
     const step = () => { todo.splice(0, 4).forEach(b => { const url = D.thumb(b.dataset.k, px); if (!url) return;
-      b.firstChild.innerHTML = '<img src="' + url + '" alt="" width="52" height="52" draggable="false">'; b.classList.add('d3'); });
+      b.firstChild.innerHTML = '<img src="' + url + '" alt="" width="84" height="84" draggable="false">'; b.classList.add('d3'); });
       if (todo.length) idle(step); };
     idle(step);
   }
   const rnd = n => { const a = new Uint32Array(1); crypto.getRandomValues(a); return 1 + (a[0] % n); };
   const SIZES = [4, 6, 8, 10, 12, 20];
-  // one d20 → its number big; several dice → each number with its die
-  const show = dice => {
-    const nat = dice.some(d => d.s === 20 && d.v === 20), one = dice.length === 1 && dice[0].v === 1;
-    out.className = 'rollout' + (nat ? ' crit' : one ? ' fumble' : '');
-    out.innerHTML = dice.length === 1
-      ? '<b>' + dice[0].v + '</b><span>' + (nat ? 'Natural 20!' : one ? 'Natural 1. Ouch.' : 'on a d20') + '</span>'
-      : '<span class="dlist">' + dice.map(d => '<span class="rd"><b>' + d.v + '</b><small>d' + d.s + '</small></span>').join('') + '</span>' + (nat ? '<span>Natural 20!</span>' : '');
-    if (nat && !still) out.insertAdjacentHTML('beforeend', '<i class="spark" aria-hidden="true"></i>'.repeat(10));
-    void out.offsetWidth; out.classList.add('pop');
-  };
   async function roll(dice){
-    if (rolling) return; rolling = rolled = true; btn.disabled = true;
-    out.className = 'rollout'; out.innerHTML = '<span>Rolling…</span>';
-    const finish = () => { show(dice); rolling = false; btn.disabled = false; };
-    if (still) return finish();
-    if (!(await loadThree())) return finish();
-    D.use(cur); D.roll(dice, finish);
+    if (rolling || still) return; rolling = rolled = true;
+    if (!(await loadThree())) { rolling = false; return; }
+    D.use(cur); D.roll(dice, () => { rolling = false; });
   }
-  const d20 = () => roll([{ s: 20, v: rnd(20) }]);
   const three3 = () => roll([0, 1, 2].map(() => { const s = SIZES[rnd(SIZES.length) - 1]; return { s, v: rnd(s) }; }));
-  btn.addEventListener('click', d20);
   sw.addEventListener('click', e => { const b = e.target.closest('.sw'); if (!b) return; pick(b.dataset.k); three3(); });
   // arrow keys move between swatches (a radio group), in the order shown
   sw.addEventListener('keydown', e => {

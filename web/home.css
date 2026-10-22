@@ -290,3 +290,19 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .clip{width:300px}
 .clipphone video{aspect-ratio:544/922}
 @media (max-width:520px){ .clip{width:min(300px,86vw)} }
+
+/* ── 22 Oct, 21:50: features with emoji + title on one line; bigger dice sets (no roll button); video beside the steps ── */
+.features h3{display:flex;align-items:center;gap:10px;margin:0 0 6px}
+.features h3 .ficon{font-size:1.5rem;flex:none}
+.dicebox{grid-template-columns:1fr;gap:18px}
+.dice-text p{margin:0 0 6px}
+.dice-text p b{color:var(--brass)}
+.swatches{grid-template-columns:repeat(3,1fr);gap:22px 28px}
+.srow{gap:8px}
+.sgroup h4{font-size:.78rem}
+.setname{margin:18px 0 0}
+.howgrid{display:grid;grid-template-columns:300px 1fr;gap:40px;align-items:center;margin:0 0 26px}
+.howgrid .steps{margin:0}
+.howgrid .clip{width:100%}
+@media (max-width:860px){ .howgrid{grid-template-columns:1fr;gap:26px} .howgrid .clip{width:min(300px,86vw);margin:0 auto} .swatches{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:520px){ .swatches{grid-template-columns:1fr;gap:14px} .srow{grid-template-columns:repeat(4,minmax(0,72px));gap:10px} }
