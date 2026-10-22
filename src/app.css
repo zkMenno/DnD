@@ -1550,3 +1550,7 @@ button.chip.ic.term{text-decoration:none}
 .roll .bardseg button{border:1px solid rgba(0,0,0,.28);border-radius:999px;padding:6px 12px;min-width:46px;background:rgba(255,255,255,.18);color:inherit;font-weight:700;transition:background .15s,border-color .15s}
 .roll .bardseg button:hover{border-color:rgba(0,0,0,.5)}
 .roll .bardseg button[aria-pressed="true"]{background:var(--bg);color:var(--ink);border-color:var(--bg)}
+/* ↕ Sections: a hover state like the other buttons */
+.jumpbtn{transition:opacity .15s,background .15s,color .15s,transform .15s,box-shadow .15s}
+@media (hover:hover){ .jumpbtn:hover{background:var(--brass);color:#1d1406;box-shadow:0 6px 18px rgba(0,0,0,.3);transform:translateY(-2px)} }
+@media (prefers-reduced-motion:reduce){ .jumpbtn:hover{transform:none} }
