@@ -136,8 +136,6 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
   .dr{animation:drift 18s ease-in-out infinite alternate} .dr2{animation-duration:23s;animation-delay:-6s} .dr3{animation-duration:15s;animation-delay:-3s}
   .dr4{animation-duration:20s;animation-delay:-11s} .dr5{animation-duration:26s;animation-delay:-8s}
   @keyframes drift{from{transform:translate(0,0) rotate(0)}50%{transform:translate(14px,-22px) rotate(140deg)}to{transform:translate(-10px,10px) rotate(260deg)}}
-  .phone{animation:float 6.5s ease-in-out infinite}
-  @keyframes float{0%,100%{transform:rotate(var(--rot)) translateY(0)}50%{transform:rotate(calc(var(--rot) - 1.5deg)) translateY(-10px)}}
   .d20-big{animation:spin 120s linear infinite}
   @keyframes spin{from{transform:translateX(-50%) rotate(-12deg)}to{transform:translateX(-50%) rotate(348deg)}}
   .btn.cta{position:relative;overflow:hidden}
@@ -239,7 +237,10 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 /* ── Spinning dice behind the whole front page (22 Oct, evening): d4 … d20 outlines, src/landing.html .bgdice ──────── */
 .landing{position:relative}
 .landing > :not(.bgdice){position:relative;z-index:1}
-.bgdice{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.bgdice{position:absolute;top:0;bottom:0;left:calc(50% - 50vw);width:100vw;overflow:hidden;pointer-events:none;z-index:0}   /* the whole window width, not just the text column */
+body.front{overflow-x:clip}   /* 100vw includes the scrollbar: never a sideways scroll */
+.bd.held{opacity:.55;animation:none;transition:opacity .15s}
+html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.grabbing-die *{cursor:grabbing!important;user-select:none!important}
 .bd{position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.5)}
 @media (prefers-reduced-motion:no-preference){
   .bd{animation:tumble var(--t,40s) ease-in-out var(--d,0s) infinite}
