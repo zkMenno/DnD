@@ -99,7 +99,8 @@ async function renderLogin(mode) {
           <input id="authpw" name="password" type="password" autocomplete="current-password" minlength="8" placeholder="Your password">
           <div id="pw2box" hidden><label class="authlbl" for="authpw2">Repeat the password</label>
             <input id="authpw2" name="password2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again"></div>
-          <div class="row authsub"><button class="btn primary" name="go" value="in" id="pwgo">Roll in <span aria-hidden="true">→</span></button></div>
+          <div class="row authsub pwgorow"><button class="btn primary" name="go" value="in" id="pwgo">Roll in <span aria-hidden="true">→</span></button>
+            <button class="linkbtn" type="button" id="pwforgot">Forgot your password?</button></div>
           <p class="pwerr" id="pwerr" role="alert" hidden></p>
         </div>
       </details>
@@ -107,12 +108,19 @@ async function renderLogin(mode) {
     </form>`;
   const back = $('#otpback'); if (back) back.onclick = e => { e.preventDefault(); otpId = null; renderLogin(mode); };
   // the password box: sign in with one, or make a new account with it (asked twice)
-  const pwMode = m => { document.querySelectorAll('[data-pwmode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pwmode === m)));
+  const pwMode = m => { document.querySelectorAll('[data-pwmode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pwmode === m))); $('#pwforgot').hidden = m === 'up';
     $('#pw2box').hidden = m !== 'up'; $('#authpw').autocomplete = m === 'up' ? 'new-password' : 'current-password';
     $('#authpw').placeholder = m === 'up' ? 'At least 8 characters' : 'Your password';
     $('#pwgo').value = m; $('#pwgo').innerHTML = m === 'up' ? 'Create account <span aria-hidden="true">→</span>' : 'Roll in <span aria-hidden="true">→</span>'; };
   document.querySelectorAll('[data-pwmode]').forEach(b => b.onclick = () => { pwMode(b.dataset.pwmode); $('#authpw').focus(); });
   if (mode === 'signup') pwMode('up');
+  // Forgot your password? Sign in with an emailed code instead; the home page then asks for a new password
+  $('#pwforgot').onclick = () => {
+    if (!$('#authemail').value.trim()) { $('#authemail').focus(); fieldErr($('.pwpanel'), 'Type your email first, then press Forgot your password? again.'); return; }
+    ss.set('pw-reset', '1'); fieldErr($('.pwpanel'), '');
+    const send = document.querySelector('button[value=code]');
+    if (send) $('#login').requestSubmit(send); else { const c = document.querySelector('[name=code]'); if (c) c.focus(); }
+  };
   // an email this device knows has a password: open the password box straight away
   const em = $('#authemail'), pwOpen = () => { if (pwKnown(em.value)) { const d = document.querySelector('.pwbox'); if (!d.open) { d.open = true; pwMode('in'); } } };
   em.addEventListener('input', pwOpen); em.addEventListener('change', pwOpen); pwOpen();
@@ -155,7 +163,7 @@ async function renderLogin(mode) {
       const taken = up && err && err.response && err.response.data && err.response.data.email;
       if (taken) return perr('That email already has an account. Sign in with your password, or press “Email me a code” if you never set one: you can save a password on your account page after.', true);
       perr(up ? 'Couldn’t create that account. Check the email, and use at least 8 characters for the password.'
-        : 'Email or password not right. Never set a password? Press “Email me a code” to sign in, then save one on your account page.', true);
+        : 'Email or password not right. Forgot it, or never set one? Press “Forgot your password?” and we’ll email you a code.', true);
     }
   });
 }
@@ -313,30 +321,145 @@ function peek() {
   });
 }
 new MutationObserver(() => peek()).observe(document.getElementById('main'), { childList: true, subtree: true });
-// No password yet (the account came from an emailed code): suggest saving one, so next time signing in is instant and
-// doesn't use an email. Right after a code sign-in it's one field; later the Sign-in & security flow (with a code) does it.
+// ── Passwords ───────────────────────────────────────────────────────────────────────────────────────
+// Errors about a password show right under its boxes (not as a pop-up at the top or bottom of the page).
+function fieldErr(box, text) {
+  let p = box.querySelector('.pwerr');
+  if (!p) { p = document.createElement('p'); p.className = 'pwerr'; p.setAttribute('role', 'alert');
+    const row = box.querySelector('.saverow'); if (row) row.before(p); else box.appendChild(p); }   // above the Save button
+  p.textContent = text || ''; p.hidden = !text;
+  if (text) msg('');
+}
+const apiErr = e => (e && e.response && e.response.message) || (e && e.message) || 'That didn’t work. Try again.';
+const account = (path, body) => pb.send('/api/account/' + path, { method: 'POST', body: body || {} });
+// the two password boxes of a pair: the typed password, or an error for under the boxes
+function readPair(a, b) {
+  const pw = a.value;
+  if (pw.length < 8) return { err: 'Passwords are at least 8 characters.' };
+  if (pw.length > 72) return { err: 'Passwords are at most 72 characters.' };
+  if (b.value !== pw) return { err: 'The two passwords aren’t the same. Type them again (👁 shows what you typed).' };
+  return { pw };
+}
+// a fresh token after a password or email change (the server ends the old sessions): keep this device signed in
+function keepSignedIn(r) { if (r && r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email })); }
+
+// "Save a password for next time" on the Characters tab: for accounts made with an emailed code, or after "Forgot your
+// password?" on the sign-in page (then it says "Choose a new password"). Right after a code sign-in it's just the two
+// boxes; later the server wants a fresh code first, asked for right here in the card.
 function pwPrompt(me) {
+  const reset = ss.get('pw-reset') === '1'; ss.set('pw-reset', null);
   let skip = false; try { skip = !!localStorage.getItem('pw-later-' + me.id); } catch (_) {}
-  if (me.pw_set || skip) return;
+  if (!reset && (me.pw_set || skip)) return;
   const card = document.createElement('section'); card.className = 'card pwprompt';
-  card.innerHTML = `<h2>🔑 Save a password for next time</h2>
-    <p class="small muted">Sign in straight away next time, without waiting for an email. You can still use emailed codes too.</p>
+  card.innerHTML = `<h2>🔑 ${reset ? 'Choose a new password' : 'Save a password for next time'}</h2>
+    <p class="muted">${reset ? 'You’re signed in with the emailed code. Pick a new password for next time.' : 'Sign in straight away next time, without waiting for an email. You can still use emailed codes too.'}</p>
     <div class="pwpair"><input id="firstpw" type="password" autocomplete="new-password" minlength="8" placeholder="New password (at least 8 characters)" aria-label="New password">
       <input id="firstpw2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again" aria-label="Repeat the password"></div>
+    <div id="firstcode"></div>
     <div class="row authsub saverow"><button class="btn" type="button" id="firstpwno">Not now</button>
-<button class="btn primary" type="button" id="firstpwok">Save password ✓</button></div>`;
+      <button class="btn primary" type="button" id="firstpwok">Save password ✓</button></div>`;
   const list = $('#mine') && $('#mine').closest('section'); (list ? list.parentNode.insertBefore(card, list) : $('#main').prepend(card));
-  $('#firstpwno').onclick = () => { try { localStorage.setItem('pw-later-' + me.id, '1'); } catch (_) {} card.remove(); };
+  const saved = r => { keepSignedIn(r); pwRemember(r.email); card.remove(); done('Password saved', 'Next time, sign in with your email and this password.'); };
+  $('#firstpwno').onclick = () => { if (!reset) try { localStorage.setItem('pw-later-' + me.id, '1'); } catch (_) {} card.remove(); };
   $('#firstpwok').onclick = async () => {
-    const pw = $('#firstpw').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
-    if ($('#firstpw2').value !== pw) return msg('The two passwords aren’t the same.', true);
-    try { const r = await pb.send('/api/account/first-password', { method: 'POST', body: { password: pw } });
-      pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email })); pwRemember(r.email); card.remove();
-      done('Password saved', 'Next time, sign in with your email and this password.'); }
-    catch (e) { const t = (e && e.response && e.response.message) || '';
-      if (t === 'fresh-code-needed') { card.remove(); $('#secpw').click(); $('#secpw').scrollIntoView({ block: 'center' }); msg('For safety we email you a code first. Press “Email me a code”.'); }
-      else msg(t || 'Couldn’t save that. Try again.', true); }
+    const { pw, err } = readPair($('#firstpw'), $('#firstpw2')); if (err) return fieldErr(card, err);
+    fieldErr(card, ''); const code = $('#firstcodein');
+    try {
+      if (code) return saved(await account('confirm', { code: code.value.trim(), password: pw }));   // second round: with the code
+      saved(await account('first-password', { password: pw }));
+    } catch (e) {
+      if (apiErr(e) !== 'fresh-code-needed') return fieldErr(card, apiErr(e));
+      // the code sign-in was a while ago: email a code and ask for it here, then save with it
+      try { const r = await account('code', { purpose: 'password' });
+        $('#firstcode').innerHTML = `<p class="pwnote">For safety, we just emailed a 6-digit code to <b>${esc(r.sent)}</b>. Type it here, then press Save password again.</p>
+          <input id="firstcodein" class="codein" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" aria-label="Code from the email">`;
+        $('#firstcodein').focus();
+      } catch (e2) { fieldErr(card, apiErr(e2)); }
+    }
   };
+}
+// Account tab → Sign-in & security: change email · set, change or remove the password · sign out on other devices
+const secCard = me => `<section class="card sec"><h2>Sign-in &amp; security</h2>
+    <div class="secrow"><div><b>Email</b><span class="muted" id="secemail">${esc(me.email || '')}</span></div><button class="btn xbtn" type="button" id="secem" aria-expanded="false">Change email <span class="xchev" aria-hidden="true"></span></button></div>
+    <div class="secbox" id="secembox" hidden></div>
+    <div class="secrow"><div><b>Password</b><span class="muted" id="secpwtxt"></span></div><div class="row secbtns"><button class="btn danger small" type="button" id="secpwrm" hidden>Remove</button><button class="btn xbtn" type="button" id="secpw" aria-expanded="false"><span id="secpwlbl"></span> <span class="xchev" aria-hidden="true"></span></button></div></div>
+    <div class="secbox" id="secpwbox" hidden></div>
+    <div class="secrow"><div><b>Other devices</b><span class="muted">Lost a phone, or signed in on someone else’s computer? End those sessions.</span></div><button class="btn" type="button" id="secout">Sign out everywhere else</button></div></section>`;
+function bindSec() {
+  const toggle = (box, html, other) => { $(other).hidden = true; const b = $(box); b.hidden = !b.hidden; if (!b.hidden) b.innerHTML = html;
+    $('#secem').setAttribute('aria-expanded', String(!$('#secembox').hidden)); $('#secpw').setAttribute('aria-expanded', String(!$('#secpwbox').hidden)); return !b.hidden; };
+  const close = (box, btn) => { $(box).hidden = true; $(btn).setAttribute('aria-expanded', 'false'); };
+  // the password row says whether there is one, and offers Set or Change (+ Remove)
+  const paintPw = () => { const has = !!(pb.authStore.record && pb.authStore.record.pw_set);
+    $('#secpwtxt').textContent = has ? 'Set. You can also sign in with an emailed code.' : 'Not set: you sign in with an emailed code.';
+    $('#secpwlbl').textContent = has ? 'Change password' : 'Set a password'; $('#secpwrm').hidden = !has; };
+  paintPw();
+  // change email: one code to the new address, one to the current one
+  $('#secem').onclick = () => {
+    if (!toggle('#secembox', `<label class="authlbl" for="newemail">New email</label><div class="authrow"><input id="newemail" type="email" autocomplete="email" placeholder="you@example.com"><button class="btn primary" type="button" id="emsend">Send codes</button></div>
+      <p class="muted">We send a 6-digit code to the new address and one to your current address, to check both are yours.</p><div id="emstep2"></div>`, '#secpwbox')) return;
+    const box = $('#secembox');
+    $('#emsend').onclick = async () => {
+      const email = $('#newemail').value.trim(); if (!email) return fieldErr(box, 'Type the new email first.');
+      fieldErr(box, '');
+      try { const sent = await account('code', { purpose: 'email', email });
+        $('#emstep2').innerHTML = `<label class="authlbl" for="emcode">Code sent to ${esc(email)}</label><input id="emcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
+          <label class="authlbl" for="emcode2">Code sent to ${esc(sent.current || 'your current email')}</label><input id="emcode2" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
+          <div class="row authsub saverow"><button class="btn primary" type="button" id="emok">Change email ✓</button></div>`;
+        $('#emcode').focus();
+        $('#emok').onclick = async () => {
+          fieldErr(box, '');
+          try { const r = await account('confirm', { code: $('#emcode').value, code2: $('#emcode2').value }); keepSignedIn(r);
+            $('#secemail').textContent = r.email; close('#secembox', '#secem'); done('Email changed', 'You now sign in with ' + r.email + '.'); }
+          catch (e) { fieldErr(box, apiErr(e)); } };
+      } catch (e) { fieldErr(box, apiErr(e)); }
+    };
+  };
+  // set or change the password: a code to your email first, then the new password twice
+  $('#secpw').onclick = () => {
+    if (!toggle('#secpwbox', `<p class="muted">First we email you a code, to check it’s you.</p><button class="btn primary" type="button" id="pwsend">Email me a code</button><div id="pwstep2"></div>`, '#secembox')) return;
+    const box = $('#secpwbox');
+    $('#pwsend').onclick = async () => {
+      fieldErr(box, '');
+      try { const r = await account('code', { purpose: 'password' }); $('#pwsend').hidden = true;
+        $('#pwstep2').innerHTML = `<p class="pwnote">Code sent to <b>${esc(r.sent)}</b>.</p><label class="authlbl" for="pwcode">Code</label><input id="pwcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
+          <label class="authlbl" for="pwnew">New password</label><input id="pwnew" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+          <label class="authlbl" for="pwnew2">Repeat it</label><input id="pwnew2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again">
+          <div class="row authsub saverow"><button class="btn primary" type="button" id="pwok">Save password ✓</button></div>`;
+        $('#pwcode').focus();
+        $('#pwok').onclick = async () => {
+          const { pw, err } = readPair($('#pwnew'), $('#pwnew2')); if (err) return fieldErr(box, err);
+          fieldErr(box, '');
+          try { const r = await account('confirm', { code: $('#pwcode').value, password: pw }); keepSignedIn(r);
+            pwRemember(r.email); close('#secpwbox', '#secpw'); paintPw(); done('Password saved', 'Sign in with it, or with an emailed code.'); }
+          catch (e) { fieldErr(box, apiErr(e)); } };
+      } catch (e) { fieldErr(box, apiErr(e)); }
+    };
+  };
+  // remove the password: back to codes only (also signs out other devices)
+  $('#secpwrm').onclick = async () => {
+    if (!await askYes('Remove your password?', 'You’ll sign in with an emailed code from then on. Other devices are signed out.', 'Remove password')) return;
+    try { keepSignedIn(await account('remove-password')); try { localStorage.setItem('pw-later-' + pb.authStore.record.id, '1'); } catch (_) {}
+      close('#secpwbox', '#secpw'); paintPw(); done('Password removed', 'Sign in with an emailed code from now on.'); }
+    catch (e) { msg(apiErr(e), true); }
+  };
+  // sign out everywhere else
+  $('#secout').onclick = async () => {
+    if (!await askYes('Sign out everywhere else?', 'Every other phone, tablet and computer signed in to your account is signed out. This one stays signed in.', 'Sign them out')) return;
+    try { keepSignedIn(await account('signout-all')); done('Signed out elsewhere', 'Only this device is still signed in.'); }
+    catch (e) { msg(apiErr(e), true); }
+  };
+}
+// a small yes/no box in the page's style (no browser pop-ups): resolves true for yes
+function askYes(title, text, yes) {
+  return new Promise(res => {
+    const p = document.createElement('div'); p.className = 'donepop askpop'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-modal', 'true');
+    p.innerHTML = `<div class="donecard askcard"><b>${esc(title)}</b><span>${esc(text)}</span><div class="row"><button class="btn" type="button" data-a="0">Cancel</button><button class="btn primary" type="button" data-a="1">${esc(yes)}</button></div></div>`;
+    const end = v => { p.classList.remove('show'); setTimeout(() => p.remove(), 200); document.removeEventListener('keydown', key); res(v); };
+    const key = e => { if (e.key === 'Escape') end(false); };
+    p.onclick = e => { const b = e.target.closest('[data-a]'); if (b) end(b.dataset.a === '1'); else if (e.target === p) end(false); };
+    document.addEventListener('keydown', key); document.body.appendChild(p); requestAnimationFrame(() => p.classList.add('show')); p.querySelector('[data-a="1"]').focus();
+  });
 }
 // Theme: the same eight looks and light/dark as ☰ → Theme on a sheet (web/sw-register.js: window.Skin), saved on this device
 const looksCard = () => `<section class="card looks"><h2>Theme</h2><p class="small muted">How Dungeon Tracker and your sheets look on this device.</p><div id="looks"></div></section>`;
@@ -350,55 +473,7 @@ function bindLooks() {
     box.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { K.set(K.skin(), b.dataset.mode); paint(); }); };
   paint();
 }
-// Sign-in & security: change your email or set/change your password. Both confirm with a 6-digit code
-// (server/pb_hooks/account.pb.js): for a password it goes to your email, for a new email to the new address.
-const secCard = me => `<section class="card sec"><h2>Sign-in &amp; security</h2>
-    <div class="secrow"><div><b>Email</b><span class="small muted" id="secemail">${esc(me.email || '')}</span></div><button class="btn xbtn" type="button" id="secem" aria-expanded="false">Change email <span class="xchev" aria-hidden="true"></span></button></div>
-    <div class="secbox" id="secembox" hidden></div>
-    <div class="secrow"><div><b>Password</b><span class="small muted">Optional: you can always sign in with an emailed code.</span></div><button class="btn xbtn" type="button" id="secpw" aria-expanded="false">Set or change password <span class="xchev" aria-hidden="true"></span></button></div>
-    <div class="secbox" id="secpwbox" hidden></div></section>`;
-function bindSec() {
-  const api = (path, body) => pb.send('/api/account/' + path, { method: 'POST', body });
-  const err = e => (e && e.response && e.response.message) || (e && e.message) || 'That didn’t work. Try again.';
-  const toggle = (box, html, other) => { $(other).hidden = true; const b = $(box); b.hidden = !b.hidden; if (!b.hidden) b.innerHTML = html;
-    $('#secem').setAttribute('aria-expanded', String(!$('#secembox').hidden)); $('#secpw').setAttribute('aria-expanded', String(!$('#secpwbox').hidden)); return !b.hidden; };
-  $('#secem').onclick = () => {
-    if (!toggle('#secembox', `<label class="authlbl" for="newemail">New email</label><div class="authrow"><input id="newemail" type="email" autocomplete="email" placeholder="you@example.com"><button class="btn primary" type="button" id="emsend">Send a code</button></div>
-      <p class="small muted">We send a 6-digit code to the new address and one to your current address, to check both are yours.</p><div id="emstep2"></div>`, '#secpwbox')) return;
-    $('#emsend').onclick = async () => {
-      const email = $('#newemail').value.trim(); if (!email) return msg('Type the new email first.', true);
-      try { const sent = await api('code', { purpose: 'email', email }); msg('Codes sent to ' + email + ' and ' + (sent.current || 'your current email') + '.');
-        $('#emstep2').innerHTML = `<label class="authlbl" for="emcode">Code sent to ${esc(email)}</label><input id="emcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
-          <label class="authlbl" for="emcode2">Code sent to ${esc(sent.current || 'your current email')}</label><input id="emcode2" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
-          <div class="row authsub saverow"><button class="btn primary" type="button" id="emok">Change email ✓</button></div>`;
-        $('#emcode').focus();
-        $('#emok').onclick = async () => {
-          try { const r = await api('confirm', { code: $('#emcode').value, code2: $('#emcode2').value }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
-            $('#secemail').textContent = r.email; $('#secembox').hidden = true; $('#secem').setAttribute('aria-expanded', 'false'); done('Email changed', 'You now sign in with ' + r.email + '.'); }
-          catch (e) { msg(err(e), true); } };
-      } catch (e) { msg(err(e), true); }
-    };
-  };
-  $('#secpw').onclick = () => {
-    if (!toggle('#secpwbox', `<p class="small muted">First we email you a code, to check it’s you.</p><button class="btn primary" type="button" id="pwsend">Email me a code</button><div id="pwstep2"></div>`, '#secembox')) return;
-    $('#pwsend').onclick = async () => {
-      try { const r = await api('code', { purpose: 'password' }); msg('Code sent to ' + r.sent + '.'); $('#pwsend').hidden = true;
-        $('#pwstep2').innerHTML = `<label class="authlbl" for="pwcode">Code</label><input id="pwcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
-          <label class="authlbl" for="pwnew">New password</label><input id="pwnew" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
-          <label class="authlbl" for="pwnew2">Repeat it</label><input id="pwnew2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again">
-          <div class="row authsub saverow"><button class="btn primary" type="button" id="pwok">Save password ✓</button></div>`;
-        $('#pwcode').focus();
-        $('#pwok').onclick = async () => {
-          const pw = $('#pwnew').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
-          if ($('#pwnew2').value !== pw) return msg('The two passwords aren’t the same.', true);
-          try { const r = await api('confirm', { code: $('#pwcode').value, password: pw }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
-            pwRemember(r.email); $('#secpwbox').hidden = true; $('#secpw').setAttribute('aria-expanded', 'false');
-            done('Password saved', 'Sign in with it, or with an emailed code.'); }
-          catch (e) { msg(err(e), true); } };
-      } catch (e) { msg(err(e), true); }
-    };
-  };
-}
+// Your data: download everything, and (in the danger zone) delete the account
 const dataCard = () => `<section class="card"><h2>Your data</h2>
     <p class="small muted">Everything this app keeps about you, stored in the EU.</p>
     <div class="row"><button class="btn" id="export">⬇️ Download my data</button></div></section>

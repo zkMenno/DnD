@@ -20,7 +20,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   const c1 = await codeFor(email2); ok('the email-change code goes to the new address', !!c1);
   const c1b = await codeFor(email); ok('a second code goes to the current address', !!c1b && c1b !== c1);
   await p.fill('#emcode', c1); await p.fill('#emcode2', c1b === '000000' ? '111111' : '000000'); await p.click('#emok'); await p.waitForTimeout(600);
-  ok('a wrong code for the current address is refused', /isn’t right/.test(await p.textContent('#msg')));
+  ok('a wrong code for the current address is refused (under the boxes)', /isn’t right/.test(await p.textContent('#secembox .pwerr')));
   await p.fill('#emcode2', c1b); await p.click('#emok'); await p.waitForFunction(e => document.querySelector('#secemail').textContent === e, email2);
   ok('the email changes', await p.evaluate(() => pb.authStore.record.email) === email2);
   // set a password with a code sent to the (new) email
@@ -64,6 +64,30 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   await z.fill('input[name=code]', c4); await z.click('button[value=otp]'); await z.waitForSelector('#add');
   const r4 = await fetch(B + '/api/collections/users/auth-with-password', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ identity: email4, password: 'Squatter-123' }) });
   ok('a password set before the owner proved the email stops working', !r4.ok);
+  // Forgot your password? on the sign-in page: a code, then "Choose a new password" on the home page
+  const f = await (await b.newContext({ viewport:{width:390, height:844} })).newPage(); f.setDefaultTimeout(15000); f.on('pageerror', e => errs.push(e.message));
+  const otp = async to => { for (let i = 0; i < 40; i++) { const t = fs.readFileSync(MAIL, 'utf8'); const parts = t.split('=== TO ').filter(x => x.startsWith(to)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/<strong>(\d{6})<\/strong>/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; };
+  fs.writeFileSync(MAIL, '');
+  await f.goto(B + '/#signin'); await f.fill('input[name=email]', email3); await f.evaluate(() => { document.querySelector('.pwbox').open = true; });
+  await f.click('#pwforgot'); await f.waitForSelector('input[name=code]');
+  await f.fill('input[name=code]', await otp(email3)); await f.click('button[value=otp]'); await f.waitForSelector('#firstpw');
+  ok('after Forgot your password? the home page asks for a new one', /Choose a new password/.test(await f.textContent('.pwprompt')));
+  await f.fill('#firstpw', 'Fourth-pass-111'); await f.fill('#firstpw2', 'Fourth-pass-112'); await f.click('#firstpwok');
+  ok('two different passwords: the error shows in the card, under the boxes', /aren’t the same/.test(await f.textContent('.pwprompt .pwerr')));
+  await f.fill('#firstpw2', 'Fourth-pass-111'); await f.click('#firstpwok'); await f.waitForSelector('#donepop.show');
+  const signIn = async (em, pw) => fetch(B + '/api/collections/users/auth-with-password', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ identity: em, password: pw }) });
+  ok('the new password works', (await signIn(email3, 'Fourth-pass-111')).ok);
+  ok('the old one doesn’t', !(await signIn(email3, 'Third-pass-789')).ok);
+  // Sign out everywhere else: another session's token stops working, this page stays signed in
+  const other = await (await signIn(email3, 'Fourth-pass-111')).json();
+  await f.goto(B + '/'); await f.click('[data-hometab=account]'); await f.click('#secout'); await f.click('.askpop [data-a="1"]'); await f.waitForSelector('#donepop.show');
+  const ref = await fetch(B + '/api/collections/users/auth-refresh', { method:'POST', headers:{ Authorization: other.token } });
+  ok('sign out everywhere else ends the other session', !ref.ok);
+  ok('…and keeps this one', await f.evaluate(async () => { try { await pb.collection('users').authRefresh(); return true; } catch (_) { return false; } }));
+  // Remove password: back to codes only
+  await f.waitForSelector('#donepop', { state: 'detached' }); await f.click('#secpwrm'); await f.click('.askpop [data-a="1"]'); await f.waitForSelector('#donepop.show');
+  ok('after Remove, the password no longer signs in', !(await signIn(email3, 'Fourth-pass-111')).ok);
+  ok('the password row now offers Set a password', /Set a password/.test(await f.textContent('#secpw')));
   ok('no script errors', !errs.length);
   await b.close();
 })().catch(e => { console.error('ERR', e.message); process.exit(1); });

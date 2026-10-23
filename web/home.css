@@ -641,3 +641,29 @@ section:not(:has(#mine .ch)) .addrow input{border:1.5px solid color-mix(in srgb,
 .ch .contbtn.btn.primary:hover{filter:brightness(1.08);border-color:var(--brass)}
 .addrow .btn.primary{background:transparent;color:var(--ink);border:1.5px solid var(--brass)}
 .addrow .btn.primary:hover{background:color-mix(in srgb,var(--brass) 14%,transparent);border-color:var(--brass);filter:none}
+
+/* ── Signed-in pages (characters, party, account, your data) and sign-in: readable text on phone and desktop ── */
+#main{font-size:1.08rem}
+#main .card .small,#main .card p.small,#main .secrow .muted,#main .card .muted{font-size:1rem;line-height:1.5}
+#main .card h2{font-size:1.4rem}
+#main .authlbl,#main .secrow b{font-size:1.05rem}
+#main .btn{font-size:1.02rem}
+#main .btn.small{font-size:.95rem}
+#main input,#main select{font-size:1.05rem}
+/* messages: the pop-up and the ones under password boxes */
+body > #msg{font-size:1.02rem;line-height:1.45}
+.pwerr{font-size:1.02rem;line-height:1.45}
+.pwnote{margin:12px 0 8px;line-height:1.5}
+#firstcode .codein{max-width:14rem}
+/* Sign-in & security rows: text left, buttons right; the rows stack on phones */
+.secrow .secbtns{gap:8px;flex-wrap:nowrap}
+@media (max-width:560px){ .secrow{flex-direction:column;align-items:stretch;gap:10px} .secrow .btn,.secrow .secbtns{align-self:flex-start} }
+/* "Forgot your password?" next to Roll in */
+.pwgorow{align-items:center;gap:14px}
+.linkbtn{background:none;border:0;padding:4px 2px;color:var(--muted);font:inherit;font-size:.98rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.linkbtn:hover{color:var(--brass)}
+/* yes/no box (askYes in index.js) */
+.askcard{gap:10px;max-width:min(420px,90vw);cursor:default}
+.askcard b{font-family:var(--f-display);font-size:1.3rem}
+.askcard span{color:var(--muted);line-height:1.5}
+.askcard .row{gap:10px;margin-top:8px;justify-content:center}

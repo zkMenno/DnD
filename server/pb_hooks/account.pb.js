@@ -71,15 +71,36 @@ routerAdd("POST", "/api/account/confirm", (e) => {
   return e.json(200, { ok: true, purpose: st.purpose, email: rec.email(), token: rec.newAuthToken(), record: rec });
 }, $apis.requireAuth("users"));
 
-// First password right after signing in with an emailed code (within a day of that sign-in, for an account that never
-// had a password chosen): no second code needed — the emailed code just proved the address.
+// A password right after signing in with an emailed code, no second code needed: the code just proved the address.
+//  - no password yet (the "Save a password for next time" card): within a day of that code sign-in
+//  - "Forgot your password?" on the sign-in page (sign in with a code, then choose a new one): within 15 minutes
+// Outside those windows the answer is "fresh-code-needed" and the page asks for a code (POST /code, then /confirm).
 //   POST /api/account/first-password {password}
 routerAdd("POST", "/api/account/first-password", (e) => {
   const rec = $app.findRecordById("users", e.auth.id), pw = String((e.requestInfo().body || {}).password || "");
-  if (rec.getBool("pw_set")) throw new BadRequestError("You already have a password. Change it under Sign-in & security.");
-  const at = rec.getDateTime("otp_at");
-  if (at.isZero() || Date.now() - at.unix() * 1000 > 24 * 60 * 60 * 1000) throw new BadRequestError("fresh-code-needed");
+  const at = rec.getDateTime("otp_at"), window = rec.getBool("pw_set") ? 15 * 60 * 1000 : 24 * 60 * 60 * 1000;
+  if (at.isZero() || Date.now() - at.unix() * 1000 > window) throw new BadRequestError("fresh-code-needed");
   if (pw.length < 8 || pw.length > 72) throw new BadRequestError("Passwords are 8 to 72 characters.");
-  rec.setPassword(pw); rec.set("pw_set", true); $app.save(rec);
+  rec.setPassword(pw); rec.set("pw_set", true);
+  rec.set("otp_at", null);   // one password per code sign-in
+  $app.save(rec);
+  return e.json(200, { ok: true, email: rec.email(), token: rec.newAuthToken(), record: rec });
+}, $apis.requireAuth("users"));
+
+// Sign out everywhere else: a new token key ends every session, then this device gets a fresh token.
+//   POST /api/account/signout-all
+routerAdd("POST", "/api/account/signout-all", (e) => {
+  const rec = $app.findRecordById("users", e.auth.id);
+  rec.refreshTokenKey(); $app.save(rec);
+  return e.json(200, { ok: true, email: rec.email(), token: rec.newAuthToken(), record: rec });
+}, $apis.requireAuth("users"));
+
+// Remove the password: back to emailed codes only. A random password nobody knows replaces it (which also ends other
+// sessions); this device gets a fresh token.
+//   POST /api/account/remove-password
+routerAdd("POST", "/api/account/remove-password", (e) => {
+  const rec = $app.findRecordById("users", e.auth.id);
+  if (!rec.getBool("pw_set")) throw new BadRequestError("You don’t have a password to remove.");
+  rec.setRandomPassword(); rec.set("pw_set", false); $app.save(rec);
   return e.json(200, { ok: true, email: rec.email(), token: rec.newAuthToken(), record: rec });
 }, $apis.requireAuth("users"));
