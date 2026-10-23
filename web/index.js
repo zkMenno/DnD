@@ -510,7 +510,7 @@ function askYes(title, text, yes) {
     document.addEventListener('keydown', key); document.body.appendChild(p); requestAnimationFrame(() => p.classList.add('show')); p.querySelector('[data-a="1"]').focus();
   });
 }
-// Theme: the same eight looks and light/dark as ☰ → Theme on a sheet (web/sw-register.js: window.Skin), saved on
+// Theme: the same looks (src/looks/) and light/dark as ☰ → Theme on a sheet (web/sw-register.js: window.Skin), saved on
 // this device.
 const looksCard = () => `<section class="card looks"><h2>Theme</h2><p class="small muted">How Dungeon Tracker and your sheets look on this device.</p><div id="looks"></div></section>`;
 // Draws the look and light/dark buttons; a tap applies it straight away (no reload: the home page has no dice sets).

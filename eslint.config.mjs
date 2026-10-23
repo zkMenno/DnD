@@ -2,7 +2,7 @@
 // scope, so tools/test.sh lints each built combination as a single file (dist/lint/<pack>.js) to catch undefined names.
 import globals from 'globals';
 export default [{
-  files: ['dist/lint/*.js', 'web/*.js', 'tools/**/*.js'],
+  files: ['dist/lint/*.js', 'web/*.js', 'tools/**/*.js', 'src/looks/*.js'],
   ignores: ['web/pocketbase.umd.js', 'web/three.min.js'],   // vendored libraries
   languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.browser, ...globals.node, PocketBase: 'readonly', THREE: 'readonly' } },
   rules: {

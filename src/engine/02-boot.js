@@ -162,15 +162,9 @@ const HOST = 'host:claude_browser';
 const THEME = THEMES[PACK.theme] || THEMES[Object.keys(THEMES)[0]];
 // The web app's other looks (☰ → Theme, <html data-skin>) speak their own few words; no skin = the pack's theme.
 const SKIN = document.documentElement.getAttribute('data-skin') || '';
-const SKIN_WORDS = {
-  fantasy:  { ok:'So be it ✓', cancel:'Nay', log:'Chronicle', clean:'⚜ All in order.', critIcon:'⚜' },
-  space:    { ok:'Confirm ✓', cancel:'Abort', log:'Mission log', clean:'✦ All systems nominal.', critIcon:'✦' },
-  woodland: { ok:'Done ✓', cancel:'Not now', log:'Grove journal', clean:'🍃 All is well.', critIcon:'🍃' },
-  gothic:   { ok:'So be it ✓', cancel:'Begone', log:'Journal', clean:'🕯️ All quiet.', critIcon:'🦇' },
-  underdark:{ cancel:'Retreat', log:'Expedition log', clean:'🍄 All quiet below.', critIcon:'🍄' },
-  icewind:  { cancel:'Hold', log:'Trail log', clean:'❄️ All clear.', critIcon:'❄️' },
-  avernus:  { ok:'Sealed ✓', cancel:'Refuse', log:'Infernal ledger', clean:'🔥 Debts settled.', critIcon:'🔥' },
-};
+// { <look>: words }: each look's words (src/looks/*.js), filled in by tools/build.js for the web app only (the
+// claude.ai sheets are always pirate, so theirs stays empty).
+const SKIN_WORDS = /*__SKIN_WORDS__*/{};
 // a skin's words replace the theme's; plain English fills any gaps
 const WORD = Object.assign({ ok:'Done ✓', cancel:'Cancel', log:'Notes', turn:'Your turn at a glance', clean:'✓ All clear.',
   notesHint: n => 'Who you met, what you found, what '+n+' wants next…', critIcon:'✦' }, SKIN && SKIN_WORDS[SKIN] ? SKIN_WORDS[SKIN] : THEME.words);

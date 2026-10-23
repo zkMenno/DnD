@@ -2,7 +2,7 @@
    THEME TOKENS — "pirate" (a sea captain's chart)
    Light = sun-bleached chart paper with ink, oxblood and doubloon gold; dark = night at sea, parchment text, lantern gold.
    The colours, fonts and textures every engine style reads (src/app.css). Inlined as <style id="theme-css"> in the
-   claude.ai sheets, served as /engine/theme.css in the web app, where src/skins.css overrides these same tokens for
+   claude.ai sheets, served as /engine/theme.css in the web app, where skins.css (built from src/looks/) overrides these same tokens for
    the other looks (<html data-skin>, set by web/sw-register.js).
    To reskin the sheet, replace this whole block with another theme's tokens (same variable names), and set
    PACK.theme to a matching entry in THEMES (#themes script) for wording, fonts and dice.

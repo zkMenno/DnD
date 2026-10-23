@@ -80,7 +80,7 @@ function paintMenu(){
     + (window.SHEET && window.openFeedback && !diceEdit ? '<div style="height:8px"></div><button class="menulink" data-act="feedback"><span class="mico" aria-hidden="true">🐞</span><span class="dst"><b>Report a bug or share an idea</b><span>Goes straight to Menno, who builds Dungeon Tracker</span></span></button>' : '')
     + (diceEdit ? '' : done);
 }
-// Web app: ☰ → Theme. Eight looks (web/sw-register.js: window.Skin) and light / dark / follow the device.
+// Web app: ☰ → Theme. The looks (src/looks/, listed by web/sw-register.js: window.Skin) and light / dark / follow the device.
 // Empty on claude.ai sheets.
 function skinRow(open, chev){
   const K = window.Skin; if (!K || !window.SHEET) return '';
