@@ -103,12 +103,16 @@ routerAdd("POST", "/api/claim/{id}/check", (e) => {
 // party log: "by" is the posting character's name and campaign its campaign, never what the browser says.
 // Moving a note to another character, scope or campaign is blocked in the rules (pb_migrations/1761000000_schema.js).
 onRecordCreateRequest((e) => {
+  // no HTML tags in notes (they're shown to the party): a whole tag like <b> or <img …> is refused, "a<b" or "<3" is fine
+  if (/<\s*\/?\s*[a-zA-Z][\w-]*(\s[^<>]*)?\/?>/.test(e.record.getString("text"))) throw new BadRequestError("Notes can't contain HTML tags.");
   const ch = $app.findRecordById("characters", e.record.getString("character")), party = e.record.getString("scope") === "party";
   e.record.set("by", party ? ch.getString("name") : "");
   e.record.set("campaign", party ? ch.getString("campaign") : "");
   e.next();
 }, "notes");
-onRecordUpdateRequest((e) => { e.record.set("by", e.record.original().getString("by")); e.next(); }, "notes");
+onRecordUpdateRequest((e) => {
+  if (/<\s*\/?\s*[a-zA-Z][\w-]*(\s[^<>]*)?\/?>/.test(e.record.getString("text"))) throw new BadRequestError("Notes can't contain HTML tags.");
+  e.record.set("by", e.record.original().getString("by")); e.next(); }, "notes");
 
 // ── Email codes double as sign-up ───────────────────────────────────────────────────────────────────
 // A code asked for an unknown email creates the account first (random password nobody knows; they can set one
@@ -133,6 +137,13 @@ onRecordAuthWithOTPRequest((e) => {
   e.next();
   // remember when: lets /api/account/first-password skip a second email (a database field, so a restart doesn't lose it)
   if (e.record) { const r = $app.findRecordById("users", e.record.id); r.set("otp_at", new DateTime()); $app.saveNoValidate(r); }
+}, "users");
+
+// the same for sign-in with Google, Apple, Microsoft or Proton (OAuth2), once those are switched on: the provider proves
+// the address, so a password set on an unverified account before that (by whoever typed this email) stops working
+onRecordAuthWithOAuth2Request((e) => {
+  if (e.record && !e.record.verified()) { e.record.setRandomPassword(); e.record.set("pw_set", false); e.record.setVerified(true); $app.save(e.record); }
+  e.next();
 }, "users");
 
 // ── Usernames ───────────────────────────────────────────────────────────────────────────────────────

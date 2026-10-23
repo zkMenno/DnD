@@ -9,6 +9,7 @@ window.withV = withV;
   const TRIALS = { brute: 'trial-brute', mage: 'trial-mage' };
   const key = new URLSearchParams(location.search).get('c'), T = TRIALS[key];
   if (!T) { location.replace('/'); return; }
+  const tfail = m => { app.innerHTML = '<div class="boot"><p>' + m + '</p><p><a href="/">← Dungeon Tracker</a></p></div>'; };
   let data;
   try { data = await (await fetch(withV('/trial/' + T + '.json'))).json(); }
   catch (_) { app.innerHTML = '<div class="boot"><p>Couldn’t load the try-out character.</p><p><a href="/">← Dungeon Tracker</a></p></div>'; return; }
@@ -23,7 +24,12 @@ window.withV = withV;
   const bar = document.createElement('div'); bar.className = 'trialbar wrap';
   bar.innerHTML = '<div class="trialin"><span>🎲 <b>Try-out character sheet.</b> Tap around: your changes stay on this device.</span><a class="btn" href="/#signin">Use my own character →</a></div>';
   document.body.insertBefore(bar, app);
-  for (const src of ['/engine/themes.js', '/engine/classes.js', '/packs/' + T + '.js', '/engine/main.js']) await loadScript(withV(src));
+  // a script that doesn't load (bad connection, a deploy mid-way) or an engine that stops before drawing the sheet:
+  // say so with a way out, instead of leaving "Opening your sheet…" up forever
+  const stuck = () => { if (app.querySelector('.boot')) tfail('Couldn’t open the sheet. <a href="">Try again</a>'); };
+  try { for (const src of ['/engine/themes.js', '/engine/classes.js', '/packs/' + T + '.js', '/engine/main.js']) await loadScript(withV(src)); }
+  catch (_) { return stuck(); }
+  setTimeout(stuck, 10000);
 })();
 function loadScript(src) {
   return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('load ' + src)); document.body.appendChild(s); });

@@ -238,7 +238,12 @@ function renderUsernameStep(c) {
 
 // Sign out: forget the login and everything this device kept for offline use (sheets, list, unsent notes),
 // so the next person on a shared phone or laptop can't read them (the app files themselves stay cached)
-function signOut() {
+async function signOut(force) {
+  // changes this device hasn't sent yet (notes written offline, tracker changes) would be lost: ask first
+  let unsent = 0; try { Object.keys(localStorage).forEach(k => {
+    if (/^note-queue-/.test(k)) unsent += (JSON.parse(localStorage.getItem(k)) || []).length;
+    else if (/-play-.*-dirty$/.test(k) && +localStorage.getItem(k)) unsent += 1; }); } catch (_) {}
+  if (unsent && !force && !await askYes('Sign out with unsent changes?', unsent + ' change' + (unsent === 1 ? '' : 's') + ' on this device haven’t reached the server yet (made offline). Go online and open the sheet first to send them, or sign out and lose them.', 'Sign out anyway')) return;
   pb.authStore.clear();
   try { Object.keys(localStorage).filter(k => /^(sheet-cache-|sheet-at-|note-queue-|sheet-list$|last-sheet$|has-password-|pw-later-|dt-pw-emails$)/.test(k) || /-play-|-notes-/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (_) {}
   msg(''); history.replaceState(null, '', '/'); showLanding();
@@ -516,7 +521,7 @@ function askDelete() {
       <div class="row"><button class="btn danger solid" id="delyes">Yes, delete forever</button><button class="btn" id="delno2">No, keep my account</button></div></div>`;
     $('#delno2').onclick = () => { box.hidden = true; $('#delacct').setAttribute('aria-expanded', 'false'); };
     $('#delyes').onclick = async () => {
-      try { await pb.collection('users').delete(me.id); signOut(); msg('Your account and everything in it are deleted.'); }
+      try { await pb.collection('users').delete(me.id); signOut(true); msg('Your account and everything in it are deleted.'); }
       catch (e) { msg('Couldn’t delete the account. Try again, or email the contact on the Privacy & terms page.', true); }
     };
   };
@@ -526,7 +531,16 @@ function askDelete() {
 async function loadLists() {
   const me = pb.authStore.record.id;
   let list = [];
-  try { list = await pb.collection('characters').getFullList({ sort: 'name', fields: 'id,name,owner,handle,campaign,visibility,verified,ddb_id,updated,pinned,archived,sort,data.race.name,data.classes,data.campaign' });
+  // two small queries instead of every sheet the rules let you see: your own, then the ones your party shares
+  // (party-visible, or open to anyone signed in, in one of your campaigns). Other public sheets are link-only.
+  const F = 'id,name,owner,handle,campaign,visibility,verified,ddb_id,updated,pinned,archived,sort,data.race.name,data.classes,data.campaign';
+  try { const col = pb.collection('characters');
+    const own = await col.getFullList({ sort: 'name', fields: F, filter: pb.filter('owner = {:m}', { m: me }) });
+    const camps = [...new Set(own.map(c => c.campaign).filter(Boolean))].slice(0, 20), p = { m: me };
+    camps.forEach((c, i) => { p['c' + i] = c; });
+    const inMine = camps.map((c, i) => 'campaign = {:c' + i + '}').join(' || ');
+    const others = inMine ? await col.getFullList({ sort: 'name', fields: F, filter: pb.filter('owner != {:m} && visibility != "private" && (' + inMine + ')', p) }) : [];
+    list = own.concat(others);
     try { localStorage.setItem('sheet-list', JSON.stringify(list)); } catch (_) {} }
   catch (e) {   // offline: the last list this device saw (sheets opened before open offline too)
     try { list = JSON.parse(localStorage.getItem('sheet-list')) || []; } catch (_) { list = []; }

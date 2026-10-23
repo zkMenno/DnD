@@ -102,5 +102,7 @@ check('a player can\'t write another campaign or name into their character', s==
 # filters can't reach fields of other people's accounts
 s,l = req('GET','/api/collections/characters/records?filter='+urllib.parse.quote("owner.pw_set=true"),tok=tc)
 check('no filtering characters by their owner\'s account fields', s>=400 or all(i['owner']==ic for i in l.get('items',[])))
+s,_ = req('POST','/api/collections/notes/records',{'character':wa['id'],'author':ia,'scope':'own','text':'<img src=x onerror=alert(1)>','at':3},ta); check('notes with HTML tags are refused', s==400)
+s,_ = req('POST','/api/collections/notes/records',{'character':wa['id'],'author':ia,'scope':'own','text':'goblins<orcs, and <3','at':4},ta); check('…but a < in normal text is fine', s==200)
 print('ALL PASS' if ok else 'SOME FAILED')
 sys.exit(0 if ok else 1)

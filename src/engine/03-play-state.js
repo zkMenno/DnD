@@ -53,7 +53,18 @@ if (JSON.stringify(S.added) !== JSON.stringify(ADDED)) { ADDED = S.added; mergeA
 let remoteTimer = null, DB = null;
 const PLAY_DOC = 'play/' + PACK.id;   // shared play state in the page's db (collection 'play' is in the db access rules)
 // persist S locally now, and to the page db shortly after (debounced)
-const save = () => { if (VIEW) { try { paintChanges(); } catch(_){} return; } ls.set(SKEY, S); try { paintChanges(); } catch(_){} if (DB) { clearTimeout(remoteTimer); remoteTimer = setTimeout(() => { DB.doc(PLAY_DOC).set(JSON.parse(JSON.stringify(S))).catch(()=>{}); }, 800); } };
+// SKEY+'-dirty' marks a change this device hasn't stored remotely yet (offline, or closed within the 800 ms): on the
+// next load the stored copy must not overwrite it (bootStore pushes it instead), and going back online pushes it.
+const DIRTY = SKEY + '-dirty';
+const save = () => {
+  if (VIEW) { try { paintChanges(); } catch(_){} return; }
+  ls.set(SKEY, S); ls.set(DIRTY, Date.now()); try { paintChanges(); } catch(_){}
+  if (DB) { clearTimeout(remoteTimer); remoteTimer = setTimeout(() => {
+    const at = ls.get(DIRTY);
+    DB.doc(PLAY_DOC).set(JSON.parse(JSON.stringify(S))).then(() => { if (ls.get(DIRTY) === at) ls.set(DIRTY, 0); }).catch(()=>{});
+  }, 800); }
+};
+addEventListener('online', () => { if (ls.get(DIRTY)) save(); });
 
 // UI prefs (this device): tab, roll mode, dice set, card/section order, last bardic die
 let ui = ls.get(PACK.id+'-ui') || { tab: PACK.tabs[0][0], mode: 'adv' };

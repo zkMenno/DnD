@@ -26,7 +26,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   await p.goto(B + '/'); await p.waitForSelector('#mine .ch'); await rename(p, 'menno-two'); await p.click('[data-hometab=chars]'); await p.waitForSelector('#mine .ch');
   ok('your characters follow a new username', await p.evaluate(() => [...document.querySelectorAll('#mine a.open')].map(a => a.getAttribute('href')).sort().join() === '/menno-two/165157421,/menno-two/170557047'));
   await p.goto(B + '/menno-two/165157421'); ok('the new address opens the sheet', (await sheet(p)) === '/menno-two/165157421');
-  await p.goto(B + '/menno-test/165157421'); await p.waitForSelector('.boot');
+  await p.goto(B + '/menno-test/165157421'); await p.waitForFunction(() => /isn’t here/.test((document.querySelector('.boot') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
   ok('the old address shows "not here"', /isn’t here/.test(await p.textContent('.boot')));
 
   // front page → paste a link → sign up → the character is added straight away

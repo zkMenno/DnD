@@ -65,7 +65,12 @@ window.withV = withV;
   };
   window.claude = { use: async name => name === 'db' ? sheetDb(pb, ch, me, mine) : null };
 
-  for (const src of ['/engine/themes.js', '/engine/classes.js', '/packs/' + packName + '.js', '/engine/main.js']) await loadScript(withV(src));
+  // a script that doesn't load (bad connection, a deploy mid-way) or an engine that stops before drawing the sheet:
+  // say so with a way out, instead of leaving "Opening your sheet…" up forever
+  const stuck = () => { if (app.querySelector('.boot')) fail('Couldn’t open the sheet. <a href="">Try again</a>'); };
+  try { for (const src of ['/engine/themes.js', '/engine/classes.js', '/packs/' + packName + '.js', '/engine/main.js']) await loadScript(withV(src)); }
+  catch (_) { return stuck(); }
+  setTimeout(stuck, 10000);
   // first open: save the compact copy (window.SHEET.saved settles when it's stored; tests wait on it)
   /* global DATA */   // the engine's compact character, defined by engine/main.js
   window.SHEET.saved = firstSync && typeof DATA === 'object'
@@ -141,7 +146,10 @@ function sheetDb(pb, ch, me, mine) {
   const tryOrQueue = async op => { if (!navigator.onLine) return enqueue(op); try { await run(op); } catch (e) { if (net(e)) enqueue(op); else throw e; } };
   let flushing = false;
   const flush = async () => { if (flushing || !navigator.onLine) return; flushing = true;
-    try { let q = queue(); while (q.length) { try { await run(q[0]); } catch (e) { if (net(e)) break; } q = q.slice(1); localStorage.setItem(QKEY, JSON.stringify(q)); } }
+    // a write the server refuses (not a network problem) is kept aside in note-failed-<id> instead of vanishing
+    try { let q = queue(); while (q.length) { try { await run(q[0]); } catch (e) { if (net(e)) break;
+        try { const k = QKEY.replace('note-queue-', 'note-failed-'), f = JSON.parse(localStorage.getItem(k) || '[]'); f.push(Object.assign({ err: String((e && e.message) || e) }, q[0])); localStorage.setItem(k, JSON.stringify(f.slice(-50))); } catch (_) {} }
+      q = q.slice(1); try { localStorage.setItem(QKEY, JSON.stringify(q)); } catch (_) {} } }
     finally { flushing = false; } };
   window.addEventListener('online', () => flush()); flush();
   const notesFilter = pb.filter('character = {:c} && scope = "own"', { c: ch.id });

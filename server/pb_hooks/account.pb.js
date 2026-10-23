@@ -22,8 +22,10 @@ routerAdd("POST", "/api/account/code", (e) => {
   }
   $app.store().set(ask, String(Date.now()));   // from here on the request counts (a typo above doesn't)
   if (purpose === "email") {
+    // an address that already has an account gets the same answer as any other, so this can't be used to find out who
+    // has one; no code goes there, so the change can never be confirmed
     let taken = false; try { $app.findAuthRecordByEmail("users", to); taken = true; } catch (_) {}
-    if (taken) throw new BadRequestError("That email already has a Dungeon Tracker account.");
+    if (taken) return e.json(200, { sent: to, current: me.email() });
   }
   const code = $security.randomStringWithAlphabet(6, "0123456789");
   const code2 = purpose === "email" ? $security.randomStringWithAlphabet(6, "0123456789") : "";

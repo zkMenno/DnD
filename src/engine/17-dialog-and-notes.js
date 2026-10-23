@@ -153,6 +153,8 @@ async function bootStore(){
     // a shared sheet whose owner synced since we opened it: reload to get the new character data (at most every 30 s)
     if (VIEW && r.stamp !== DATA.syncedAt) { let last = 0; try { last = +sessionStorage.getItem('view-reload') || 0; } catch(_){}
       if (Date.now() - last > 30000) { try { sessionStorage.setItem('view-reload', Date.now()); } catch(_){} return location.reload(); } }
+    // this device has changes it hasn't stored yet (made offline, or the tab closed too soon): they're newer, keep them
+    if (ls.get(DIRTY) && r.stamp === DATA.syncedAt) { if (JSON.stringify(r) !== JSON.stringify(S)) save(); return; }
     if (r.stamp === DATA.syncedAt && JSON.stringify(r) !== JSON.stringify(S)) { S = normalizeState(JSON.parse(JSON.stringify(r))); ls.set(SKEY, S);
       if (JSON.stringify(S.added) !== JSON.stringify(ADDED)) return addedChanged();   // items added on another device
       paintRes(); paintCoins(); paintVitals(); }
