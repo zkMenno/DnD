@@ -116,8 +116,8 @@ jobs:
           OUT: ${{ runner.temp }}/sheet-tests
           MAILSINK: ${{ runner.temp }}/mailsink.txt
           HTTPS_PROXY: http://127.0.0.1:9
-          https_proxy: http://127.0.0.1:9
-        run: bash tools/test.sh web
+        # the lower-case twin is set in the command: Actions treats env names case-insensitively (duplicate key)
+        run: https_proxy=http://127.0.0.1:9 bash tools/test.sh web
       - name: Server log (on failure)
         if: failure() && env.WEB_TESTS == 'true'
         run: tail -n 200 "$RUNNER_TEMP/pb.log" || true
