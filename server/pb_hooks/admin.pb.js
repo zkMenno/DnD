@@ -10,7 +10,7 @@ routerAdd("GET", "/api/admin/me", (e) => {
 }, $apis.requireAuth("users"));
 
 // POST /api/admin/code → {sent} — emails a 6-digit code to the admin's own address. One a minute; the code lasts
-// 10 minutes and 5 tries (stored under "adm:<user id>").
+// 10 minutes, 3 tries and one use (stored under "adm:<user id>").
 routerAdd("POST", "/api/admin/code", (e) => {
   const u = require(`${__hooks}/admin_utils.js`);
   if (!u.isAdmin(e.auth)) throw new NotFoundError("Not found.");
@@ -30,7 +30,7 @@ routerAdd("POST", "/api/admin/unlock", (e) => {
   const u = require(`${__hooks}/admin_utils.js`);
   if (!u.isAdmin(e.auth)) throw new NotFoundError("Not found.");
   const key = "adm:" + e.auth.id; let p = null; try { p = JSON.parse(String($app.store().get(key) || "")); } catch (_) {}
-  if (!p || Date.now() - p.at > 600000 || p.tries >= 5) { $app.store().remove(key); throw new BadRequestError("That code has run out. Ask for a new one."); }
+  if (!p || Date.now() - p.at > 600000 || p.tries >= 3) { $app.store().remove(key); throw new BadRequestError("That code has run out. Ask for a new one."); }
   const code = String((e.requestInfo().body || {}).code || "").replace(/\D/g, "");
   if (!$security.equal(code, p.code)) { p.tries++; $app.store().set(key, JSON.stringify(p)); throw new BadRequestError("That code isn’t right."); }
   $app.store().remove(key);

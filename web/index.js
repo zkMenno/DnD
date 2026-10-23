@@ -187,7 +187,8 @@ async function renderLogin(mode) {
       const code = f.code.value.trim(); if (!/^\d{6}$/.test(code)) return msg('The code is 6 digits.', true);
       msg('Signing in…');
       try { await pb.collection('users').authWithOTP(otpId, code); otpId = null; msg(''); signedIn(); }
-      catch (err) { msg('That code didn’t work. Check it, or send a new one.', true); }
+      catch (err) { const m = String((err && err.response && err.response.message) || '');
+        msg(/Too many/.test(m) ? 'Three wrong tries: that code has stopped working. Send a new one.' : 'That code didn’t work. Check it, or send a new one (3 tries per code).', true); }
       return;
     }
     const perr = (t, bad) => { const p = $('#pwerr'); if (!p) return msg(t, bad); msg(''); p.textContent = t || ''; p.hidden = !t; };

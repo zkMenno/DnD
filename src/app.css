@@ -971,20 +971,7 @@ button.crest{border:0;cursor:pointer;font:inherit;padding:0}
 }
 
 /* ── Scrollbars ────────────────────────────────────────────────────────────────────────────────────────── */
-/* themed scrollbars: a slim brass thumb, no arrow buttons. Chrome/Safari use the ::-webkit-scrollbar rules
-   (setting scrollbar-color there would switch back to the standard bar with arrows), Firefox uses scrollbar-color */
-@supports not selector(::-webkit-scrollbar){
-  html,.restbox,#hpedit,.qrlist,.bubble .bscroll,.roll{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--brass) 70%,transparent) transparent}
-}
-@supports selector(::-webkit-scrollbar){
-  html,.restbox,#hpedit,.qrlist,.bubble .bscroll,.roll{scrollbar-width:auto;scrollbar-color:auto}
-  html::-webkit-scrollbar,.restbox::-webkit-scrollbar,#hpedit::-webkit-scrollbar,.qrlist::-webkit-scrollbar,.bubble .bscroll::-webkit-scrollbar,.roll::-webkit-scrollbar{width:8px;height:8px}
-  html::-webkit-scrollbar-button,.restbox::-webkit-scrollbar-button,#hpedit::-webkit-scrollbar-button,.qrlist::-webkit-scrollbar-button,.bubble .bscroll::-webkit-scrollbar-button,.roll::-webkit-scrollbar-button{display:none;width:0;height:0}
-  html::-webkit-scrollbar-track,.restbox::-webkit-scrollbar-track,#hpedit::-webkit-scrollbar-track,.qrlist::-webkit-scrollbar-track,.bubble .bscroll::-webkit-scrollbar-track,.roll::-webkit-scrollbar-track{background:transparent;margin:10px 0}
-  html::-webkit-scrollbar-thumb,.restbox::-webkit-scrollbar-thumb,#hpedit::-webkit-scrollbar-thumb,.qrlist::-webkit-scrollbar-thumb,.bubble .bscroll::-webkit-scrollbar-thumb,.roll::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--brass) 70%,transparent);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
-  html::-webkit-scrollbar-thumb:hover,.restbox::-webkit-scrollbar-thumb:hover,#hpedit::-webkit-scrollbar-thumb:hover,.qrlist::-webkit-scrollbar-thumb:hover,.bubble .bscroll::-webkit-scrollbar-thumb:hover,.roll::-webkit-scrollbar-thumb:hover{background:var(--brass);background-clip:padding-box}
-  html::-webkit-scrollbar-corner{background:transparent}
-}
+/* themed scrollbars: every scroll area, every page: see the end of src/theme.css */
 /* tooltips: as tall as the screen allows, no visible scroll bar */
 .bubble::-webkit-scrollbar{display:none}
 .bubble .bscroll{max-height:min(70vh,620px);overflow-y:auto;overscroll-behavior:contain;margin-right:-6px;padding-right:6px}

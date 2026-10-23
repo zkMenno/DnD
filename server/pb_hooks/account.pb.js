@@ -5,7 +5,7 @@
 // from 6-digit codes instead: a password change sends one to the current email; an email change sends one to the new
 // address (proving you can read it) AND one to the current address (proving it's you, not someone holding your
 // signed-in phone), and the old address gets a notice afterwards.
-// Pending codes live in $app.store() (memory, lost on restart): 10 minutes, 5 tries, one request per minute.
+// Pending codes live in $app.store() (memory, lost on restart): 10 minutes, 3 tries, one use, one request per minute.
 // Each handler runs in its own VM, so every constant and helper is defined inside the handler that uses it.
 // Every route that changes the password or email answers with a fresh token: PocketBase ends the old sessions.
 
@@ -49,7 +49,7 @@ routerAdd("POST", "/api/account/code", (e) => {
 
 // POST /api/account/confirm {code, code2?, password?} → {ok, purpose, email, token, record}
 // Checks the code(s) from /code and applies the change: the new password, or the new email (marked verified, since
-// the code proved it). Five wrong tries or 10 minutes end the request. The email is checked for an existing account
+// the code proved it). Three wrong tries or 10 minutes end the request. The email is checked for an existing account
 // again here, because one may have signed up with it since the code went out. The old address gets a notice.
 routerAdd("POST", "/api/account/confirm", (e) => {
   const body = e.requestInfo().body || {}, key = "acct:" + e.auth.id, raw = String($app.store().get(key) || "");
@@ -59,8 +59,8 @@ routerAdd("POST", "/api/account/confirm", (e) => {
   const pw = String(body.password || "");
   if (st.purpose === "password" && (pw.length < 8 || pw.length > 72)) throw new BadRequestError("Passwords are 8 to 72 characters.");
   if (String(body.code || "").trim() !== st.code || (st.code2 && String(body.code2 || "").trim() !== st.code2)) {
-    st.tries++; if (st.tries >= 5) $app.store().remove(key); else $app.store().set(key, JSON.stringify(st));
-    throw new BadRequestError(st.tries >= 5 ? "Too many wrong codes. Ask for a new one." : (st.code2 ? "One of the codes isn’t right." : "That code isn’t right."));
+    st.tries++; if (st.tries >= 3) $app.store().remove(key); else $app.store().set(key, JSON.stringify(st));
+    throw new BadRequestError(st.tries >= 3 ? "Too many wrong codes. Ask for a new one." : (st.code2 ? "One of the codes isn’t right." : "That code isn’t right."));
   }
   const rec = $app.findRecordById("users", e.auth.id);
   if (st.purpose === "password") { rec.setPassword(pw); rec.set("pw_set", true); }
@@ -119,3 +119,24 @@ routerAdd("POST", "/api/account/remove-password", (e) => {
   rec.setRandomPassword(); rec.set("pw_set", false); $app.save(rec);
   return e.json(200, { ok: true, email: rec.email(), token: rec.newAuthToken(), record: rec });
 }, $apis.requireAuth("users"));
+
+// ── Sign-in codes: three tries ─────────────────────────────────────────────────────────────────────────────
+// PocketBase's emailed sign-in code (users.otp: 10 minutes, one use — it's deleted once it works). On top of that,
+// three wrong tries end it: the code record is deleted and the player asks for a new one. Counted in memory
+// ($app.store(), key "otp-try:<otp id>"), which is fine because a restart only gives back a few tries on a
+// 10-minute code that the IP rate limit already slows down.
+routerUse((e) => {
+  if (e.request.method !== "POST" || e.request.url.path !== "/api/collections/users/auth-with-otp") return e.next();
+  let id = ""; try { id = String((e.requestInfo().body || {}).otpId || ""); } catch (_) {}
+  if (!id) return e.next();
+  const key = "otp-try:" + id, tries = Number($app.store().get(key) || 0);
+  if (tries >= 3) throw new BadRequestError("Too many wrong codes. Ask for a new one.");
+  try { return e.next(); }
+  catch (err) {
+    const n = tries + 1;
+    if (n >= 3) { $app.store().remove(key); try { $app.delete($app.findRecordById("_otps", id)); } catch (_) {} $app.store().set(key, "3");
+      throw new BadRequestError("Too many wrong codes. Ask for a new one."); }
+    $app.store().set(key, String(n));
+    throw err;
+  }
+});

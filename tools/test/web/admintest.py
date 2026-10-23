@@ -65,4 +65,26 @@ s,o = req('GET','/api/admin/overview',tok=to,hdr=T); check('…and it’s gone',
 req('POST','/api/admin/lock',tok=to)
 s,_ = req('GET','/api/admin/overview',tok=to,hdr=T); check('Lock now ends the unlock', s==403)
 req('PATCH','/api/collections/users/records/'+io,{'admin':False},SU)
+
+# ── Sign-in codes: 10 minutes, three tries, one use (users.otp + the routerUse guard in account.pb.js) ──
+def otpcode(addr, old=None):
+    for _ in range(25):
+        try: t = open(SINK, encoding='utf8', errors='replace').read()
+        except FileNotFoundError: t = ''
+        parts = [p for p in t.split('=== TO ') if p.startswith(addr)]
+        m = parts and re.search(r'Subject: (\d{6}) is your', parts[-1])
+        if m and m.group(1) != old: return m.group(1)
+        time.sleep(0.2)
+    return None
+s,o = req('POST','/api/collections/users/request-otp',{'email':'owner@example.test'}); c = otpcode('owner@example.test')
+check('a sign-in code arrives', s==200 and c)
+bad = '000000' if c != '000000' else '111111'
+codes = [req('POST','/api/collections/users/auth-with-otp',{'otpId':o['otpId'],'password':bad})[0] for _ in range(3)]
+check('three wrong tries are refused', all(x==400 for x in codes))
+s,_ = req('POST','/api/collections/users/auth-with-otp',{'otpId':o['otpId'],'password':c}); check('after three wrong tries even the right code stops working', s==400)
+time.sleep(1.1)
+s,o = req('POST','/api/collections/users/request-otp',{'email':'owner@example.test'}); c2 = otpcode('owner@example.test', c)
+s,_ = req('POST','/api/collections/users/auth-with-otp',{'otpId':o['otpId'],'password':bad}); s2,_ = req('POST','/api/collections/users/auth-with-otp',{'otpId':o['otpId'],'password':c2})
+check('a new code works after one wrong try', s==400 and s2==200)
+s,_ = req('POST','/api/collections/users/auth-with-otp',{'otpId':o['otpId'],'password':c2}); check('a code works only once', s in (400,404))
 sys.exit(0 if ok else 1)

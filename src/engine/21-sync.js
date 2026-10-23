@@ -113,7 +113,7 @@ async function syncWindow(){
          : '<p class="syncok">✓ This sheet and D&amp;D Beyond match. Nothing to change there.</p>') + '</section>'
     + '<section class="syncpart"><h4 class="synch"><span class="syncno">2</span>Sync the values of D&amp;D Beyond to this sheet</h4>'
     + '<p>Get your character’s latest version from D&amp;D Beyond: new levels, spells and items'+(n ? ', and D&amp;D Beyond’s numbers for the '+vals+' above.' : '.')+'</p></section>';
-  if (!await confirmBox('Sync with D&amp;D Beyond', '<div class="syncwin">'+body+'</div>', '⬇️ Get D&amp;D Beyond’s version', false, null, 'Close')) return;
+  if (!await confirmBox('Sync with D&amp;D Beyond', '<div class="syncwin">'+body+'</div>', '⬇️ Get D&amp;D Beyond’s version', false, null, '← Back')) { if (!menuOpen && typeof toggleMenu === 'function') toggleMenu(); return; }   // Back: to the ☰ menu it came from
   if (n && !await confirmBox('Replace '+vals+' in this sheet?', 'Press Replace to use D&amp;D Beyond’s values. The '+vals+' that only this sheet has will be gone. To keep them, change them on D&amp;D Beyond first (part 1).', 'Replace', false, null, 'Go back')) return syncWindow();
   syncing = true; let fx = syncFx('busy');
   try {
