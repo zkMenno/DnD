@@ -21,7 +21,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   ok('sign up and land on the home page', true);
   await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/900000002/NuPqJA'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals', {timeout: 30000}); await p.waitForTimeout(1500);
-  ok('adding by link opens the sheet', (await p.title()) === 'Pip Mossbottom');
+  ok('adding by link opens the sheet', (await p.title()) === "Pip Mossbottom's Character Sheet - Dungeon Tracker");
   ok('the crest shows the D&D Beyond portrait', await p.evaluate(() => { const i = document.querySelector('.crest.pic .crestpic'); return !!i && /^https:\/\/www\.dndbeyond\.com\/avatars\//.test(i.src) && document.querySelector('.crest .crestini').textContent === 'PM'; }));
   // a portrait that can't load leaves the initials (an image that fails: the listener bound by bindCrest takes it out)
   await p.evaluate(() => { document.querySelector('.crestpic').src = 'data:image/png;base64,AAAA'; }); await p.waitForTimeout(500);

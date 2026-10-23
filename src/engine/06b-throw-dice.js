@@ -26,6 +26,7 @@ function previewHost(h){
 // was released everywhere in the web app on 23 Oct 2026; previewHost stays for the next preview feature.
 // Tests may switch a feature on directly: FEATURES.throwDice = true.
 const FEATURES = {
+  preview: previewHost(location.hostname),   // staging and local: where the next preview feature goes first
   throwDice: !!window.SHEET,
 };
 

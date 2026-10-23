@@ -31,7 +31,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   ok('a reserved name is refused, in words', /taken/.test(await p.textContent('#msg')));
   await p.fill('#ustep input[name=u]', 'Menno-Test'); await p.click('#ustep button[value=go]');
   ok('then the sheet opens at /<username>/<D&D Beyond id> (lowercased)', (await sheet(p)) === '/menno-test/900000002');
-  await p.goto(B + '/900000001'); ok('/<D&D Beyond id> adds and opens your own copy', (await sheet(p)) === '/menno-test/900000001' && (await p.title()) === 'Corwin Tidewell');
+  await p.goto(B + '/900000001'); ok('/<D&D Beyond id> adds and opens your own copy', (await sheet(p)) === '/menno-test/900000001' && (await p.title()) === "Corwin Tidewell's Character Sheet - Dungeon Tracker");
 
   // A new username: the character links follow it, the old address says the sheet isn't here.
   await p.goto(B + '/'); await p.waitForSelector('#mine .ch'); await rename(p, 'menno-two'); await p.click('[data-hometab=chars]'); await p.waitForSelector('#mine .ch');

@@ -228,7 +228,7 @@ async function signedIn() {
 // The signed-in top bar (@username · Sign out); leaves the front page and points the logo at /#front.
 function header() {
   const me = pb.authStore.record;
-  window.pageTitle(window.possessive(me.username || 'Your') + ' Account Page');
+  window.pageTitle(me.username ? window.possessive(me.username) + ' Account Page' : 'Your Account Page');
   $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(false);
   $('#who').innerHTML = '<span title="' + esc(me.email) + '">@' + esc(me.username || me.email) + '</span> · <a href="#" id="out">Sign out</a>';
   const brand = document.querySelector('.top .brand'); if (brand) brand.setAttribute('href', '/#front');   // the logo shows the front page
