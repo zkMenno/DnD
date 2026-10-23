@@ -4,7 +4,7 @@ import sys
 R=sys.argv[1]
 def svg(s): return "url(\"data:image/svg+xml,"+s.replace('<','%3C').replace('>','%3E').replace('#','%23').replace('"',"'")+"\")"
 SK={
- 'fantasy':dict(label='High Fantasy',
+ 'fantasy':dict(label='Dragon Keep',
   light=dict(bg='#F1EBDD',surface='#FAF6EC',raised='#FFFCF4',ink='#231D35',muted='#615878',line='#DCD1BA',rope='#B89A5A',chart='#E9E1CE',
     sea='#2D4C93',**{'sea-ink':'#FFFCF4','sea-soft':'#D9E1F2'},brass='#9A7414',**{'brass-soft':'#F2E4BC'},hp='#9C1F33',good='#2F6B47',aye='#2D6342',warn='#9A5B00'),
   dark=dict(bg='#0F1124',surface='#171B36',raised='#1F2444',ink='#EEE7D3',muted='#C2B9D8',line='#2C3260',rope='#6C5B2C',chart='#13162C',

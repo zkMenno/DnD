@@ -577,3 +577,5 @@ body:not(.front) main h2{font-size:1.35rem}
 .looks .skinmode button{flex:1;padding:9px 10px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;font-weight:700;font-size:.95rem;cursor:pointer}
 .looks .skinmode button:hover{border-color:var(--brass)}
 .looks .skinmode button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--bg)}
+/* the Dungeon Tracker name keeps its own lettering in every theme (until there's a proper logo) */
+.brand span{font-family:"Alegreya SC",Georgia,"Times New Roman",serif;letter-spacing:normal}

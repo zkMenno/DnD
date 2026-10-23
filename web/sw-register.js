@@ -3,7 +3,7 @@
 (function () {
   const d = document.documentElement, get = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
   // [key, name, emoji, swatch: dark background, accent, light background]
-  const SKINS = [['pirate', 'Pirate', '🏴‍☠️', '#0C141C', '#E2B04A', '#ECE2CC'], ['fantasy', 'High Fantasy', '🏰', '#171B36', '#E9C766', '#F1EBDD'],
+  const SKINS = [['pirate', 'Pirate', '🏴‍☠️', '#0C141C', '#E2B04A', '#ECE2CC'], ['fantasy', 'Dragon Keep', '🏰', '#171B36', '#E9C766', '#F1EBDD'],
     ['space', 'Starfarer', '🚀', '#0D1424', '#4FE0EE', '#E9EEF5'], ['woodland', 'Feywild', '🍃', '#132119', '#DCB867', '#E6ECD8'], ['gothic', 'Ravenloft', '🦇', '#161118', '#D9B26A', '#E9E4E2']];
   const apply = (s, m) => {
     if (s && s !== 'pirate') d.setAttribute('data-skin', s); else d.removeAttribute('data-skin');
