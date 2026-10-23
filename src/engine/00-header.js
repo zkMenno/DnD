@@ -1,9 +1,11 @@
 
 /* ============================================================================
    CHARACTER SHEET ENGINE
-   A live D&D 2024 play sheet built from D&D Beyond data, for one character at a time.
+   A live D&D 2024 play sheet built from D&D Beyond data, for one character at a time. It runs in two places:
+   as a standalone claude.ai artifact (everything in one HTML page) and in the web app (web/sheet-boot.js sets
+   window.SHEET, then loads the same engine as /engine/main.js). This file holds no code: it is the map.
 
-   FILE MAP (this page is one self-republishing file; buildDoc() writes these parts back in this order)
+   FILE MAP of a claude.ai page (one self-republishing file; buildDoc() in §21 writes these parts back in this order)
      <style id="theme-css">   theme tokens: colours, fonts, textures (swap to reskin)
      <style id="css">         engine styles, theme-agnostic
      <div id="app">           render() fills it
@@ -16,8 +18,9 @@
 
    DATA FLOW
      D&D Beyond JSON ──compact()──▶ DATA (stored in the page) ──derive()──▶ D (read-only sheet numbers)
-     S  = play state at the table (HP, uses, ammo, coins…): this device's localStorage + the page db doc
-          play/<id>, so phone and laptop stay in step. Resets to D&D Beyond's numbers after each sync.
+     S  = play state at the table (HP, uses, ammo, coins…): this device's localStorage + the db doc
+          play/<PACK.id> (the artifact's db, or PocketBase in the web app), so phone and laptop stay in step.
+          Resets to D&D Beyond's numbers after each sync.
           S.added = items added in the app; they join DATA.inventory until D&D Beyond has them.
      ui = this device's view prefs (tab, roll mode, dice set, card and section order).
      The Notes tab lists every difference between S and the synced numbers, to type into D&D Beyond.
@@ -43,7 +46,8 @@
      Action buttons sit on the right. Hit rolls are blue (--sea), damage red (--hp). Motion is skipped when
      the OS asks for reduced motion.
 
-   SOURCE FILES (src/engine/, joined in name order by tools/build.js into this one script)
+   SOURCE FILES (src/engine/, joined in name order by tools/build.js into this one script; themes.js, classes.js
+   and the pack load before it, and every file shares one global scope)
       00-header             this map                         11-gear-and-traits    gear (+ Add item), traits panels
       01-model              compact() and derive()           12-header             vitals tiles and their drawers
       02-boot               DATA, D, modules, resources      13-render             the page, built once
@@ -56,5 +60,6 @@
       08b-spells            Spells tab and casting           20-events             one delegated click handler
       09-combos             combo recipes (pack or auto)     21-sync               D&D Beyond → republish
       10-panels             stats, combat, resources, change list   22-move   📦/📥 claude.ai → web app
-     Order matters: top-level constants are used by later files, so new code goes in the section it belongs to.
+     Order matters: top-level code runs as each file loads, and constants are used by later files, so new code
+     goes in the section it belongs to. Functions can call ones defined in later files (they run after load).
    ============================================================================ */

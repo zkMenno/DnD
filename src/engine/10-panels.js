@@ -1,17 +1,28 @@
 /* ============================================================================
-   §10 STATS, COMBAT AND RESOURCES PANELS
+   §10 PANELS — the Combos, Stats and Combat tabs, the Notes tab's change list, and Action Resources (pips, pools)
+   Defines: classEmo(), combosPanel / paintCombos, statsCards / skillsCard (also the desktop sidebars), throwHtml(),
+   weaponCard / combatPanel / paintCombat, favourite attacks, autoEconomy(), TRACKED / baseline / changes() (the
+   change list), pipsHtml(), useBlock / paintUse (trackers in bubbles), HAS_ARROWS, resHtml / paintRes, comboCard().
+   Relies on: DATA, D, RES, resBy, MODS, USE_RES, WORD, ADDED, ddbQty, FIRST_NAME, esc, $ (§2), S, ui, saveUi, VIEW,
+   DB, COINS, ARROW_N, freshState (§3), §4 deskFine / reduceMotion, §5 dmgTag, §8b spell helpers, §9 combos / SIG_W.
+   At run time: linkify / decorate / G (§16), applySecOrder (§14), bindDragList (§18), syncTableHtml (§21) and the
+   item helpers in §11. paintRes() is the usual "something changed" repaint: it also repaints the change list, vitals,
+   ammo and the Spells tab. TRACKED and HAS_ARROWS are worked out from RES / DATA as this file loads.
    ============================================================================ */
+// ability key → "STR"
 const abbr = a => a.toUpperCase();
 const CLASS_EMOJI = {Fighter:'⚔️', Rogue:'🗡️', Barbarian:'🪓', Bard:'🎻', Cleric:'✝️', Druid:'🌿', Monk:'👊', Paladin:'🛡️', Ranger:'🏹', Sorcerer:'🔥', Warlock:'👁️', Wizard:'🧙', Artificer:'⚙️'};
-// emoji for a class
-const classEmo = name => CLASS_EMOJI[name] || '🎖️';// Combos tab: the pack can lay it out itself (sections, extra cards); otherwise it's a plain list of combo cards.
-// Combos tab: the pack can lay it out itself (sections, extra cards); otherwise a plain list
-// Combos tab: ⭐ favourites on top (starred order, drag to reorder), then the pack's layout or a plain list
-// favourite combos by id; automatic combo ids describe the role (auto-rider, auto-b-heal…), not the spell, so swapping a spell keeps the star
+// emoji for a class (🎖️ for any other)
+const classEmo = name => CLASS_EMOJI[name] || '🎖️';
+
+// ── Combos tab ─────────────────────────────────────────────────────────────────────────────────────────────
+// Favourite combos by id (ui.cbFav, this device). Automatic combo ids describe the role (auto-rider, auto-b-heal…),
+// not the spell, so swapping a spell keeps the star; older per-spell auto-b-… ids are mapped onto the two roles.
 const cbFavs = () => Array.isArray(ui.cbFav) ? [...new Set(ui.cbFav.map(id => /^auto-b-(?!heal$|other$)/.test(id) ? (/heal/.test(id) ? 'auto-b-heal' : 'auto-b-other') : id))] : [];
-// star or unstar a combo
+// star or unstar a combo and repaint the Combos tab
 function toggleCbFav(id){ const f = cbFavs().slice(), i = f.indexOf(id); if (i < 0) f.push(id); else f.splice(i, 1); ui.cbFav = f; saveUi(); paintCombos(); }
-// Combos tab: ⭐ favourites on top (drag to reorder), then the pack's layout or a plain list
+// Combos tab: ⭐ favourites on top (starred order, drag to reorder), then the pack's own layout (PACK.panels.combos,
+// sections and extra cards) or a plain list of combo cards
 function combosPanel(){
   const all = combos(), favs = cbFavs().map(id => all.find(c => c.id === id)).filter(Boolean);
   const favSec = favs.length ? '<section class="card sechead"><h2><span class="emo" aria-hidden="true">⭐</span>Favourites'+(favs.length > 1 ? '<span class="qrdraghint">'+(deskFine() ? 'drag to reorder' : 'hold and drag to reorder')+'</span>' : '')+'</h2></section>'
@@ -20,33 +31,35 @@ function combosPanel(){
   const allHead = favs.length ? '<section class="card sechead"><h2><span class="emo" aria-hidden="true">💥</span>All combos</h2></section>' : '';
   return favSec + (PACK.panels && PACK.panels.combos ? PACK.panels.combos() : allHead+'<div class="combos">'+all.map(comboCard).join('')+'</div>');
 }
-// repaint the Combos tab in place
+// repaint the Combos tab in place, keeping the scroll position
 function paintCombos(){ const el = document.querySelector('[data-panel="combos"]'); if (!el) return; const y = window.scrollY; el.innerHTML = combosPanel(); linkify(el); decorate(el); window.scrollTo(0, y); }
-// six ability tiles (modifier big, score small)
+// ── Stats tab ──────────────────────────────────────────────────────────────────────────────────────────────
+// an emoji per ability (the same set as CHECK_ABIL_EMOJI, §7)
 const ABIL_EMO = {str:'💪', dex:'🤸', con:'❤️', int:'🧠', wis:'🦉', cha:'🎭'};
-// six ability tiles: roll bonus big (brass, like dice), score small in its own pill
+// six ability tiles: roll bonus big (brass, like dice), score small in its own pill; each opens its glossary bubble
 function abilitiesHtml(){
   return '<div class="abil">' + ['str','dex','con','int','wis','cha'].map(a =>
     '<button class="ab tile" data-term="'+esc(ABIL_NAME[a])+'" aria-label="'+esc(ABIL_NAME[a])+' '+sgn(D.mod[a])+', explain"><div class="k"><span class="ae" aria-hidden="true">'+ABIL_EMO[a]+'</span>'+esc(ABIL_NAME[a])+'</div><div class="m">'+sgn(D.mod[a])+'<small>roll bonus</small></div><div class="s">'+D.score[a]+'<small>score</small></div></button>').join('') + '</div>';
 }
+// a small d20 outline for roll pills and their legend
 const D20 = '<svg class="d20" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 2.2l8.5 4.9v9.8L12 21.8l-8.5-4.9V7.1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 7.5l4.3 7.6H7.7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-// small d20 roll button next to a save or skill
+// small d20 roll button next to a save or skill (attr = its data-save / data-skill attribute)
 const rollPill = (attr, label, bonus) => '<button class="rollpill" '+attr+' aria-label="Roll '+esc(label)+' '+sgn(bonus)+'">'+D20+'<span>'+sgn(bonus)+'</span></button>';
-// saving throw rows
+// saving throw rows (dot = proficient), with any save notes (Brave) under them
 function savesHtml(){
   return '<div class="list">' + D.saves.map(s => '<div class="row"><span class="dot '+(s.prof?'p':'')+'"></span><span class="nm"><button class="term" data-term="'+esc(s.name)+'">'+esc(s.name)+'</button></span>'+rollPill('data-save="'+s.a+'"', s.name+' save', s.bonus)+'</div>').join('') + '</div>'
     + '<p class="small muted" style="margin:8px 0 0">'+D20+' = roll bonus, tap to roll'+(D.saveNotes.length?'<br>'+esc(D.saveNotes.join(' · ')):'')+'</p>';
 }
-// skill rows
+// skill rows (dot = proficient or expertise, then the ability) and the legend
 function skillsHtml(){
   return '<div class="list">' + D.skills.map(s => '<div class="row"><span class="dot '+(s.exp?'e':s.prof?'p':'')+'"></span><span class="ab3">'+abbr(s.a)+'</span><span class="nm"><button class="term" data-term="'+esc(s.name)+'">'+esc(s.name)+'</button></span>'+rollPill('data-skill="'+esc(s.name)+'"', s.name, s.bonus)+'</div>').join('') + '</div>'
    + '<p class="small muted" style="margin:8px 0 0"><span class="dot p" style="display:inline-block"></span> <button type="button" class="term" data-term="Proficient">proficient</button> &nbsp; <span class="dot e" style="display:inline-block"></span> <button type="button" class="term" data-term="Expertise">expertise</button><br>'+D20+' = roll bonus, tap to roll</p>';
 }
-// passive scores
+// passive Perception, Investigation and Insight
 function sensesHtml(){
   return '<dl class="kv"><dt>Passive Perception</dt><dd class="num">'+D.passive.perception+'</dd><dt>Passive Investigation</dt><dd class="num">'+D.passive.investigation+'</dd><dt>Passive Insight</dt><dd class="num">'+D.passive.insight+'</dd></dl>';
 }
-// proficiencies; each one opens its glossary bubble
+// armour, weapon, tool and language proficiencies; each one opens its glossary bubble (§16)
 function profsHtml(){
   const p = D.profs;
   const t = (label, key) => '<button type="button" class="term" data-term="'+esc(key||label)+'">'+esc(label)+'</button>';
@@ -66,7 +79,9 @@ const statsCards = () =>
 // Stats tab skills card (also the desktop sidebar)
 const skillsCard = () => '<section class="card"><h2><span class="emo" aria-hidden="true">🎲</span>Skills</h2>'+skillsHtml()+'</section>';
 
-// what to throw at the table: big dice, smaller flat bonus
+// ── Combat tab: attacks ────────────────────────────────────────────────────────────────────────────────────
+// What to throw at the table, from "1d8+3 + 2d6": big dice, smaller flat bonus, "+" between the parts. A part that
+// isn't dice ("1d6 ×2" is fine) is shown as plain text.
 function throwHtml(str){
   return String(str).split(/\s\+\s/).map(part => {
     const m = part.trim().match(/^(\d*d\d+)\s*([+−-]\s*\d+)?\s*(×\d+)?$/);
@@ -74,7 +89,8 @@ function throwHtml(str){
     return '<span class="throw"><span class="dice tdie">'+m[1]+'</span>'+(m[2]?'<span class="tbon">'+esc(m[2].replace(/\s/g,''))+'</span>':'')+(m[3]?'<span class="tbon">'+m[3]+'</span>':'')+'</span>';
   }).join('<span class="tplus">+</span>');
 }
-// one weapon on the Combat tab: range, hit, damage, mastery and properties, 🎲 Attack
+// one weapon on the Combat tab: star, name, 🎲 Attack, range, hit, damage, mastery (or an unpicked one, greyed)
+// and properties, then the pack's weaponTip if it has one
 function weaponCard(w){
   const m = w.mastery ? '<span class="chip">'+esc(w.mastery)+'</span>' : (w.masteryOnItem ? '<span class="chip ghost" title="Pick this weapon as a mastery to use it">'+esc(w.masteryOnItem)+': not picked</span>' : '');
   const row = (lbl, thr, meta) => '<span class="wl">'+lbl+'</span><span class="wt">'+thr+'</span><span class="wm">'+(meta||'')+'</span>';
@@ -89,26 +105,30 @@ function weaponCard(w){
     + (PACK.weaponTip ? PACK.weaponTip(w) : '')
     + '</div>';
 }
-// Favourite attacks: outlined cards with a filled star (this device). Starts with the pack's signature weapon.
+// Favourite attacks by name: outlined cards with a filled star (ui.favs, this device). Until you star or unstar
+// one, it's the signature weapon (SIG_W, §9).
 const favs = () => Array.isArray(ui.favs) ? ui.favs : (SIG_W ? [SIG_W.name] : []);
 // is this attack starred?
 const isFav = n => favs().includes(n);
 // ☆ / ★ button on an attack card
 const favBtn = n => '<button class="favbtn'+(isFav(n)?' on':'')+'" data-act="fav" data-k="'+esc(n)+'" aria-pressed="'+isFav(n)+'" aria-label="'+(isFav(n)?'Remove from':'Add to')+' favourites">'+(isFav(n)?'★':'☆')+'</button>';
-// star or unstar an attack
+// star or unstar an attack and repaint the Combat tab
 function toggleFav(n){ const f = favs().slice(), i = f.indexOf(n); if (i < 0) f.push(n); else f.splice(i, 1); ui.favs = f; saveUi(); paintCombat(); }
-// Attack list order: your own, saved on this device. ↕ Reorder shows up/down arrows on each card.
-let atkEdit = false;   // inline reorder arrows on attack cards (unused since V163: weapon order lives in ↕ Sections → Reorder)
-// equipped weapons + unarmed strike, in this device's saved order
+// Attack list order: your own (ui.wOrder, this device), changed by dragging the cards or in ↕ Sections → Reorder.
+// atkEdit = inline ▲ / ▼ arrows on each card. No button sends 'atkedit' any more, so it stays false.
+let atkEdit = false;
+// [name, card HTML] for the equipped weapons + the plain unarmed strike (when Martial Arts doesn't make it a weapon),
+// in this device's saved order; names not in the saved order keep their place at the end
 function atkItems(){
   const items = D.weapons.filter(w=>w.equipped).map(w => [w.name, weaponCard(w)])
     .concat(!D.unarmed ? [] : [[D.unarmed.name, '<div class="atk'+(isFav(D.unarmed.name)?' hero':'')+'">'+favBtn(D.unarmed.name)+'<div><div class="t">'+esc(D.unarmed.name)+'</div><div class="stats"><span>Hit <b>'+sgn(D.unarmed.hit)+'</b></span><span>Damage <b>'+D.unarmed.flat+'</b> bludgeoning</span></div></div></div>']]);
   const ord = ui.wOrder || [], pos = k => { const i = ord.indexOf(k); return i < 0 ? 999 : i; };
   return items.map((x,i)=>[x,i]).sort((a,b) => (pos(a[0][0]) - pos(b[0][0])) || (a[1]-b[1])).map(x=>x[0]);
 }
-// repaint the Combat tab in place
+// repaint the Combat tab in place (then Action Resources, the saved card order and the drag handles)
 function paintCombat(){ const el = document.querySelector('[data-panel="combat"]'); if (!el) return; el.innerHTML = combatPanel(); linkify(el); decorate(el); paintRes(); applySecOrder(el); bindListDrags(); }
-// drag to reorder: attack cards (Combat) and favourite spells (Spells)
+// drag to reorder: attack cards (Combat, not while the ▲ / ▼ arrows show), favourite combos (Combos) and favourite
+// spells (Spells); each drop saves the new order and repaints that tab
 function bindListDrags(){
   bindDragList(document.querySelector('[data-panel="combat"]'), 'atk', '.atklist > .atkdrag', r => r.dataset.key, order => { ui.wOrder = order; saveUi(); paintCombat(); }, () => atkEdit);
   bindDragList(document.querySelector('[data-panel="combos"]'), 'cbfav', '.cbfavlist > .combo', r => r.dataset.cb, order => {
@@ -116,7 +136,8 @@ function bindListDrags(){
   bindDragList(document.querySelector('[data-panel="spells"]'), 'spfav', '.spfavlist > .spell', r => r.querySelector('.spstar').dataset.k, order => {
     ui.spFav = order.concat((ui.spFav||[]).filter(n => !order.includes(n))); saveUi(); paintSpells(); });
 }
-// reorder an attack card up/down (animated)
+// Move an attack one place up (d = -1) or down (d = 1) and save the order: the ▲ / ▼ in ↕ Sections → Reorder (§14).
+// The slide animation only finds a card while the inline arrows (atkEdit) show.
 function moveAtk(k, d){
   const keys = atkItems().map(x=>x[0]), i = keys.indexOf(k), j = i + d; if (i < 0 || j < 0 || j >= keys.length) return;
   [keys[i], keys[j]] = [keys[j], keys[i]]; ui.wOrder = keys; saveUi();
@@ -125,8 +146,10 @@ function moveAtk(k, d){
   const el2 = document.querySelector('.reordwrap[data-key="'+CSS.escape(k)+'"]');
   if (el2 && el2.animate && !reduceMotion()) { const dy = y0 - el2.getBoundingClientRect().top; el2.animate([{transform:'translateY('+dy+'px)'},{transform:'none'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'}); el2.classList.add('moved'); setTimeout(()=>el2.classList.remove('moved'), 500); }
 }
-// "Turn at a glance" for any character, built from the sheet: attacks, spells by casting time,
-// and D&D Beyond actions by activation type. A pack's turnEconomy() replaces it with hand-written advice.
+// ── Turn at a glance ───────────────────────────────────────────────────────────────────────────────────────
+// "Turn at a glance" for any character, built from the sheet: attacks, spells by casting time, and D&D Beyond
+// actions by activation type. Returns [tag, glossary term, [options…]] rows (Action, Bonus action, Reaction,
+// Free). A pack's turnEconomy() replaces it with hand-written advice.
 function autoEconomy(){
   const uniq = a => [...new Set(a.filter(Boolean))];
   const acts = t => uniq((DATA.actions||[]).filter(a => a.act === t).map(a => a.name.replace(/^Font of Magic: /,'')).filter(n => !/^Circle Spell:|^Create Spell Slot/.test(n)));
@@ -146,7 +169,8 @@ function autoEconomy(){
       'Move up to '+D.speedM+' m, split around your action', 'Talk, or interact with one object']]
   ].map(([k,t,l]) => [k, t, l.filter(Boolean)]);
 }
-// Combat tab: attacks, the turn-at-a-glance card, action resources
+// Combat tab: the strip of active states (Rage…), attacks, the turn-at-a-glance card, and an empty #res card that
+// paintRes() fills with Action Resources
 function combatPanel(){
   const econ = PACK.turnEconomy ? PACK.turnEconomy() : autoEconomy();   // [tag, glossary term, [options…]] rows for the turn card
   return activeBar()+'<section class="card"><div class="cardhead"><h2><span class="emo" aria-hidden="true">🎯</span>Attacks</h2><span class="atktools"><button type="button" class="term modeinfo" data-term="Advantage">ⓘ Getting advantage</button></span></div><div class="atklist'+(atkEdit?' editing':'')+'">'
@@ -155,12 +179,15 @@ function combatPanel(){
     + '<section class="card"><h2><span class="emo" aria-hidden="true">🧭</span>'+WORD.turn+'</h2><div class="econ rows">' + econ.map(([k,t,l],i) => '<div class="ecr"><button class="tag term '+k+'" data-term="'+esc(t)+'"><span class="ecnum" aria-hidden="true">'+(i+1)+'</span>'+esc(t)+'</button><ul class="ecl">'+l.filter(Boolean).map(x=>'<li><span>'+esc(x)+'</span></li>').join('')+'</ul></div>').join('') + '</div></section>'
     + '<section class="card" id="res"></section>';
 }
+// ── Change list ────────────────────────────────────────────────────────────────────────────────────────────
+// the parts of S the change list compares (every resource key included)
 const TRACKED = ['hp','temp','insp',...RES.map(r => r.key),'spent','hd','coins'];
-// the reference state that changes are measured against
+// the reference state that changes are measured against: the snapshot from the last Clear, else D&D Beyond's numbers
 function baseline(){ return S.base || freshState(); }
-// copy of the tracked parts of S, taken when you clear the change list
+// deep copy of the tracked parts of S, taken when you clear the change list (the caller stores it as S.base)
 function snapshotBase(){ const b = {}; TRACKED.forEach(k => b[k] = JSON.parse(JSON.stringify(S[k]))); return b; }
-// Each change says what moved and where to fix it in D&D Beyond.
+// Every difference between S and the baseline, as a list of changes to make in D&D Beyond: HP, temp HP,
+// inspiration, resources, items used, coins, hit dice, and items added here that D&D Beyond doesn't have yet.
 function changes(){
   // each change: t (one line), where (how to enter it on D&D Beyond), and for the sync table: what, here (this sheet), ddb
   const f = baseline(), out = [], add = (t, where, what, here, ddb) => out.push({t, where, what, here: here == null ? '' : String(here), ddb: ddb == null ? '' : String(ddb)});
@@ -185,12 +212,12 @@ function changes(){
     add('Add '+(i.qty>1 ? i.qty+'× ' : '')+i.name, 'Inventory → Add Items → search “'+(x.find||i.name)+'”'+(x.pick ? ', pick '+x.pick : '')+(i.qty>1 ? ', quantity '+i.qty : '')+(i.equipped ? ', add it and tick Equipped' : ', add it'), i.name, i.qty+' (added here)', 'not there yet'); });
   return out;
 }
-// the change list as plain text (copy button)
+// the change list as plain text, for the Copy button
 function changesText(){
   const when = new Date(S.base ? S.baseAt : DATA.syncedAt).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
   return DATA.name+', changes to enter in D&D Beyond (since '+(S.base?'last cleared':'sync')+', '+when+'):\n' + changes().map(x=>'- '+x.t+'\n    → '+x.where).join('\n');
 }
-// the change list card on the Notes tab
+// the change list card on the Notes tab (Copy, Clear and the table), or a one-line "matches D&D Beyond"
 function changesHtml(){
   const c = changes();
   if (!c.length) return '<div class="changes ok"><span class="dot p"></span><span>'+WORD.clean+' Matches D&amp;D Beyond, nothing to enter.</span></div>';
@@ -200,11 +227,13 @@ function changesHtml(){
     + '<p class="small muted" style="margin:6px 0 0">'+(window.SHEET ? 'Change these on D&amp;D Beyond (website or app), then tap Clear. Syncing with D&amp;D Beyond clears the list too.'
       : 'Enter these in the D&amp;D Beyond app, then tap Clear. Syncing clears the list too. Or tell Claude “push '+esc(FIRST_NAME)+'”.')+'</p></div>';
 }
-// repaint the change list
+// repaint the change list (save() calls this on every change)
 function paintChanges(){ const n = $('#notechanges'); if (n) { n.innerHTML = changesHtml(); } }
-// usage pips with − / + for a limited resource
-// Which pips are spent. Only the pip you tap changes, so the layout is remembered per tracker (on this device);
-// when the count changes elsewhere (a rest, the tooltip, a sync) the nearest pips adjust from the end.
+
+// ── Usage pips and trackers ────────────────────────────────────────────────────────────────────────────────
+// Which pips are spent (true = spent). Only the pip you tap changes, so the layout is remembered per tracker
+// (ui.pipMask, this device; not saved here); when the count changes elsewhere (a rest, the tooltip, a sync) pips
+// change from the end to match.
 function pipMask(key, max, used){
   const all = ui.pipMask || (ui.pipMask = {});
   let m = Array.isArray(all[key]) && all[key].length === max ? all[key].slice() : Array.from({length:max}, (_, i) => i >= max - used);
@@ -213,14 +242,15 @@ function pipMask(key, max, used){
   for (let i = max - 1; n < used && i >= 0; i--) if (!m[i]) { m[i] = true; n++; }
   all[key] = m; return m;
 }
-// usage pips (ready ✓ first, spent ✕ after) with an "n of m left" label; tap one to flip it
+// usage pips (✓ ready, ✕ spent, in pipMask's layout) with an "n of m left" label; tap one to flip it (data-pip, §20)
 function pipsHtml(max, used, key){ const left = max - used;
   return '<div class="pipwrap"><div class="pips">'+pipMask(key, max, used).map((u,i)=>{ const ready = !u;
     return '<button class="pip '+(ready?'ready':'used')+'" data-pip="'+key+'" data-i="'+i+'" data-r="'+(ready?1:0)+'" aria-label="'+key+' use '+(i+1)+(ready?' (ready, tap to spend)':' (spent, tap to restore)')+'">'+(ready?'✓':'✕')+'</button>'; }).join('')+'</div>'
     + '<span class="piplbl'+(left?'':' none')+'">'+(left?left+' of '+max+' left':'all used')+'</span></div>';
 }
-// usage trackers shown inside tooltips for features with limited uses
-// usage tracker for a glossary term that has one (Second Wind, Action Surge…)
+// The usage tracker shown inside a glossary bubble or drawer for a feature with limited uses (Second Wind, Action
+// Surge…, via USE_RES), with its button when the term is the resource itself; Heroic Inspiration gets a toggle.
+// '' for terms without one.
 function useBlock(term){
   if (term==='Heroic Inspiration') return '<div class="binv buse" data-use="'+esc(term)+'"><span><b>'+(S.insp?'⭐ You have it':'⭐ None right now')+'</b></span><button class="btn small" data-act="insptoggle">'+(S.insp?'Used it':'Gained one')+'</button></div>';
   const k = USE_RES[term], r = k && resBy(k);
@@ -228,13 +258,14 @@ function useBlock(term){
   return '<div class="binv buse" data-use="'+esc(term)+'"><span class="ulb"><b>🔋 Uses</b>'+(r.die?' <span class="small">('+r.die+')</span>':'')+'</span>'+pipsHtml(r.max, S[k], k)
     + (r.button && term===r.name ? '<button class="btn primary rollbtn" data-act="'+r.button.act+'"'+(S[k]>=r.max?' disabled':'')+'>'+(r.button.use||r.button.label)+'</button>' : '') + '</div>';
 }
-// refresh every usage tracker on screen
+// refresh every usage tracker on screen (in open bubbles and drawers)
 function paintUse(){ document.querySelectorAll('[data-use]').forEach(el => { const n = useBlock(el.dataset.use); if (n) el.outerHTML = n; }); }
-// arrows only matter for characters who carry them or wield a bow
+// ── Action Resources card ──────────────────────────────────────────────────────────────────────────────────
+// arrows only matter for characters who carry them or wield a bow (addedChanged, §11, can turn it on, never off)
 let HAS_ARROWS = (DATA.inventory||[]).some(i => /Arrow/.test(i.name)) || D.weapons.some(w => /bow\b/i.test(w.name) && !/crossbow/i.test(w.name));
-// Action Resources card: HP-independent limited uses
+// Action Resources card (the inside of #res): every non-spell resource (pips, a points pool, buttons, on/off toggle),
+// arrows, healing potions, hit dice, and the Short / Long rest buttons. The corner says where the tracker is kept.
 function resHtml(){
-  // ready uses first (filled, ✓), spent ones after (hollow, ✕); tap any to change the count
   const pips = pipsHtml;
   // − / + for an inventory count (arrows, potions): moves S.spent for that item
   const stepper = (item, label) => '<div class="stepper"><button class="iconbtn" data-inv="'+esc(item)+'" data-d="-1" aria-label="One less '+label+'">−</button><output class="num" data-invn="'+esc(item)+'">'+itemLeft(item)+'</output><button class="iconbtn" data-inv="'+esc(item)+'" data-d="1" aria-label="One more '+label+'">+</button></div>';
@@ -247,15 +278,16 @@ function resHtml(){
     + '<div class="resrow"><div><b>Hit dice</b><div class="small muted">Your healing dice for short rests: each heals the roll '+sgn(D.mod.con)+'.</div></div><div class="rctl col">'+D.hitDice.slice().sort((x,y)=> +y.die.slice(1) - +x.die.slice(1)).map(h=>diePips(h, h.die)).join('')+'</div></div>'
     + '<div class="rest"><button class="btn" data-act="rest" data-rest="short">⛺ Short rest</button><button class="btn" data-act="rest" data-rest="long">🌙 Long rest</button><span class="small muted" id="restmsg"></span></div></div>';
 }
-// A resource's quick buttons: a single module button, a row of spend buttons (Focus: Flurry…), or an on/off switch (Rage)
-// On/off states that are on right now (Rage), as a strip on top of the Combat tab
+// On/off states that are on right now (Rage, or states a module's actives() lists, like Sacred Weapon), as cards on
+// top of the Combat tab, each with its off button
 function activeBar(){
   const on = RES.filter(r => r.toggle && S.active[r.key]).map(r => ({key:r.key, chip:r.toggle.onChip, off:r.toggle.off, desc:r.toggle.onDesc}))
     .concat(MODS.flatMap(m => m.actives ? m.actives(D) : []).filter(a => a && S.active[a.key]));   // states a resource button switched on (Sacred Weapon)
   if (!on.length) return '';
   return on.map(a => '<section class="card activebar"><div class="cardhead"><h2>'+a.chip+'</h2><button class="btn small" data-act="resoff" data-k="'+a.key+'">'+a.off+'</button></div><p class="small" style="margin:0">'+a.desc+'</p></section>').join('');
 }
-// A resource's quick buttons: a single module button, a row of spend buttons (Focus: Flurry…), or an on/off switch (Rage)
+// A resource's quick buttons: an on/off switch (Rage), a row of spend buttons (Focus: Flurry…) with their cost, or a
+// single module button. Disabled when there's not enough left (or a button's when() says no).
 function resButtons(x){
   if (x.toggle) return S.active[x.key] ? '<button class="btn actbtn" data-act="resoff" data-k="'+x.key+'">'+x.toggle.off+'</button>'
     : '<button class="btn primary actbtn" data-act="reson" data-k="'+x.key+'"'+(S[x.key]>=x.max?' disabled':'')+'>'+x.toggle.on+'</button>';
@@ -269,10 +301,13 @@ function poolCtl(x){
     + '<output class="num"><b>'+left+'</b><small>/'+x.max+'</small></output><button class="iconbtn" data-pool="'+x.key+'" data-d="1" aria-label="Give 1 point back"'+(left>=x.max?' disabled':'')+'>+1</button></div>'
     + '<span class="piplbl'+(left?'':' none')+'">'+(left ? left+' of '+x.max+' points left' : 'pool empty')+'</span>';
 }
-// repaint Action Resources and any trackers in open bubbles
+// The usual repaint after S changes: Action Resources, the change list, the vitals row, ammo and the Spells tab.
+// (Trackers in open bubbles repaint with paintUse().)
 function paintRes(){ const el = $('#res'); if (el) { el.innerHTML = resHtml(); linkify(el); decorate(el); } paintChanges(); paintVitals(); paintAmmo(); paintSpells(); }
 
-// one combo card: steps tagged A/B/F/M/R, the damage throw, 🎲 Roll
+// ── Combo cards ────────────────────────────────────────────────────────────────────────────────────────────
+// one combo card: star, title, 🎲 Roll (when it has attacks to roll), when to use it, steps tagged A/B/F/M/R (each tag
+// a glossary term), and the damage throw
 function comboCard(cb){
   const fav = cbFavs().includes(cb.id);
   return '<section class="card combo'+(fav?' fav':'')+'" data-cb="'+esc(cb.id)+'"><div class="cardhead" style="margin:0"><h3><button class="spstar'+(fav?' on':'')+'" data-act="cbfav" data-k="'+esc(cb.id)+'" aria-pressed="'+fav+'" aria-label="'+(fav?'Remove from':'Add to')+' favourites">'+(fav?'★':'☆')+'</button> '+esc(cb.title)+'</h3>'+(cb.roll ? '<button class="btn primary" data-combo="'+cb.id+'">🎲 Roll</button>' : '')+'</div>'

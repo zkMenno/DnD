@@ -1,18 +1,33 @@
 /* ============================================================================
-   §11 GEAR AND TRAITS — what each piece of kit does (2024 rules, metric), inventory counters, panels
+   §11 GEAR AND TRAITS — what each piece of kit does (2024 rules, metric), inventory counters, ➕ Add item, and the
+   Gear and Traits tabs.
+   Defines: TOOL_ABIL / toolAbility, USES and CONSUMABLE (item texts and use buttons), potion helpers, itemLeft /
+   invQty / paintInv / useItem (counters), gearPanel, the ➕ Add item picker (CAN_ADD, ITEMS, openItemPicker,
+   addedChanged), traitBody (also the picker's item details), traitsPanel / filterTraits / bindTraits.
+   Relies on: DATA, D, RES, ADDED, mergeAdded, ddbQty, fillTpl, esc, $ (§2), S, ui, save, saveUi, ARROW_N, healPotion
+   (§3), derive (§1), §4–§5 dice and fx, deskFine, HAS_ARROWS / paintRes / classEmo (§10). At run time: render (§13).
+   oilDC, USES and CONSUMABLE are built as this file loads; addPotionUses() runs again when added items change.
    ============================================================================ */
+// ── Tool checks ────────────────────────────────────────────────────────────────────────────────────────────
+// proficient with a tool? (matched on the start of its name, so 'Thieves' finds "Thieves' Tools")
 const toolProf = n => D.profs.tools.some(t => t.toLowerCase().startsWith(n.toLowerCase()));
 // check bonus with a tool: ability mod + proficiency if proficient
 const toolBonus = (a, n) => D.mod[a] + (toolProf(n) ? D.pb : 0);
-// the ability a tool check uses (2024 rules); instruments use CHA, gaming sets WIS
+// the ability a tool check uses (2024 rules), for the tools with a fixed one
 const TOOL_ABIL = {"Thieves' Tools":'dex',"Herbalism Kit":'int',"Alchemist's Supplies":'int',"Brewer's Supplies":'int',"Calligrapher's Supplies":'dex',"Carpenter's Tools":'str',
   "Cartographer's Tools":'wis',"Cobbler's Tools":'dex',"Cook's Utensils":'wis',"Disguise Kit":'cha',"Forgery Kit":'dex',"Glassblower's Tools":'int',"Jeweler's Tools":'int',
   "Leatherworker's Tools":'dex',"Mason's Tools":'str',"Navigator's Tools":'wis',"Painter's Supplies":'wis',"Poisoner's Kit":'int',"Potter's Tools":'int',"Smith's Tools":'str',
   "Tinker's Tools":'dex',"Weaver's Tools":'dex',"Woodcarver's Tools":'dex',"Healer's Kit":'wis'};
-// the ability a tool check uses
+// the ability a tool check uses: TOOL_ABIL, else gaming sets WIS, instruments CHA, vehicles DEX, anything else INT
 const toolAbility = t => TOOL_ABIL[t] || (/set$|dice|cards|dragonchess|three-dragon/i.test(t) ? 'wis' : /lute|flute|drum|horn|lyre|bagpipes|dulcimer|pan flute|shawm|viol|instrument/i.test(t) ? 'cha' : /vehicle/i.test(t) ? 'dex' : 'int');
+// extra search words for some tools (nothing reads this at the moment)
 const TOOL_WORDS = {"Thieves' Tools":'lock trap pick',"Herbalism Kit":'herb plant brew potion',"Alchemist's Supplies":'acid fire potion',"Disguise Kit":'disguise costume',"Forgery Kit":'forge document',"Poisoner's Kit":'poison'};
+
+// ── Item uses and consumables ──────────────────────────────────────────────────────────────────────────────
+// the save DC of a thrown oil flask (8 + DEX + proficiency), fixed as the page loads
 const oilDC = 8 + D.mod.dex + D.pb;
+// What a piece of kit does, by inventory name: () → {text, roll?: [check label, bonus]}. Texts are built when shown,
+// so bonuses stay current. Healing potions are added by addPotionUses(); packs can read them (henry.js does).
 const USES = {
   "Thieves' Tools": () => ({text:'Pick a lock (DC 15) or disarm a trap (DC 15). Uses DEX'+(toolProf('Thieves')?'; you’re proficient, so ':', so ')+sgn(toolBonus('dex','Thieves'))+'. Takes your action.', roll:['Thieves’ Tools', toolBonus('dex','Thieves')]}),
   'Dice': () => ({text:'Gaming set. Spot someone cheating (DC 10) or win a game (DC 20). Uses WIS'+(toolProf('Dice')?'; proficient, so ':' without proficiency, so ')+sgn(toolBonus('wis','Dice'))+'. Good for tavern coin and gossip.', roll:['Dice set', toolBonus('wis','Dice')]}),
@@ -33,40 +48,45 @@ const USES = {
   'Leather': () => ({text:'Light armour: AC 11 + DEX. No penalty to Stealth.'}),
   'Arrows': () => ({text:'One per shot. After a fight, spend a minute to recover half of what you fired.'})
 };
-// Consumables: how many are left (S.spent) and the button that spends one; every healing potion gets 🧪 Drink.
+// Consumables: item name → the label of the button that spends one (null: counted, but no button, like arrows).
+// How many are left comes from S.spent; every healing potion gets 🧪 Drink.
 const CONSUMABLE = {'Oil':'🔥 Use one','Rations':'🍞 Eat one','Candle':'🕯️ Light one','Ball Bearings':'⚪ Spill the bag',[ARROW_N]:null};
-// healing potions on the sheet (names), and a "what it does" line for each
+// the names of the healing potions in the inventory, each once
 const potionNames = () => [...new Set(DATA.inventory.filter(i => healPotion(i.name)).map(i => i.name))];
+// a healing potion's dice: "2d4+2"
 const potionDice = n => { const [c, d, f] = healPotion(n); return c+'d'+d+'+'+f; };
+// give every healing potion a 🧪 Drink button and a "what it does" text (unless it has one); safe to run again
 function addPotionUses(){ potionNames().forEach(n => { CONSUMABLE[n] = '🧪 Drink'; if (!USES[n]) USES[n] = () => ({text:'Drink as a bonus action: heal '+potionDice(n)+'. Or give it to an ally within 1.5 m.'}); }); }
 addPotionUses();
+// plain arrows left
 const arrowsLeft = () => itemLeft(ARROW_N);
-// how many of an item the D&D Beyond inventory lists
+// how many of an item the inventory lists (D&D Beyond's, plus items added here)
 const invQty = n => DATA.inventory.filter(i=>i.name===n).reduce((a,i)=>a+(i.qty||0),0);
-// inventory item name for a glossary term, or null
+// inventory item name for a glossary term (curly apostrophes made straight), or null
 const invName = term => { const n = String(term).replace(/[’‘]/g,"'"); return DATA.inventory.some(i=>i.name===n) ? n : null; };
-// how many are left right now (after uses at the table)
+// how many are left right now (after uses at the table); ball bearings count as one bag
 function itemLeft(n){
   const used = (S.spent||{})[n]||0;
   return Math.max(0, (n==='Ball Bearings' ? 1 : invQty(n)) - used);
 }
 // "×3" (or "1 bag" for ball bearings)
 function itemCountTxt(n){ const k = itemLeft(n); return n==='Ball Bearings' ? k+' bag'+(k===1?'':'s') : '×'+k; }
-// the "use one" button for a consumable
+// the "use one" button for a consumable ('' if it has none); disabled when none are left
 function useBtn(n, cls){ return CONSUMABLE[n] ? '<button class="btn '+(cls||'small')+'" data-act="useitem" data-item="'+esc(n)+'" data-invbtn="'+esc(n)+'"'+(itemLeft(n)?'':' disabled')+'>'+CONSUMABLE[n]+'</button>' : ''; }
-// "🎒 You have ×n [use]" row inside an item's bubble
+// "🎒 You have ×n [use]" row inside an item's glossary bubble or drawer ('' if the term isn't in the inventory)
 function invBlock(term){
   const n = invName(term); if (!n) return '';
   return '<div class="binv"><span><b>🎒 You have</b> <span class="invq" data-invq="'+esc(n)+'">'+itemCountTxt(n)+'</span></span>'+useBtn(n,'primary rollbtn')+'</div>';
 }
-// refresh every counter and button for one item
+// refresh every counter and use button on screen for one item, without a repaint
 function paintInv(n){
   const left = itemLeft(n);
   document.querySelectorAll('[data-invq]').forEach(e => { if (e.dataset.invq===n) e.textContent = itemCountTxt(n); });
   document.querySelectorAll('[data-invn]').forEach(e => { if (e.dataset.invn===n) e.textContent = left; });   // plain numbers (− / + steppers)
   document.querySelectorAll('[data-invbtn]').forEach(b => { if (b.dataset.invbtn===n) b.disabled = !left; });
 }
-// spend one of a consumable and play its animation (potions heal)
+// Spend one of a consumable (saved) and play its animation. A healing potion rolls, heals you (healMe) and shows a
+// result card that closes itself; an arrow also counts as fired (for recovering half after the fight).
 function useItem(n){
   if (!n || itemLeft(n) <= 0) return;
   S.spent = Object.assign({}, S.spent, {[n]: ((S.spent||{})[n]||0) + 1});
@@ -80,7 +100,9 @@ function useItem(n){
   save(); paintRes(); paintInv(n);
   fx({'Oil':'oil','Rations':'rations','Candle':'candle','Ball Bearings':'bearings'}[n]);
 }
-// Gear tab: coins, weapons and armour, ammo, backpack, kits; pack extras at the end
+// ── Gear tab ───────────────────────────────────────────────────────────────────────────────────────────────
+// Gear tab: coins (#coinbox, filled by §19), ➕ New gear, weapons and armour, ammo (#ammobox, §19), backpack, kits;
+// pack extras at the end. An item's "what it does" text shows on its first row only.
 function gearPanel(){
   const inv = DATA.inventory;
   const weaponsArmor = inv.filter(i => !i.inPack && (i.filter==='Weapon' || i.filter==='Armor'));
@@ -110,26 +132,29 @@ function gearPanel(){
     + (PACK.gearExtras ? PACK.gearExtras(inv) : '');
 }
 
-/* ---- ➕ Add item: pick from the SRD 5.2 item list, works at once, goes on the change list ---- */
+// ── ➕ Add item ─────────────────────────────────────────────────────────────────────────────────────────────
+// Pick from the SRD 5.2 item list: the item works at once (S.added → ADDED, merged into DATA.inventory) and goes on
+// the change list until D&D Beyond has it.
 // Shared sheets in the web app are read-only: nothing to add there
 const CAN_ADD = () => !(window.SHEET && window.SHEET.mine === false);
-// the item list: embedded in the claude.ai page (#items-data), fetched once in the web app
-let ITEMS = null;
-// the item list: embedded in the claude.ai page (#items-data), fetched once in the web app
+let ITEMS = null;   // the item list, once loaded
+// the item list ({items: […]}): embedded in the claude.ai page (#items-data), fetched once in the web app
 async function loadItems(){
   if (ITEMS) return ITEMS;
   const el = document.getElementById('items-data');
   ITEMS = el ? JSON.parse(el.textContent) : await (await fetch(window.withV ? window.withV('/items.json') : '/items.json')).json();
   return ITEMS;
 }
+// the picker's category chips
 const IT_CATS = [['all','All'],['weapon','⚔️ Weapons'],['armor','🛡️ Armour'],['gear','🎒 Gear'],['tool','🧰 Tools'],['potion','🧪 Potions'],['magic','✨ Magic']];
-// picker category of a catalogue item
+// picker category of a catalogue item (packs and ammunition count as gear)
 const itCat = it => it.k === 'pack' || it.k === 'ammo' ? 'gear' : it.k;
 // pounds → kilograms, one decimal
 const lbToKg = lb => Math.round(lb*0.45*10)/10;
 // generic magic items (Weapon +1, Flame Tongue…) need a base weapon or armour picked
 const needsBase = it => it.k === 'magic' && (it.gen === 'weapon' || it.gen === 'armor');
-// one line of facts under an item's name
+// one line of facts under an item's name: damage or AC (from the base weapon / armour if one is picked), range,
+// rarity, kind, cost and weight in kg
 function itemFacts(it, base){
   const w = base && base.k==='weapon' ? base : it.k==='weapon' ? it : null, ar = base && base.k==='armor' ? base : it.k==='armor' ? it : null;
   const ft = n => Math.round(n/5*1.5*10)/10;
@@ -138,7 +163,8 @@ function itemFacts(it, base){
     ar && ar.sd && 'Stealth disadvantage', it.rar, it.mk && it.mk !== 'Wondrous item' && it.mk, it.c, it.w ? lbToKg(it.w)+' kg' : '']
     .filter(Boolean).join(' · ');
 }
-// the inventory entry for a picked item (same shape compact() makes from D&D Beyond)
+// The inventory entry for a picked item (same shape compact() makes from D&D Beyond), named the way D&D Beyond
+// would: "Longsword +1", "Flame Tongue Longsword". Weapons and armour go on your person, the rest in the pack.
 function invFrom(it, base, qty, eq){
   const w = base && base.k==='weapon' ? base : it.k==='weapon' ? it : null, ar = base && base.k==='armor' ? base : it.k==='armor' ? it : null;
   const name = !base ? it.n : it.b ? base.n+' +'+it.b : /\b(Weapon|Armor)\b/.test(it.n) ? it.n.replace(/\b(Weapon|Armor)\b/, base.n) : it.n+' '+base.n;
@@ -156,7 +182,8 @@ function addedCtl(i){
     + (wa ? '<button class="chip eqbtn'+(i.equipped?'':' ghost')+'" data-act="itemeq" data-id="'+esc(i.id)+'" aria-pressed="'+i.equipped+'" title="Tap to switch">'+(i.equipped?'equipped':'spare')+'</button>' : '')
     + '<button class="x2 small itemdel" data-act="itemdel" data-id="'+esc(i.id)+'" aria-label="Remove '+esc(i.name)+'">×</button></span>';
 }
-// the added list changed (here or on another device): rebuild the inventory, the numbers and the page
+// the added list changed (here or on another device): rebuild the inventory and D, then render the whole page again
+// at the same scroll position
 function addedChanged(){
   ADDED = S.added || []; mergeAdded(); Object.assign(D, derive(DATA));
   addPotionUses();
@@ -165,13 +192,16 @@ function addedChanged(){
 }
 // save a new added-items list and rebuild
 function setAdded(list){ S.added = list; save(); addedChanged(); }
-// counters this sheet already tracks: adding more of them just raises the count
+// Counters this sheet already tracks (consumables and potions D&D Beyond lists): adding more just lowers S.spent,
+// which can go negative. Returns true if it did; the caller saves.
 function bumpCounter(name, qty){
   if ((name in CONSUMABLE || healPotion(name)) && name !== 'Ball Bearings' && invQty(name)) { S.spent = Object.assign({}, S.spent, {[name]: ((S.spent||{})[name]||0) - qty}); return true; }
   return false;
 }
-let itemBox = null;
-// the picker window: search + category chips, then one item's details with quantity and Equipped
+let itemBox = null;   // the open picker window, if any
+// The picker window: search + category chips, then one item's details with base weapon / armour, quantity and
+// Equipped. Esc goes back from the details, then closes; focus returns to where it was. Adding closes it and either
+// bumps an existing counter or adds an entry to S.added (with what to search for in D&D Beyond).
 async function openItemPicker(){
   if (itemBox) return;
   const prev = document.activeElement;
@@ -246,9 +276,11 @@ async function openItemPicker(){
 }
 
 
+// ── Traits tab ─────────────────────────────────────────────────────────────────────────────────────────────
 // Traits tab: every trait folds to one line (name · how you use it · uses left); tap to read it.
 // A filter card on top: search, how you use it (Action / Bonus / Reaction / Passive) and where it comes from.
 // Chips multi-select: OR within a row, AND across rows and the search.
+// kind → [tag CSS class, label]; Passive borrows the F (free) tag colour
 const TR_KIND = {A:['A','Action'], B:['B','Bonus'], R:['R','Reaction'], P:['F','Passive']};
 // how a trait is used: A(ction), B(onus), R(eaction) or P(assive), from D&D Beyond's action data or the text
 function traitKinds(name, text){
@@ -263,12 +295,12 @@ function traitKinds(name, text){
   if (!k.size) k.add('P');
   return [...k];
 }
-// "2/3" uses-left pill for a trait with a tracker
+// "2/3" uses-left pill for a trait with a tracker (matched by resource name, its terms, or "Name: …" / "Name (…)")
 function traitUses(name){
   const r = RES.find(x => x.name === name || (x.terms||[]).includes(name) || x.name.startsWith(name+':') || x.name.startsWith(name+' (') || x.name.replace(/^Font of Magic: /,'') === name);
   return r ? '<span class="trus'+(r.max - S[r.key] ? '' : ' none')+'">'+(r.max - S[r.key])+'/'+r.max+'</span>' : '';
 }
-// one folded trait line (name, kinds, uses); tap to read
+// one folded trait (<details>: name, extra like "level 3", kinds, uses); data-src / data-k / data-q drive the filters
 function traitRow(name, text, src, extra){
   const kinds = traitKinds(name, text), search = (name+' '+text).toLowerCase();
   return '<details class="tr" data-src="'+esc(src)+'" data-k="'+kinds.join('')+'" data-q="'+esc(search)+'"><summary><span class="trn">'+esc(name)+'</span>'
@@ -276,11 +308,11 @@ function traitRow(name, text, src, extra){
     + '<span class="trtags">'+kinds.map(x => '<span class="tag '+TR_KIND[x][0]+'">'+TR_KIND[x][1]+'</span>').join('')+traitUses(name)+'</span><span class="chev" aria-hidden="true"></span></summary>'
     + traitBody(text)+'</details>';
 }
-// long trait text → short paragraphs; "the following benefits: A. B. C." becomes a bullet list;
-// D&D Beyond's own UI hints ("clicking on this feature…") are dropped
-// "Spell Slots. The Warlock…" → bold "Spell Slots." lead-in
+// "Spell Slots. The Warlock…" → bold "Spell Slots." lead-in (escaped HTML either way)
 const lead = x => { const m = String(x).match(/^([A-Z][A-Za-z’'+\-]*(?: [A-Za-z’'+\-0-9]+){0,5}\.)\s+(?=[A-Z])/); return m && m[1].length < 46 ? '<b>'+esc(m[1])+'</b> '+esc(x.slice(m[0].length)) : esc(x); };
-// long trait text → paragraphs, bullet lists and tables
+// Long trait text → <div class="trbody"> with paragraphs, bullet lists and tables. Text that kept its own lines
+// (richText, §1) is used as is; one long line is split into short paragraphs, and "the following benefits: A. B. C."
+// becomes a bullet list. D&D Beyond's own UI hints ("clicking on this feature…") are dropped.
 function traitBody(text){
   const raw = String(text||'').trim();
   if (raw.includes('\n')) {   // the sheet kept its own paragraphs and lists: use them
@@ -308,7 +340,8 @@ function traitBody(text){
   endList(); flush();
   return '<div class="trbody">'+out.join('')+'</div>';
 }
-// Traits tab: filter card, then traits grouped by where they come from
+// Traits tab: filter card, then traits grouped by where they come from (species, each class with Battle Master
+// maneuvers, feats and weapon masteries, background). Class texts fill in level-based numbers (fillTpl).
 function traitsPanel(){
   const sec = (emo, title, src, rows) => rows.length ? '<section class="card trsec" data-src="'+esc(src)+'"><h2><span class="emo" aria-hidden="true">'+emo+'</span>'+title+'</h2><div class="trlist">'+rows.join('')+'</div></section>' : '';
   const srcs = [['species', 'Species']].concat(DATA.classes.map(k => [k.name, k.name])).concat([['feats','Feats'],['background','Background']]);
@@ -330,7 +363,8 @@ function traitsPanel(){
         .concat(Object.keys(D.masteries||{}).length ? [traitRow('Weapon masteries', Object.entries(D.masteries).map(([w,m]) => w+' ('+m+')').join(', '), 'feats')] : []))
     + '<section class="card trsec" data-src="background"><h2><span class="emo" aria-hidden="true">🎖️</span>Background: '+esc(DATA.background?DATA.background.name:'—')+'</h2>'+(PACK.backgroundBlurb ? '<p class="muted" style="margin:0">'+PACK.backgroundBlurb()+'</p>' : '<p class="muted" style="margin:0">'+esc((DATA.background && DATA.background.text) || 'Skills, a tool and an Origin feat (listed under Feats).')+'</p>')+'</section>';
 }
-// show / hide traits for the search and chips (no repaint, so open traits stay open)
+// show / hide traits for the search and chips (no repaint, so open traits stay open); a search of 3+ letters opens
+// the traits it finds
 function filterTraits(){
   const panel = document.querySelector('[data-panel="traits"]'); if (!panel) return;
   const q = (ui.trQ||'').trim().toLowerCase(), f = ui.trF || [], so = ui.trS || [];
@@ -348,7 +382,7 @@ function filterTraits(){
   });
   const none = panel.querySelector('.trnone'); if (none) none.hidden = any;
 }
-// Traits filter: search box and chips (bound once per render)
+// Traits filter: bind the search box (once per box, saved to ui.trQ as you type) and apply the filters
 function bindTraits(){
   const inp = $('#trq'); if (inp && !inp._b) { inp._b = true; inp.addEventListener('input', () => { ui.trQ = inp.value; saveUi(); filterTraits(); }); }
   filterTraits();

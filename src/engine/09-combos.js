@@ -1,29 +1,39 @@
 /* ============================================================================
-   §9  COMBOS — multi-attack recipes from PACK.combos(); each "🎲 Roll" queues the attacks through the roll flow
+   §9  COMBOS — turn recipes: the pack's own (PACK.combos()) or automatic ones built from the sheet. Each "🎲 Roll"
+   queues the combo's attacks through the roll flow (§8).
+   A combo: { id, title, when, steps: [[A/B/F/M/R tag, text, button?]], formula, mode, roll: [{w, label, mode, …}] }.
+   Defines: SIG_W (also the default favourite attack, §10), combos(), autoCombos(), rollCombo().
+   Relies on: PACK, DATA, D, RES, resBy (§2), parseDice (§4), startAttack / findW (§8), spell helpers (§8b).
+   SIG_W is worked out once as this file loads, from D as it is then. The Combos tab itself is in §10.
    ============================================================================ */
 // The weapon a combo step uses when it doesn't name one (the pack's signature weapon, else the first equipped).
 const SIG_W = (PACK.signatureWeapon && PACK.signatureWeapon()) || D.weapons.find(w=>w.equipped) || D.weapons[0];
-// is this the pack's signature weapon?
-// the pack's combo list (empty without one)
+// the combo list: the pack's hand-written combos, or the automatic ones
 const combos = () => PACK.combos ? PACK.combos() : autoCombos();
 // Automatic combos for characters without hand-written ones, built from simple rules over the sheet:
-// a rider spell (Hex) + an attack cantrip, Quickened Spell + a cantrip, a bonus-action spell + a cantrip,
-// Breath Weapon + a bonus-action escape, Extra Attack. They appear and disappear as the pieces do.
+// a rider spell (Hex) + an attack cantrip, Quickened Spell + a spell and a cantrip, a bonus-action spell + a cantrip,
+// Breath Weapon + Misty Step, Rage, Flurry of Blows, Hunter's Mark, Divine Smite, and plain Extra Attack when none
+// of those four apply. At most six.
 let AUTO_COMBOS = null;
-// Automatic combos (see above); memoised for the page
+// Automatic combos (see above). Worked out on the first call and kept for the page, so they follow the sheet as it
+// was then (a reload picks up new spells or favourites). Anything that throws just ends the list early.
 function autoCombos(){
   if (AUTO_COMBOS) return AUTO_COMBOS;
   const out = [];
   try {
     const sp = (DATA.spells||[]).filter(x => x.prepared || x.always || !x.level);
+    // helpers: 🪄 Cast button, favourites first, a spell's damage dice and average size, action / bonus casting
     const castBtn = n => '<button class="btn small primary rollbtn" data-act="cast" data-spell="'+esc(n)+'">🪄 Cast</button>';
     const fav = n => spIsFav(n) ? 1 : 0;
     const dmgOf = (x, lvl) => spellGroups(x, lvl).map(g => diceTxt(g.x)).filter(Boolean).join(' + ');
     const size = x => spellGroups(x, x.level || 0).reduce((t, g) => t + (g.x ? g.x.n * (g.x.d + 1) / 2 + (g.x.flat||0) : 0), 0);
     const isAct = x => /1 action$/.test(x.castTime||''), isBonus = x => /bonus action/.test(x.castTime||'');
+    // damage cantrips cast with an action, favourites and then the biggest first; best = the one combos use
     const cantrips = sp.filter(x => !x.level && isAct(x) && (x.dmg||[]).length).sort((a,b) => fav(b.name)-fav(a.name) || size(b)-size(a));
     const best = cantrips[0] || null;
     const how = x => x.attack ? 'spell attack' : x.save ? ABIL_NAME[ABIL[x.save-1]]+' save' : '';
+    // rider spells (Hex and the like): bonus action, concentration, extra damage with no save or attack of their own;
+    // paired with the attack cantrip that makes the most beams
     const riders = sp.filter(x => isBonus(x) && x.conc && !x.save && !x.attack && !x.heal && (x.dmg||[]).length);
     const beams = x => { try { return spellCount(x, 0) || 1; } catch(_) { return 1; } };
     const riderC = cantrips.filter(x => x.attack).sort((a,b) => beams(b)-beams(a) || fav(b.name)-fav(a.name))[0];
@@ -33,6 +43,7 @@ function autoCombos(){
                ['A','Cast '+c.name+' at it ('+how(c)+').', castBtn(c.name)],
                ['F','Every hit adds '+dmgOf(h, h.level)+' '+(h.dmg[0].type||'')+(nb > 1 ? ' (each of the '+nb+' beams is its own hit)' : '')+'. Next turns: just the cantrip, no new slot.']],
         formula: [c, h].map(x => spellGroups(x, x === h ? h.level : 0).map(g => g.x ? (g.x.n * nb)+'d'+g.x.d+(g.x.flat ? sgn(g.x.flat * nb) : '') : '').filter(Boolean).join(' + ')).join(' + ') }); }
+    // Quickened Spell: a levelled action spell as a bonus action, then the best cantrip
     const quick = (DATA.actions||[]).some(a => /^Metamagic: Quickened Spell/.test(a.name)), sorc = RES.find(r => /Sorcery Points/.test(r.name));
     const lvlAct = sp.filter(x => x.level && isAct(x) && ((x.dmg||[]).length || x.heal)).sort((a,b) => fav(b.name)-fav(a.name) || b.level-a.level || size(b)-size(a));
     if (quick && sorc && lvlAct[0] && best) { const q = lvlAct[0];
@@ -40,6 +51,7 @@ function autoCombos(){
         steps:[['B','Quickened Spell (2 Sorcery Points): cast '+q.name+' as a bonus action.', castBtn(q.name)],
                ['A','Cast '+best.name+' with your action ('+how(best)+').', castBtn(best.name)]],
         formula: (q.heal ? '' : dmgOf(q, q.level)+' + ')+dmgOf(best, 0) }); }
+    // a bonus-action spell + the best cantrip: at most one healing (Healing Word) and one other (Misty Step…)
     const bonusSp = sp.filter(x => isBonus(x) && !riders.includes(x)).sort((a,b) => fav(b.name)-fav(a.name) || (b.heal?1:0)-(a.heal?1:0));
     const NAME = {'Healing Word':'Heal and hit', 'Misty Step':'Blink and blast', 'Mass Healing Word':'Rally and blast'};
     const pickB = bonusSp.filter(x => NAME[x.name] || (x.dmg||[]).length), heal1 = pickB.find(x => x.heal), other1 = pickB.find(x => !x.heal);
@@ -51,7 +63,7 @@ function autoCombos(){
     if (breath && escape) out.push({ id:'auto-breath', title:'Breathe and vanish', when:'Hit a group with your breath, then get out before they swing back.',
       steps:[['A','Take the Attack action and use '+breath.name+' instead of an attack (cone or line, a DEX save).'], ['B','Cast '+escape.name+': teleport 9 m away.', castBtn(escape.name)]], formula:'' });
     // martial combos: one bonus action per turn, so each of these is a different way to spend it
-    const avg = w => { const p = parseDice(w.dice); return p.n*(p.d+1)/2 + w.dmgMod; };
+    const avg = w => { const p = parseDice(w.dice); return p.n*(p.d+1)/2 + w.dmgMod; };   // average damage of a weapon
     const melee = D.weapons.filter(x => x.equipped && !x.ranged && !x.unarmed && x.a === 'str').sort((a,b) => avg(b)-avg(a))[0];
     const bow = D.weapons.filter(x => x.equipped && x.ranged).sort((a,b) => avg(b)-avg(a))[0];
     const fist = D.weapons.filter(x => x.equipped && x.monkWeapon).sort((a,b) => avg(b)-avg(a))[0];
@@ -73,6 +85,7 @@ function autoCombos(){
     if (sp.some(x => x.name === 'Divine Smite') && melee) out.push({ id:'auto-smite', title:'Hit, then Smite', when:'Save your slot until you know it hit (or crit: the smite dice double too).', mode:'norm',
       steps:[['A','Attack with your '+melee.name+'.'], ['B','It hit? Divine Smite: spend a slot for 2d8 radiant (+1d8 per slot level above 1st). Pick it on the damage step.']],
       formula: melee.dice+sgn(melee.dmgMod)+' + 2d8', roll: atkSteps(melee, {mode:'norm'}) });
+    // plain Extra Attack (level 5+ martial class) with the signature weapon, when no martial combo above covers it
     const ea = !out.some(c => /^auto-(rage|flurry|mark|smite)$/.test(c.id)) && (DATA.classes||[]).some(c => /Fighter|Barbarian|Monk|Paladin|Ranger/.test(c.name) && c.level >= 5), w = SIG_W;
     if (ea && w) out.push({ id:'auto-ea', title:'Extra Attack', when:'Two attacks with one Attack action.', mode:'norm',
       steps:[['A','Attack with your '+w.name.toLowerCase()+' ('+sgn(w.hit)+' to hit).'], ['A','Extra Attack: a second swing.']], formula: w.dice+sgn(w.dmgMod)+' + '+w.dice+sgn(w.dmgMod),
@@ -80,7 +93,7 @@ function autoCombos(){
   } catch (e) { console.warn('auto combos', e); }
   return (AUTO_COMBOS = out.slice(0, 6));
 }
-// run a combo: queue its attacks through the roll flow
+// 🎲 Roll on a combo card: queue its attacks through the roll flow (steps without a weapon use SIG_W)
 function rollCombo(id){
   const cb = combos().find(x=>x.id===id); if (!cb) return;
   const mode = cb.mode || 'adv';

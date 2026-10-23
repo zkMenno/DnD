@@ -1,10 +1,20 @@
 /* ============================================================================
    §8  ROLL FLOW — hit first, then damage; checks and saves. Rerolls are buttons you choose to press.
+   An attack: attackSetup() (mode step) → pickMode() → startAttack() (hit sheet) → rollDamage() (damage sheet), with
+   riders (see Riders below) and boosts (§7) added from buttons on the cards. A check: rollCheck() → rollCheckMode().
+   Defines: cur (the open attack) and checkRoll (the open check; only one is set at a time), the card builders and
+   paint functions (paintCur, paintCheck), ob() / nb() / optRow() buttons, findW(), riders, AMMO and ammo helpers.
+   Relies on: §4 dice and dock, §5 fx, §7 boosts, D / RES / MODS / WORD (§2), S / ui (§3), dieF / d20Dice / asDice /
+   flipKeys (§6), G (§16, at run time), SPELL_W (§8b), ARROW_N (§3), arrowsLeft / invQty (§11, at run time).
+   Every sheet is shown "veiled" (a ? for each die) first, and its numbers are written in once the dice land.
    ============================================================================ */
 let cur = null, checkRoll = null;
+
+// ── Hit and check cards: d20 lines and rerolls ─────────────────────────────────────────────────────────────
 // a plain die value
 const dieB = v => '<b class="die">'+v+'</b>';
-// the "d20 [a, b] → pick + bonus" line of a hit or check card
+// The "d20 [a, b] + bonus = total" line of a hit or check card. The die that counts is plain, the other is struck
+// through; notes for advantage, disadvantage, Halfling Luck and Inspiration rerolls follow.
 function d20Line(t, bonus, mode, label){
   const pickI = t.dice.length>1 && t.dice[0]===t.dice[1] ? 0 : t.dice.indexOf(t.pick);
   const dice = t.dice.map((v,i) => i===pickI ? dieF(v,'d20') : '<s class="die off'+(flipKeys.has('d20')?' flip':'')+'">'+v+'</s>').join(' ');
@@ -30,7 +40,7 @@ function luckReroll(t, mode){
   const i = t.dice.findIndex((v,k)=>v===1 && !t.lucked.includes(k)); if (i<0) return;
   const n = r(20); t.luck.push('1→'+n); t.dice[i] = n; t.lucked.push(i); t.pick = pickOf(t.dice, mode);
 }
-// spend Heroic Inspiration to reroll the lower (or a chosen) die
+// spend Heroic Inspiration to reroll the lowest d20 (saved; the header chip updates)
 function inspReroll(t, mode){
   if (!S.insp) return;
   const i = t.dice.indexOf(Math.min(...t.dice)), old = t.dice[i], n = r(20);
@@ -38,10 +48,12 @@ function inspReroll(t, mode){
   S.insp = false; save(); paintRes();
   const c = $('#inspchip'); if (c) { c.className = 'chip ghost'; c.textContent = 'none yet'; }
 }
-// collapsible "Inspiration & Blessings" group; open/closed is remembered
-// "Inspiration & Blessings": closed on every new roll; stays open while you use it on this roll
+// ── Inspiration & Blessings box ────────────────────────────────────────────────────────────────────────────
+// The roll the box belongs to: the open check, else the open attack. The box is closed on every new roll and
+// stays open (t.boostOpen) while you use it on this roll.
 const boostTgt = () => checkRoll || cur;
-// the collapsible "Inspiration & Blessings" box on hit and check cards
+// The collapsible "Inspiration & Blessings" box on hit and check cards. items: [button, text] pairs or {html};
+// falsy items are dropped, and no items means no box.
 function boostBox(items){
   items = items.filter(Boolean); if (!items.length) return '';
   const t = boostTgt();
@@ -50,31 +62,32 @@ function boostBox(items){
 }
 // a boost's name as a tappable term (its tooltip from the glossary, §16), plain bold when there's none
 const bterm = n => '<b>'+(G[n] ? '<button type="button" class="term" data-term="'+esc(n)+'">'+esc(n)+'</button>' : esc(n))+'</b>';
-// Heroic Inspiration row for the boost box
+// Heroic Inspiration row for the boost box: Reroll if you have it, ✓ Gained if not, nothing once used on this roll
 const inspItem = (act, what, used) => used ? null : S.insp
   ? [ob(act,'🎲 Reroll'), bterm('Heroic Inspiration')+': reroll your lowest '+what+'. Uses it up.']
   : [ob('inspgain','✓ Gained'), bterm('Heroic Inspiration')+' from the DM? Mark it, then reroll.'];
-// Bless row for the boost box
+// Bless row for the boost box (save = word it for a saving throw)
 const blessItem = save => [ob('boost','🎲 Roll d4',' data-k="bless" data-s="4"'), bterm('Bless')+': add a d4'+(save?' to this save':'')+'.'];
 // Guidance row for the boost box
 const guidanceItem = () => [ob('boost','🎲 Roll d4',' data-k="guidance" data-s="4"'), bterm('Guidance')+': add a d4.'];
-// Bardic Inspiration row: pick the die, then roll
+// Bardic Inspiration row: pick the bard's die (d6–d12, default d8), then roll
 function bardItem(){
   const s = ui.bardDie || 8;
   return { html: '<div class="opt bardopt"><span class="od">'+bterm('Bardic Inspiration')+': pick the bard’s die, then roll.</span></div>'
     + '<div class="bardrow"><div class="seg bardseg" role="group" aria-label="Bardic Inspiration die">'+[6,8,10,12].map(d=>'<button data-act="bardsel" data-s="'+d+'" aria-pressed="'+(d===s)+'">d'+d+'</button>').join('')+'</div>'
     + ob('boost','🎲 Roll d'+s,' data-k="bardic" data-s="'+s+'"')+'</div>' };
 }
-// pick the bardic die size (remembered on this device)
+// pick the bardic die size (remembered on this device) and repaint the open card with the box open
 function bardSel(s){ ui.bardDie = s; saveUi(); const t = boostTgt(); if (t) t.boostOpen = true; if (checkRoll) paintCheck(false); else if (cur) paintCur([]); }
-// mark Heroic Inspiration gained (from the DM, a nat 20 house rule, etc.)
+// mark Heroic Inspiration gained (from the DM, a nat 20 house rule, etc.): saved, and the open card repaints
 function inspGain(){
   S.insp = true; save(); paintRes(); paintUse();
   const c = $('#inspchip'); if (c) { c.className = 'chip brass'; c.textContent = '⭐ have it'; }
   const t = boostTgt(); if (t) t.boostOpen = true;
   if (checkRoll) return paintCheck(false); if (cur) paintCur([]);
 }
-// animated expand/collapse: arrow turns while the list slides open or shut
+// Animated expand / collapse for the boost box: the arrow turns while the list slides open or shut. The toggle
+// listener after it records the open state on the roll, so a repaint keeps it.
 document.addEventListener('click', e => {
   const sum = e.target.closest('details.boosts > summary'); if (!sum) return;
   e.preventDefault();
@@ -88,14 +101,19 @@ document.addEventListener('click', e => {
   a.onfinish = () => { list.style.overflow = ''; if (!opening) d.open = false; };
 });
 document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('boosts')) { const t = boostTgt(); if (t) t.boostOpen = e.target.open; } }, true);
-// a labelled row of option buttons on a result card (empty items dropped)
+// ── Option buttons ─────────────────────────────────────────────────────────────────────────────────────────
+// a labelled row of options on a result card: items are [button, text] pairs, falsy ones dropped ('' if none left)
 function optRow(label, items){ items = items.filter(Boolean); return items.length ? '<div class="bd optrow">'+(label?'<span class="optlb">'+label+'</span>':'')+items.map(([b,t])=>'<div class="opt"><span class="od">'+t+'</span>'+b+'</div>').join('')+'</div>' : ''; }
-// small option button
+// small option button (extra = more attributes, e.g. ' data-k="bless"')
 const ob = (act, txt, extra) => '<button class="btn small" data-act="'+act+'"'+(extra||'')+'>'+txt+'</button>';
 // primary "next step" button
 const nb = (act, txt, extra) => '<button class="btn primary" data-act="'+act+'"'+(extra||'')+'>'+txt+'</button>';
 
-// begin the roll flow for a weapon: mode step first (or straight to the hit if the mode is given)
+// ── Attacks: mode step, hit, damage ────────────────────────────────────────────────────────────────────────
+// Roll to hit with weapon (or spell attack) w. o: {mode, title, label, step, queue, n, sneak, savage, noMod}.
+// Spends one piece of ammunition first (the picked magic ammo, else a plain arrow) and adds automatic hit riders.
+// The empty sheet slides in, then the burst and dice play, then the numbers are written in (unless the card
+// was closed or replaced meanwhile).
 function startAttack(w, o){
   const am = !w.spell && w.ammoKind ? ammoPick(w) : null;
   if (am) {   // magic ammunition: its bonus joins the shot, its extra damage becomes a rider, and one is used up
@@ -109,18 +127,20 @@ function startAttack(w, o){
   paintCur([], true, 'next');   // 1. the empty sheet slides in from the right
   afterSheet(() => fx(k, () => { if (cur !== me) return; me.veil = null; flipKeys.add('d20'); if (!$('#dock').hidden) paintCur(['hit'], false); }, d20Dice(me.t), nat));   // 2. animations, 3. write the roll in
 }
-// roll to hit with the current attack's mode
+// roll to hit with a weapon at once, normal mode, skipping the mode step (the data-weapon click route, §20)
 function rollWeapon(name){
   const w = D.weapons.find(x=>x.name===name); if (!w) return;
   startAttack(w, {mode:'norm', sneak:true, savage:true});
 }
-// current attack total
+// current attack total: d20 + weapon bonus + hit riders + boosts
 const curHit = () => cur.t.pick + cur.w.hit + riderSum(cur.hrid) + boostSum(cur);
 // current attack is a natural 20
 const curCrit = () => !!cur.t && cur.t.pick===20;
-// current damage total (weapon dice + modifier + extras)
+// current damage total (weapon dice + modifier + damage riders)
 const curDmg = () => { const d = cur.dmg; return sum(d.wd) + d.flat + riderSum(d.rid); };
-// roll damage for the current hit; doubles dice on a crit
+// Roll damage for the current attack: variant 'two' uses the versatile die. Dice double on a crit; Great Weapon
+// Fighting and automatic damage riders (Rage…) apply. Same veil → burst → numbers sequence as the hit.
+// (fresh is not used.)
 function rollDamage(variant, fresh){
   const w = cur.w, mult = curCrit() ? 2 : 1;
   const p = parseDice(variant==='two' && w.versatile ? w.versatile : w.dice);
@@ -134,14 +154,15 @@ function rollDamage(variant, fresh){
   paintCur([], false, 'next');
   afterSheet(() => fx(w.spell && FX['el_'+String(w.dmgType||'').toLowerCase()] ? 'el_'+String(w.dmgType).toLowerCase() : 'impact', () => { if (cur !== me) return; me.veil = null; flipKeys.add('wd'); if (!$('#dock').hidden) paintCur(['dmg'], false); }, asDice(me.dmg.wd, p.d), mult>1 ? 'crit' : null));
 }
-// Savage Attacker: roll the weapon dice again, keep the better set
+// Savage Attacker: roll the weapon dice again and keep the better set (once per damage roll)
 function savageReroll(){
   const d = cur && cur.dmg; if (!d || d.alt) return;
   let alt = rollDice(d.p.n*d.mult, d.p.d); if (d.gwf) alt = alt.map(v => Math.max(3, v));
   if (sum(alt) > sum(d.wd)) { d.alt = d.wd; d.wd = alt; } else d.alt = alt;
   flipKeys.add('wd'); fx('savage', () => paintCur(['dmg']), asDice(alt, d.p.d));
 }
-// the attack sheet's HTML for its current step (hit or damage)
+// The attack sheet's HTML for its current step (cur.view: hit, or damage once rolled). anim lists the totals
+// ('hit', 'dmg') written in fresh this time. The hidden [data-flow] marker tells rollView that an attack card is up.
 function curSheetHtml(anim){
   const c = cur, w = c.w, o = c.o, d = c.dmg;
   const view = (c.view==='hit' && c.t) || !d ? 'hit' : 'dmg';
@@ -190,7 +211,7 @@ function curSheetHtml(anim){
   }
   return h;
 }
-// redraw the attack card for its current step (hit or damage)
+// redraw the attack card for its current step; fresh = a new sheet rather than a repaint, trans = how it slides in
 function paintCur(anim, fresh, trans){ const h = curSheetHtml(anim); showRoll(h, !fresh, trans); flipKeys.clear(); }
 // The sheet beside this one in the flow (left swipe = next, right = previous), for the swipe peek; null if none.
 function rollPeek(dir){
@@ -199,7 +220,8 @@ function rollPeek(dir){
   if (v===now || (v==='hit' && !cur.t) || (v==='dmg' && !cur.dmg)) return null;
   const keep = cur.view; cur.view = v; const h = curSheetHtml([]); cur.view = keep; return h;
 }
-// switch between the hit and damage steps without rerolling; swipe right = back, left = forward
+// Switch between the hit and damage steps without rerolling (v = 'hit' / 'dmg'). Returns false when there's
+// nothing to switch to, so a swipe can rubber-band instead. (from is not used.)
 function rollView(v, from){
   if (!cur || !$('#dock .roll [data-flow]')) return false;
   if (v==='hit' && !cur.t) return false;
@@ -209,9 +231,10 @@ function rollView(v, from){
   cur.view = v; paintCur([], false, v==='hit' ? 'prev' : 'next');
   return true;
 }
-// swipe direction → step
+// swipe direction → step: right = back to the hit, left = on to the damage
 function rollNav(dir){ return dir==='right' ? rollView('hit') : rollView('dmg'); }
-// Step 0: pick how you roll. One tap picks the mode and rolls.
+// Step 0 for an attack: pick how you roll (advantage / normal / disadvantage, with reasons that fit this weapon),
+// and the ammunition when there's magic ammo for it. One tap on a mode rolls (pickMode). Clears any open roll.
 function attackSetup(name, again){
   const w = findW(name); if (!w) return;
   cur = null; checkRoll = null;
@@ -231,19 +254,21 @@ function attackSetup(name, again){
     + '</div>'
     , again);
 }
-// Magic ammunition this weapon can shoot (+1/+2 arrows, Arrow of Slaying…), with how many are left
+// ── Magic ammunition ───────────────────────────────────────────────────────────────────────────────────────
+// Magic ammunition this weapon can shoot (+1/+2 arrows, Arrow of Slaying…), with how many are left:
+// [{name, bonus, xdmg, left}], one per item name. Plain ammunition isn't listed.
 function ammoChoices(w){
   if (!w || !w.ammoKind) return [];
   const re = new RegExp('\\b'+w.ammoKind+'s?\\b', 'i'), seen = new Set();
   return (DATA.inventory||[]).filter(i => re.test(i.name) && ((i.bonus||0) > 0 || (i.xdmg||[]).length) && !seen.has(i.name) && seen.add(i.name))
     .map(i => ({ name:i.name, bonus:i.bonus||0, xdmg:i.xdmg||[], left: Math.max(0, invQty(i.name) - ((S.spent||{})[i.name]||0)) }));
 }
-let AMMO = {};   // weapon name → the magic ammunition picked for it (this visit)
-// the magic ammunition picked for this weapon, if any are left
+let AMMO = {};   // weapon name → the magic ammunition picked for it (this visit, not saved)
+// the magic ammunition picked for this weapon, or null (none picked, or none of it left)
 const ammoPick = w => { const n = AMMO[w.name]; return n ? ammoChoices(w).find(a => a.name === n && a.left > 0) || null : null; };
 // one line on what the picked ammunition does
 const ammoNote = a => (a.bonus ? '+'+a.bonus+' to hit and damage. ' : '')+(a.xdmg.length ? 'Extra '+a.xdmg.map(x => x.dice+' '+x.type.toLowerCase()).join(' + ')+' to add on the damage step (see the item for when it counts). ' : '')+'One is used up per shot.';
-// mode step: advantage / normal / disadvantage, then roll
+// a mode was picked on the mode step: roll to hit. Weapons can add Sneak Attack and Savage Attacker; spells can't.
 function pickMode(m, name){
   const w = findW(name); if (!w) return;
   // spells with several beams / rays (Eldritch Blast, Scorching Ray) queue one attack per beam
@@ -253,13 +278,15 @@ function pickMode(m, name){
 }
 // a weapon by name, or a spell attack set up by castSpell()
 const findW = name => D.weapons.find(x=>x.name===name) || SPELL_W[name];
-/* ---- Riders: extras on an attack, from the class modules (#classes) and the weapon itself ----
+// ── Riders ─────────────────────────────────────────────────────────────────────────────────────────────────
+/* Riders: extras on an attack, from the class modules (#classes) and the weapon itself.
    Two kinds, same shape and the same buttons:
      'hit'  hitRiders(w, c) → added to the attack roll (Precision Attack, Sacred Weapon); shown on the hit step
      'dmg'  riders(w, c)    → extra damage on a hit (Sneak Attack, Rage, Divine Smite…); shown on the damage step
    A rider: { key, label, short, emoji, dice:'1d8', flat, type, note, after, once:'turn', cost:{key, n}, group, auto, pri, fx }
    auto: added by itself as the roll is made (Rage, Sacred Weapon); cost: spent from a resource when added, given back
    when removed; group: only one of the group at a time (Divine Smite at different slot levels). Damage dice double on a crit. */
+// every rider of one kind this attack could take, by pri; damage riders also get the weapon's own extra dice (xdmg)
 function ridersFor(w, c, kind){
   const hook = kind === 'hit' ? 'hitRiders' : 'riders';
   const list = MODS.flatMap(m => m[hook] ? (m[hook](w, c) || []) : []).filter(Boolean).sort((a, b) => (a.pri||0) - (b.pri||0));
@@ -269,7 +296,8 @@ function ridersFor(w, c, kind){
 }
 // where a kind of rider lives on the current attack: cur.hrid (hit) or cur.dmg.rid (damage)
 const riderBox = kind => !cur ? null : kind === 'hit' ? (cur.hrid = cur.hrid || {}) : cur.dmg ? cur.dmg.rid : null;
-// add a rider to the current roll (spends its cost, rolls its dice, doubles damage dice on a crit)
+// Add a rider to the current roll: spends its cost (not if there isn't enough), drops others in its group, rolls its
+// dice (doubled for damage on a crit). quiet = no animation or repaint (automatic riders while the sheet is built).
 function applyRider(x, quiet, kind){
   const box = riderBox(kind); if (!box || box[x.key]) return;
   if (x.cost) { const rr = resBy(x.cost.key); if (!rr || rr.max - S[rr.key] < x.cost.n) return; S[rr.key] += x.cost.n; save(); paintRes(); paintUse(); }
@@ -294,10 +322,11 @@ function toggleRider(k, kind){
 }
 // total a set of riders adds (dice + flat)
 const riderSum = box => Object.values(box||{}).reduce((t,x) => t + sum(x.vals) + (x.flat||0), 0);
-// one breakdown line per rider on the roll
-// (label on the left; dice, total and type on the right: when they wrap, the next line stays indented under the dice)
+// one breakdown line per rider on the roll (label on the left; dice, total and type on the right: when they wrap,
+// the next line stays indented under the dice)
 const riderLines = box => Object.values(box||{}).map(x => '<div class="ln rid hang"><b class="lb">'+x.emoji+' '+esc(x.label)+'</b><span class="lnv">'+(x.vals.length ? '<span class="dc">'+x.vals.length+'d'+x.die+'</span> '+x.vals.map(v=>dieF(v,'rid')).join(' + ')+(x.flat ? ' <span class="mod">'+sgn(x.flat)+'</span>' : '') : '<span class="mod">'+(x.flat ? sgn(x.flat) : '')+'</span>')+(x.vals.length || x.flat ? ' = <b>'+(sum(x.vals)+(x.flat||0))+'</b>' : '')+(x.type ? ' <span class="dtype">'+esc(x.type.toLowerCase())+'</span>' : '')+'</span>'+(x.after ? '<span class="rn lnote">'+x.after+'</span>' : '')+'</div>').join('');
-// the option rows for one kind of rider ("Add to the roll" / "Extra damage")
+// The option rows for one kind of rider ("Add to the roll" / "Extra damage"): add or ✕ Remove, with what's left of
+// its resource. A rider you can't afford is hidden unless it's already on.
 function riderRows(w, c, kind){
   const box = riderBox(kind) || {}, list = ridersFor(w, c, kind); if (!list.length) return '';
   const mult = kind === 'hit' ? 1 : c.dmg.mult;
@@ -310,20 +339,22 @@ function riderRows(w, c, kind){
 }
 // can this weapon deliver Sneak Attack?
 const saOK = w => D.sneakDice && !w.spell && (w.ranged || w.finesse);
-// move on to the next queued attack of a combo
+// move on to the next queued attack of a combo or a multi-beam spell, keeping the title and "n of m" count
 function nextAttack(){
   const q = cur && cur.o.queue; if (!q || !q.length) return;
   const [s, ...rest] = q;
   startAttack(s.w, {...s, title:cur.o.title, queue:rest, step:(cur.o.n - rest.length)+' of '+cur.o.n, n:cur.o.n});
 }
-// Commanding Presence: a superiority die on a social check (Precision and Menacing are riders now)
+// ── Checks and saves ───────────────────────────────────────────────────────────────────────────────────────
+// Commanding Presence: spend a superiority die and add it to the open check, once per check. 'commanding' is the
+// only kind left (Precision and Menacing are riders now).
 function useManeuver(kind){
   if (sdLeft()<=0) return;
   const roll = r(+D.superiorityDice.die.slice(1));
   if (kind==='commanding'){ if (!checkRoll || checkRoll.cmd) return; S.sd++; save(); paintRes(); checkRoll.cmd = roll; return fx('commanding', () => paintCheck(true), [{s:+D.superiorityDice.die.slice(1), v:roll}]); }
 }
-// roll an ability check, save or skill with its bonus
-// Step 0 (same as attacks): pick how you roll. One tap picks the mode and rolls. Normal is highlighted.
+// Step 0 for an ability check, save, skill or tool (label, bonus): pick how you roll, with reasons that fit a check,
+// a save or initiative. One tap picks the mode and rolls (rollCheckMode). Normal is highlighted.
 function rollCheck(label, bonus){
   cur = null; checkRoll = null;
   const save = / save$/.test(label), init = label==='Initiative';
@@ -335,7 +366,7 @@ function rollCheck(label, bonus){
     + '<div class="stepnote"><b>🎲 How are you rolling?</b> Roll d20 '+sgn(bonus)+'</div>'
     + '<div class="restpick atkpick">'+opt('adv','⬆️','Advantage',0)+opt('norm','🎯','Normal',1)+opt('dis','⬇️','Disadvantage',2)+'</div>');
 }
-// roll the check with the picked mode
+// roll the check with the picked mode: veiled sheet, then the check (or initiative) burst and dice, then the total
 function rollCheckMode(label, bonus, mode){
   cur = null;
   const me = checkRoll = { label, bonus, mode, t:d20(mode), cmd:0, veil:true };
@@ -343,9 +374,10 @@ function rollCheckMode(label, bonus, mode){
   paintCheck(false, true, 'next');
   afterSheet(() => fx(label==='Initiative' ? 'init' : 'chk', () => { if (checkRoll !== me) return; me.veil = false; flipKeys.add('d20'); if (!$('#dock').hidden) paintCheck(true, false); flipKeys.clear(); }, d20Dice(me.t), me.t.pick===20 ? 'crit' : me.t.pick===1 ? 'fumble' : null));
 }
-// Let the incoming sheet settle before the action animation covers it
+// let the incoming sheet settle (340 ms) before the action animation covers it
 const afterSheet = go => setTimeout(go, reduceMotion() ? 0 : 340);
-// redraw the check card (veiled: "?" until the dice land)
+// Redraw the check card (veiled: "?" until the dice land). animate = the total was just written in; class modules
+// can add rows (checkRows, e.g. Commanding Presence); saves offer Bless, other checks Guidance.
 function paintCheck(animate, fresh, trans){
   const k = checkRoll;
   const total = k.t.pick + k.bonus + k.cmd + boostSum(k), isSave = / save$/.test(k.label);
@@ -358,12 +390,12 @@ function paintCheck(animate, fresh, trans){
     + boostBox([inspItem('inspre','d20'), isSave ? !hasBoost(k,'bless') && blessItem(true) : !hasBoost(k,'guidance') && guidanceItem(), !hasBoost(k,'bardic') && bardItem()])
     + '<div class="nextrow"><button class="btn done" data-act="close">'+WORD.ok+'</button></div>'), !fresh, trans);
 }
-// a fresh d20 for the dice animation
+// the d20 that now counts, as one die for the reroll animation
 const newD20 = t => [{s:20, v: t.pick}];
-// Halfling Luck on whichever card is open
+// Halfling Luck on whichever card is open (check or hit): reroll, play 🍀, repaint
 function doLuck(){ const t = checkRoll ? checkRoll.t : cur && cur.t; if (!t) return; luckReroll(t, checkRoll ? checkRoll.mode : cur.mode); flipKeys.add('d20');
   if (checkRoll) return fx('luck', () => { paintCheck(true); flipKeys.clear(); }, newD20(t)); fx('luck', () => paintCur(['hit']), newD20(t)); }
-// Heroic Inspiration on whichever card is open
+// Heroic Inspiration on whichever card is open (check or hit): reroll the lowest d20, play ⭐, repaint
 function doInsp(){ const t = checkRoll ? checkRoll.t : cur && cur.t; if (!t) return; inspReroll(t, checkRoll ? checkRoll.mode : cur.mode); flipKeys.add('d20');
   if (checkRoll) return fx('insp', () => { paintCheck(true); flipKeys.clear(); }, newD20(t)); fx('insp', () => paintCur(['hit']), newD20(t)); }
 
