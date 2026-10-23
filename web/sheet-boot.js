@@ -65,7 +65,7 @@ window.withV = withV;
   const dj = document.createElement('script');
   dj.type = 'application/json'; dj.id = pid + '-data'; dj.textContent = JSON.stringify(payload).replace(/</g, '\\u003c');
   document.body.appendChild(dj);
-  document.title = ch.name || 'Character';
+  window.pageTitle(ch.name ? window.possessive(ch.name) + ' Character Sheet' : 'Character Sheet');
   // the home page's "Continue with …" button: the last sheet opened on this device
   try { localStorage.setItem('last-sheet', JSON.stringify({ path: location.pathname, id: ch.id, name: ch.name || 'your character', at: Date.now() })); } catch (_) {}
 

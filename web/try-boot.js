@@ -31,7 +31,7 @@ window.withV = withV;
   const dj = document.createElement('script');
   dj.type = 'application/json'; dj.id = T + '-data'; dj.textContent = JSON.stringify(data).replace(/</g, '\\u003c');
   document.body.appendChild(dj);
-  document.title = data.name + ' · Try Dungeon Tracker';
+  window.pageTitle(window.possessive(data.name) + ' Character Sheet (try-out)');
   // the engine reads this like the real web app's window.SHEET; pull explains there's nothing to sync
   window.SHEET = {
     trial: true, rec, mine: true, partyLog: false, character: { id: T },

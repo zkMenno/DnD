@@ -68,6 +68,8 @@ fs.writeFileSync(out+'/web/sw-register.js', inject(R('web/sw-register.js'), 'LOO
 // absolute: sheet.html is also served at /<username>/<D&D Beyond id> (server/pocketbase-main.go), where relative
 // paths would miss. Fonts: the web app serves its own copies (web/fonts, GDPR: no visitor ever contacts Google);
 // claude.ai sheets keep Google Fonts. Adds the manifest, icons, theme and skin CSS, and the offline script.
+// Page titles: "<what this page is> - Dungeon Tracker", the same pattern as pageTitle() in web/sw-register.js.
+const TITLE = what => what + ' - Dungeon Tracker';
 const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<title>'+title+'</title>')
     .replace(/<link rel="preconnect"[^>]*>\n?/g, '').replace(/<link href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/fonts/fonts.css">')
   + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96"><link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">'
@@ -82,17 +84,17 @@ const BOOT = '<div class="boot"><svg class="bootd20" aria-hidden="true" viewBox=
 const sheetFrame = (title, scripts) => head(title) + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/sheet.css">\n'
   + R('src/bgdice.html').replace('class="bgdice"', 'class="bgdice sheetdice"') + DICE_DEFS
   + '<div id="app">' + BOOT + '</div>\n' + scripts + '<script src="/home-anim.js" defer></script>\n</body></html>';
-fs.writeFileSync(out+'/web/sheet.html', sheetFrame('Character', '<script src="/pocketbase.umd.js"></script>\n<script src="/sheet-boot.js"></script>\n'));
+fs.writeFileSync(out+'/web/sheet.html', sheetFrame(TITLE('Character Sheet'), '<script src="/pocketbase.umd.js"></script>\n<script src="/sheet-boot.js"></script>\n'));
 // Try-out sheets (web/try-boot.js): two made-up characters anyone can open without an account. Not indexed.
 fs.mkdirSync(out+'/web/trial', {recursive:true});
 for (const t of ['trial-brute','trial-mage']) fs.copyFileSync(path.join(__dirname,'..','data',t+'.json'), out+'/web/trial/'+t+'.json');
-fs.writeFileSync(out+'/web/try.html', sheetFrame('Try Dungeon Tracker', '<script src="/try-boot.js"></script>\n').replace('<link rel="stylesheet" href="/engine/app.css">', '<meta name="robots" content="noindex"><link rel="stylesheet" href="/engine/app.css">'));
+fs.writeFileSync(out+'/web/try.html', sheetFrame(TITLE('Try a Character Sheet'), '<script src="/try-boot.js"></script>\n').replace('<link rel="stylesheet" href="/engine/app.css">', '<meta name="robots" content="noindex"><link rel="stylesheet" href="/engine/app.css">'));
 // The site's footer, shared by the home page and Privacy & terms.
 const SITE_FOOT = '<footer class="foot"><p>Made with 🎲 by <a href="https://github.com/zkMenno" target="_blank" rel="noopener">Menno</a></p>'
   + '<p class="small">This is an unofficial fan project. Dungeon Tracker is not affiliated with Wizards of the Coast or D&amp;D Beyond.</p>'
   + '<p class="small"><a href="#" data-feedback="bug">🐞 Report a bug or share an idea</a> · <a href="/legal.html">Privacy &amp; Terms</a> · Hosted by Hetzner in Germany.</p></footer>\n';
 // Home: the public front page (src/landing.html, signed out) and the app's own screens (#main, drawn by web/index.js).
-fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyond character at the table')
+fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: the easiest way to role-play your D&amp;D Beyond character')
   + '<meta name="description" content="Dungeon Tracker turns your D&amp;D Beyond character into a quick play sheet: every roll one tap away, HP, spell slots and uses tracked as you play. Read-only, free, hosted in the EU.">\n'
   + '<link rel="stylesheet" href="/home.css">\n'
   + R('src/bgdice.html') + '<header class="top"><a class="brand" href="/"><svg class="brand-d20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><span>Dungeon Tracker</span></a><span id="who"></span></header>\n'
@@ -113,7 +115,7 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
 // in [brackets] are placeholders: the build warns but carries on.
 { const site = JSON.parse(R('src/site.json'));
   for (const [k, v] of Object.entries(site)) if (/^\[.*\]$/.test(String(v))) console.warn('⚠️  src/site.json: "' + k + '" is still a placeholder (' + v + '): fill it in before inviting players');
-  fs.writeFileSync(out+'/web/legal.html', head('Privacy & terms') + '<link rel="stylesheet" href="/home.css">\n'
+  fs.writeFileSync(out+'/web/legal.html', head(TITLE('Privacy &amp; Terms')) + '<link rel="stylesheet" href="/home.css">\n'
     + R('src/bgdice.html') + '<header class="top"><a class="brand" href="/"><svg class="brand-d20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><span>Dungeon Tracker</span></a><span id="who"><a class="btn login toplogin" href="/">‹ Back</a></span></header>\n'
     + R('src/legal.html').replace(/<!--[\s\S]*?-->\n?/, '').replace(/\{\{(\w+)\}\}/g, (m, k) => (k in site ? site[k] : m)) + '\n' + SITE_FOOT
     + DICE_DEFS   // the dice shapes (<symbol>s)

@@ -180,7 +180,7 @@ function curSheetHtml(anim){
       const more = o.queue && o.queue.length;
       h += '<div class="nextrow navrow"><button class="btn" data-act="'+(more?'nextatk':'close')+'">'+(more?'Missed · next →':'✕ Missed')+'</button><span class="dmgbtns">'+(w.versatile ? nb('rolldmg','💥 One-handed',' data-v="main"')+nb('rolldmg','💥 Two-handed',' data-v="two"') : nb('rolldmg','💥 Roll damage',' data-v="main"'))+'</span></div>';
     } else {
-      h += '<div class="nextrow navrow"><span></span><button class="btn" data-act="rollview" data-v="dmg">'+navLabel('next','Damage')+'</button></div>';
+      h += '<div class="nextrow navrow"><span></span><button class="btn" data-act="rollview" data-v="dmg">'+navLabel('next','Damage roll')+'</button></div>';
     }
   } else {
     h += '<div class="stepnote dmgc"><b>💥 '+(c.t?'Step 2 · ':'')+'Damage</b> Only if it hit.</div>';

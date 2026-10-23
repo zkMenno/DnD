@@ -2,7 +2,7 @@
 //   theme:   sets <html data-skin> and <html data-theme> from this device's choice, so the first paint already has the
 //            right colours, and exposes window.Skin for ☰ → Theme (engine) and the Account screen (web/index.js)
 //   offline: registers the service worker (/sw.js, built from web/sw.template.js)
-//   staging: a STAGING badge on staging.dungeontracker.com
+//   staging: a Staging bar on top of every page of staging.dungeontracker.com
 // A file of its own because the Content-Security-Policy allows no inline scripts.
 
 // ── Theme ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -35,15 +35,34 @@
     set(s, m) { try { localStorage.setItem('dt-skin', s); localStorage.setItem('dt-mode', m); } catch (_) {} apply(s, m); },
   };
 })();
+// ── Page titles ────────────────────────────────────────────────────────────────────────────────────────────
+// Every page's browser-tab title follows one pattern: "<what this page is> - Dungeon Tracker" (the front page alone
+// leads with the name and the one-line pitch). Pages call pageTitle() instead of setting document.title by hand;
+// tools/build.js uses the same pattern (TITLE) for the titles written into the built pages.
+//   pageTitle("Sign In") → "Sign In - Dungeon Tracker"; pageTitle() → the front page's title.
+// Also used for possessives: possessive("Henry Gibbs") → "Henry Gibbs's".
+window.possessive = n => String(n || '') + "'s";
+window.pageTitle = what => { document.title = what ? what + ' - Dungeon Tracker' : 'Dungeon Tracker: the easiest way to role-play your D&D Beyond character'; };
 // ── Offline ────────────────────────────────────────────────────────────────────────────────────────────────
 // Register the service worker (dist/web/sw.js, built from web/sw.template.js). Failing is fine: the site just has no
 // offline copy.
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-// ── Staging badge ──────────────────────────────────────────────────────────────────────────────────────────
-// On staging.dungeontracker.com (the test copy), a small fixed STAGING badge on every page, so it's never mistaken for live.
+// ── Staging bar ────────────────────────────────────────────────────────────────────────────────────────────
+// On staging.dungeontracker.com (the test copy), a bar at the very top of every page, so it's never mistaken for
+// live. It lines up with the page header's content (same left and right edges as the logo row), measured from the
+// header itself because the home page and the sheets have different widths; re-measured when the window resizes.
 if (/^staging\./.test(location.hostname)) addEventListener('DOMContentLoaded', () => {
-  const b = document.createElement('div'); b.textContent = 'STAGING'; b.setAttribute('aria-hidden', 'true');
-  b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:9999;pointer-events:none;padding:4px 10px;border-radius:999px;'
-    + 'background:#c2410c;color:#fff;font:700 12px/1.4 system-ui,sans-serif;letter-spacing:.12em;box-shadow:0 2px 10px rgba(0,0,0,.4);opacity:.92';
-  document.body.appendChild(b);
+  const b = document.createElement('div'); b.className = 'stagebar'; b.setAttribute('role', 'note');
+  b.innerHTML = '<b style="flex:none">🧪 Staging</b><span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Test copy · data may be wiped</span>';
+  b.style.cssText = 'display:flex;gap:10px;align-items:baseline;box-sizing:border-box;margin-top:10px;padding:8px 14px;border-radius:12px;'
+    + 'background:#c2410c;color:#fff;font:500 14px/1.4 system-ui,sans-serif;position:relative;z-index:30';
+  document.body.insertBefore(b, document.body.firstChild);
+  // line the bar up with the header's content box
+  const fit = () => {
+    const h = document.querySelector('.top .wrap') || document.querySelector('header.top') || document.querySelector('.top');
+    if (!h) { b.style.margin = '10px 16px 0'; return; }
+    const r = h.getBoundingClientRect(), cs = getComputedStyle(h), pl = parseFloat(cs.paddingLeft) || 0, pr = parseFloat(cs.paddingRight) || 0;
+    b.style.marginLeft = (r.left + pl) + 'px'; b.style.width = Math.max(0, r.width - pl - pr) + 'px';
+  };
+  fit(); addEventListener('resize', fit); setTimeout(fit, 600);
 });

@@ -54,6 +54,7 @@ const ss = { get: k => { try { return sessionStorage.getItem(k); } catch (_) { r
 // ── Signed out: the front page ─────────────────────────────────────────────────────────────────────────────
 // Shows the front page (#landing) and the top bar's button. The front page always wears the pirate look (Skin.front).
 function showLanding() {
+  window.pageTitle();
   const l = $('#landing'); l.hidden = false; $('#main').innerHTML = '';
   // signed in: the front page is still there to look at (logo or /#front); the button leads back to your characters
   $('#who').innerHTML = pb.authStore.isValid ? '<a class="btn login toplogin" href="/" id="tohome">Your characters <span aria-hidden="true">→</span></a>'
@@ -101,6 +102,7 @@ async function renderLogin(mode) {
   // signed out, the sign-in card wears the front page's (pirate) look like the landing page; your own look comes
   // back once you're in (header() switches it)
   $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(true); $('#who').innerHTML = '';
+  window.pageTitle('Sign In');
   if (location.hash !== '#signin') history.replaceState(null, '', '/#signin');
   if (providers === null) { try { const m = await pb.collection('users').listAuthMethods(); providers = (m.oauth2 && m.oauth2.enabled && m.oauth2.providers) || []; } catch (_) { providers = []; } }
   const pend = ss.get(PENDING);
@@ -226,6 +228,7 @@ async function signedIn() {
 // The signed-in top bar (@username · Sign out); leaves the front page and points the logo at /#front.
 function header() {
   const me = pb.authStore.record;
+  window.pageTitle(window.possessive(me.username || 'Your') + ' Account Page');
   $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(false);
   $('#who').innerHTML = '<span title="' + esc(me.email) + '">@' + esc(me.username || me.email) + '</span> · <a href="#" id="out">Sign out</a>';
   const brand = document.querySelector('.top .brand'); if (brand) brand.setAttribute('href', '/#front');   // the logo shows the front page

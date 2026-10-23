@@ -22,16 +22,21 @@ function previewHost(h){
   h = String(h || '').toLowerCase();
   return h === 'staging.dungeontracker.com' || h === 'localhost' || h === '127.0.0.1' || h.endsWith('.localhost');
 }
-// Features that aren't released to everyone yet. To release "Throw it yourself" on production too, change its line
-// to: throwDice: !!window.SHEET   (web app only, every host). Tests may switch it on directly: FEATURES.throwDice = true.
+// Feature switches. "Throw it yourself" was a staging-only preview (throwDice: !!window.SHEET && previewHost(…)) and
+// was released everywhere in the web app on 23 Oct 2026; previewHost stays for the next preview feature.
+// Tests may switch a feature on directly: FEATURES.throwDice = true.
 const FEATURES = {
-  throwDice: !!window.SHEET && previewHost(location.hostname),
+  throwDice: !!window.SHEET,
 };
 
 // ── The setting ────────────────────────────────────────────────────────────────────────────────────────────
-// ui.rolling (this device): 'auto' (default, also when unset) or 'throw'.
-// True when this device has chosen "Throw it yourself" and the feature is on here.
-const throwOn = () => !!FEATURES.throwDice && ui.rolling === 'throw';
+// ui.rolling (this device): 'throw' (the default since 23 Oct 2026, also when unset) or 'auto'.
+// ARCHIVED, KEPT UNTIL ABOUT 22 DEC 2026 (see CLEANUP.md): the 'auto' choice ("🎲 Automatic" in the menu), the old
+// way where every roll throws itself. The automatic throw itself (dice3d, §6) is NOT dead code and stays: "Roll for
+// me", reduced motion, devices without 3D and the dice-set previews all use it. What may go after that date is only
+// the menu choice and the ui.rolling === 'auto' branch, if nobody missed it. Ask Menno before deleting.
+// True when this device throws its own dice: the feature is on here and the setting isn't 'auto'.
+const throwOn = () => !!FEATURES.throwDice && ui.rolling !== 'auto';
 // True when the next dice animation should wait for the player: the setting is on, it isn't a dice-set preview from
 // the menu (those always roll by themselves), motion is allowed and the 3D dice can run. Otherwise fx() uses dice3d().
 const throwWanted = () => throwOn() && !DICE_PREVIEW && !reduceMotion() && d3Ready();
@@ -40,7 +45,7 @@ function rollStyleRow(){
   if (!FEATURES.throwDice) return '';
   const on = throwOn(), b = (m, t, pressed) => '<button data-act="rollstyle" data-m="'+m+'" aria-pressed="'+pressed+'">'+t+'</button>';
   return '<div class="rollstyle"><h4 class="menuh">Rolling</h4>'
-    + '<div class="skinmode" role="group" aria-label="Rolling">'+b('auto', '🎲 Automatic', !on)+b('throw', '🤚 Throw it yourself', on)+'</div>'
+    + '<div class="skinmode" role="group" aria-label="Rolling">'+b('throw', '🤚 Throw it yourself', on)+b('auto', '🎲 Automatic', !on)+'</div>'
     + '<p class="small muted" style="margin:6px 2px 0">'+(on ? 'The dice wait for you: flick them, or tap for a gentle toss.' : 'The dice roll by themselves.')+' Saved on this device.</p></div>';
 }
 // Picks the rolling style ('auto' or 'throw') for this device and redraws the menu.
@@ -160,7 +165,9 @@ function throwDice(dice, done){
     const { die, mat, fin } = d3Die(d, diceSet());
     const row = Math.floor(i / perRow), inRow = Math.min(perRow, n - row*perRow), col = i % perRow;
     const x = (col - (inRow-1)/2) * gapPx * px, y = baseY + ((rows-1)/2 - row) * gapPx * px;
-    const rest = thFace(d.s, 1 + Math.floor(Math.random() * d.s)), q = rest.clone();
+    // a random face up, and turned and tipped at random like a die that came to rest by itself (each die its own)
+    const rest = thFace(d.s, 1 + Math.floor(Math.random() * d.s)).premultiply(new T.Quaternion().setFromEuler(new T.Euler(
+      (Math.random() - .5) * .5, (Math.random() - .5) * .5, (Math.random() - .5) * 2 * Math.PI))), q = rest.clone();
     die.scale.setScalar(size); die.position.set(x, y, 0); die.quaternion.copy(q); D3.scene.add(die);
     return { die, mat, d, fin, r: size, hx: x, hy: y, x, y, z: 0, rest, q, ph: Math.random() * 6, landed: 0, path: null, stop: 0 };
   });
