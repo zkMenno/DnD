@@ -531,3 +531,15 @@ body > #msg:empty{display:none}
 .legalmain .pagetitle{margin-top:12px}
 /* the read-only note under the link box: a bigger book, centred beside both lines */
 .ql-note{display:flex;align-items:center;gap:12px} .ql-note .qlico{font-size:1.6rem;line-height:1;flex:none}
+/* sign-in, round 2: as wide as the account page; even buttons with a hover; air around the code box lines */
+.auth{max-width:none}
+.auth .btn{font-size:1rem}
+.auth .btn.primary{transition:filter .15s,transform .15s,box-shadow .15s}
+.auth .btn.primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 6px 18px color-mix(in srgb,var(--brass) 35%,transparent)}
+.auth .btn:not(.primary):hover{border-color:var(--brass);color:var(--brass)}
+.authrow .btn{padding:12px 22px;align-self:stretch;display:inline-flex;align-items:center;justify-content:center}
+.codebox .authrow input{flex:1 1 auto;width:auto}
+.codebox .authsub{margin-top:14px}
+.codebox p.small{margin:12px 0 0}
+.codebox .authrow .codein{flex:1 1 0;min-width:0;width:100%;max-width:none}
+#codebox input[name=code]{max-width:none}
