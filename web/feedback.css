@@ -1,20 +1,27 @@
-/* ── Feedback dialog (web/feedback.js) ─────────────────────────────────────────────────────────────────────────
-   Shared by the home pages and the sheet pages, so it only uses the theme tokens (src/theme.css, src/skins.css). */
+/* ── Feedback dialog (web/feedback.js) ─────────────────────────────────────────────────────────────────── */
+/* The 🐞 Bug · 💡 Idea · 💬 Other dialog. Loaded by feedback.js the first time the dialog opens, on the home pages
+   and the sheet pages alike, so it only uses the theme tokens (src/theme.css, src/skins.css) and its own .fb* classes.
+   .show on .fbpop fades the backdrop in and lifts the card; the thank-you card reuses .fbcard with .fbtick-big. */
+
+/* ── Backdrop and card ─────────────────────────────────────────────────────────────────────────────────── */
 .fbpop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.45);opacity:0;transition:opacity .2s}
 .fbpop.show{opacity:1}
 .fbcard{position:relative;box-sizing:border-box;width:min(520px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:22px 22px 20px;border-radius:18px;
   background:var(--surface);color:var(--ink);border:1px solid color-mix(in srgb,var(--brass) 55%,var(--line));box-shadow:0 20px 60px rgba(0,0,0,.45);
   font-family:var(--f-body);font-size:1.05rem;transform:translateY(8px);transition:transform .2s}
 .fbpop.show .fbcard{transform:none}
+/* ── Heading, intro, close button ──────────────────────────────────────────────────────────────────────── */
 .fbcard h2{margin:0 0 6px;font-family:var(--f-display);font-size:1.45rem}
 .fbsub{margin:0 0 14px;color:var(--muted);line-height:1.5}
 .fbx{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:0;cursor:pointer;font-size:1.4rem;line-height:1;
   color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,transparent);transition:background .15s,transform .25s}
 .fbx:hover{background:color-mix(in srgb,var(--ink) 18%,transparent);transform:rotate(90deg)}
+/* ── Kind picker (role=radio buttons) ──────────────────────────────────────────────────────────────────── */
 .fbkinds{display:flex;gap:8px;margin:0 0 14px}
 .fbkinds button{flex:1;padding:10px 8px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
 .fbkinds button:hover{border-color:var(--brass)}
 .fbkinds button[aria-checked="true"]{background:var(--brass);border-color:var(--brass);color:var(--bg)}
+/* ── Form fields, the details tick box, the error line ─────────────────────────────────────────────────── */
 .fblbl{display:block;margin:4px 0 6px;font-weight:700}
 .fblbl span{font-weight:400;color:var(--muted)}
 .fbcard textarea,.fbcard input[type=email]{box-sizing:border-box;width:100%;font:inherit;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--raised);color:var(--ink);margin:0 0 12px}
@@ -23,12 +30,14 @@
 .fbtick{display:flex;gap:10px;align-items:flex-start;margin:2px 0 12px;color:var(--muted);line-height:1.4;cursor:pointer}
 .fbtick input{margin-top:3px;accent-color:var(--brass);width:18px;height:18px;flex:none}
 .fberr{margin:0 0 12px;padding:10px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--hp) 55%,transparent);background:color-mix(in srgb,var(--hp) 12%,var(--surface))}
+/* ── Buttons (own copy of .btn: the sheet pages don't load home.css) ───────────────────────────────────── */
 .fbrow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .fbcard .btn{font:inherit;font-weight:700;padding:10px 20px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);cursor:pointer}
 .fbcard .btn:hover{border-color:var(--brass)}
 .fbcard .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--bg)}
 .fbcard .btn.primary:hover{filter:brightness(1.08)}
 .fbcard .btn:disabled{opacity:.6;cursor:wait}
+/* ── Thank-you card: the big tick, centred text and buttons ────────────────────────────────────────────── */
 .fbtick-big{display:grid;place-items:center;width:56px;height:56px;margin:4px auto 10px;border-radius:50%;background:var(--good);color:var(--bg);font-size:1.9rem;font-weight:700}
 .fbcard:has(.fbtick-big){text-align:center}
 .fbcard:has(.fbtick-big) .fbrow{justify-content:center}

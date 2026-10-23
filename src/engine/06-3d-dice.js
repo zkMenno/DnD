@@ -1,11 +1,21 @@
-/* ============================================================================
-   §6  3D DICE — three.js loads in the background; until it's there (or without WebGL) the flat dice play instead
-   ============================================================================ */
+// ── §6 3D dice: three.js dice and dice sets ────────────────────────────────────────────────────────────────
+// three.js loads in the background; until it's there (or without WebGL) the flat dice play instead (diceFx, §5).
+// dice3d() throws dice that land on given values; fx() (§5) calls it. Surfaces and numerals are drawn on canvases
+// once and cached in D3.tex; shapes are cached in D3.geo.
+// Defines: D3, d3Ready, d3Die, dice3d, DICE_SETS, DICE_GROUPS, DICE_LOOK, DEFAULT_DICE, DICE_PREVIEW, diceSet,
+//   and small roll-card helpers (d20Dice, asDice, flipKeys, dieF).
+// Uses: THEME, SKIN (§2), ui and saveUi (§3), diceFx (§5), dicePromptMaybe (§18).
+// Also built into the front page's dice (tools/build.js → web/home-dice.js) with only THEME, ui and a stub diceFx
+// defined, so anything else from the sheet is checked with typeof first. The build removes the three.js loader
+// line below and stops if that line changes: keep it as it is.
+
+// ── three.js and the renderer ──────────────────────────────────────────────────────────────────────────────
 // claude.ai sheets load it from cdnjs; the web app serves its own copy (web/three.min.js, r128: works offline and
 // under the app's Content-Security-Policy, which allows scripts from the app's own server only)
 (function(){ try { const s = document.createElement('script'); s.src = window.SHEET ? '/three.min.js' : 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; s.async = true; document.head.appendChild(s); } catch(_){} })();
+// the shared renderer, scene, camera and canvas, plus caches; failed: WebGL didn't start (don't try again)
 const D3 = { r:null, scene:null, cam:null, canvas:null, geo:{}, tex:{}, failed:false };
-// true once three.js and the WebGL renderer are up
+// True once three.js and the WebGL renderer are up; sets them up on the first call after three.js has loaded.
 function d3Ready(){
   if (D3.r) return true;
   if (D3.failed || !window.THREE) return false;
@@ -21,7 +31,8 @@ function d3Ready(){
     Object.assign(D3, {r, scene, cam, canvas}); return true;
   } catch(e) { D3.failed = true; return false; }
 }
-// group a polyhedron geometry's triangles into numbered faces
+// ── Shapes ─────────────────────────────────────────────────────────────────────────────────────────────────
+// Groups a polyhedron geometry's triangles into faces: [{n: outward normal, c: centre}], in geometry order.
 function d3Faces(g){
   const T = THREE, pos = g.attributes.position, groups = [];
   for (let i = 0; i < pos.count; i += 3) {
@@ -33,7 +44,7 @@ function d3Faces(g){
   }
   return groups.map(f => ({ n: f.n, c: f.pts.reduce((s, p) => s.add(p), new T.Vector3()).divideScalar(f.pts.length) }));
 }
-// geometry + face list for a die with s sides (cached)
+// Geometry + face list for a die with s sides (cached). The d10 is built by hand; the others are three.js shapes.
 function d3Shape(s){
   if (D3.geo[s]) return D3.geo[s];
   const T = THREE; let g;
@@ -66,7 +77,9 @@ function d3Shape(s){
   g.computeVertexNormals();
   return (D3.geo[s] = { g, faces: d3Faces(g) });
 }
-// A soft studio for shiny sets (shine:true): warm light above, dark floor, two bright strips, used as a reflection map
+// ── Surfaces ───────────────────────────────────────────────────────────────────────────────────────────────
+// A soft studio for shiny sets (shine:true): warm light above, dark floor, two bright strips, used as a reflection map.
+// tint: 'warm' (default), 'cool' (silver) or 'rose' (the set's studio key).
 function d3Studio(tint){
   const key = 'studio_' + (tint || 'warm'); if (D3.tex[key]) return D3.tex[key];
   const C = tint === 'cool' ? ['#f4f8ff','#9ca4b0','#5c6470','#1e2228'] : tint === 'rose' ? ['#fff2ee','#d2b0a8','#9a7470','#3e2a28'] : ['#fff6e0','#a89a80','#6a5a44','#2a2218'];
@@ -76,9 +89,10 @@ function d3Studio(tint){
   x.fillStyle = 'rgba(255,255,255,.9)'; x.fillRect(90, 40, 60, 70); x.fillRect(330, 30, 90, 50);
   const t = new THREE.CanvasTexture(c); t.mapping = THREE.EquirectangularReflectionMapping; t.encoding = THREE.sRGBEncoding; return (D3.tex[key] = t);
 }
-// Surface textures for dice sets (tex: 'wood' | 'bone'), multiplied over the set's colours
+// the surfaces that come with a glow map (see d3Elem)
 const ELEM_TEX = ['lava','frost','acid','storm'];
-// texture for a 3D dice set's material
+// The colour texture for a set's tex key (wood, bone, char, the elemental ones, or a d3Pattern kind), multiplied over
+// the set's colours.
 function d3Surface(kind){ return kind === 'bone' ? d3Bone() : kind === 'wood' ? d3Grain() : kind === 'char' ? d3Char().map : ELEM_TEX.includes(kind) ? d3Elem(kind).map : d3Pattern(kind); }
 // glow map for sets that light up (char embers, elemental veins); the set's glow colour tints it
 const d3Glow = kind => kind === 'char' ? d3Char().ember : ELEM_TEX.includes(kind) ? d3Elem(kind).glow : null;
@@ -239,7 +253,7 @@ function d3Bone(){
     for (let k = 0; k < 9; k++) { const a = R()*7, d = 8 + R()*22; x.fillStyle = 'rgba(120,12,10,'+(.35 + R()*.3).toFixed(2)+')'; x.beginPath(); x.arc(px + Math.cos(a)*d, py + Math.sin(a)*d, .8 + R()*2.4, 0, 7); x.fill(); } }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return (D3.tex.bone = t);
 }
-// Wood grain — wavy darker growth rings
+// Wood grain: wavy darker growth rings
 function d3Grain(){
   if (D3.tex.grain) return D3.tex.grain;
   const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
@@ -251,7 +265,10 @@ function d3Grain(){
   }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return (D3.tex.grain = t);
 }
-// pirate dice: Pirata One numerals carved into the face (dark cut + light rim), bone d6s with pips
+// ── Numerals ───────────────────────────────────────────────────────────────────────────────────────────────
+// One face label (cached per look): a numeral with a light rim offset like a carved cut, or bold with a pale halo
+// for busy surfaces; pips for sets with pips:true on a d6. font / scale: the look's numeral font (default Pirata One).
+// 6 and 9 get an underline.
 function d3Label(text, ink, rim, pips, bold, font, scale){
   const key = text + ink + rim + (pips?'p':'') + (bold?'b':'') + (font||'') + (scale||''); if (D3.tex[key]) return D3.tex[key];
   const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
@@ -268,10 +285,13 @@ function d3Label(text, ink, rim, pips, bold, font, scale){
   }
   const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return (D3.tex[key] = t);
 }
+// ── Dice sets ──────────────────────────────────────────────────────────────────────────────────────────────
 // Dice sets come from the theme (see #themes). Every die in a set shares one look; picked in the ☰ menu.
 // The web app's other looks (☰ → Theme) bring their own sets (THEME.skinDice): each starts from a pirate set and
 // changes what it needs (col recolours faces, body and swatch at once); numerals use the look's font.
 const DICE_SKIN = typeof SKIN === 'string' && SKIN && THEME.skinDice && THEME.skinDice[SKIN] ? THEME.skinDice[SKIN] : null;
+// Builds a look's full sets from THEME.skinDice[look]: each set = its pirate base (from) + the look's font + its own
+// changes. col: [light, dark, ink] sets the gradient, the body (their average), the numerals and the swatch at once.
 function skinDiceSets(sd){
   const hex = c => parseInt(c.slice(1), 16), out = {};
   for (const [k, spec] of Object.entries(sd.sets)) {
@@ -283,12 +303,13 @@ function skinDiceSets(sd){
   }
   return out;
 }
+// the sets, their group labels, which look they belong to, and the first-time default
 const DICE_SETS = DICE_SKIN ? skinDiceSets(DICE_SKIN) : THEME.dice;
 const DICE_GROUPS = DICE_SKIN ? DICE_SKIN.groups : (THEME.diceGroups || {});
 const DICE_LOOK = DICE_SKIN ? SKIN : 'pirate';
 const DEFAULT_DICE = DICE_SKIN ? Object.keys(DICE_SETS)[0] : (THEME.defaultDice || Object.keys(DICE_SETS)[0]);
 if (DICE_SKIN) try { document.fonts && document.fonts.load('84px ' + DICE_SKIN.font); } catch (_) {}
-// a new player starts with a random set, not always the first one; after their first throw they're asked whether they'd
+// A new player starts with a random set, not always the first one; after their first throw they're asked whether they'd
 // like another (dicePromptMaybe, §18). Only on a sheet: the front page's dice bundle has no saveUi.
 // Each look remembers its own pick (ui.diceBySkin); switching back to a look brings its set back.
 if (typeof saveUi === 'function') {
@@ -298,13 +319,14 @@ if (typeof saveUi === 'function') {
   else { const ks = Object.keys(DICE_SETS); ui.dice = ks[Math.floor(Math.random() * ks.length)]; ui.diceAuto = true;
     ui.diceBySkin = Object.assign({}, ui.diceBySkin, { [DICE_LOOK]: ui.dice }); saveUi(); }
 }
-// the dice set picked in the menu (or the theme default)
 let DICE_PREVIEW = null;   // a set being previewed from the picker (not selected)
-// the dice set to roll with (the one being previewed wins)
+// the dice set to roll with: the one being previewed, else the one picked in the menu, else the default
 const diceSet = () => DICE_SETS[DICE_PREVIEW || ui.dice] || DICE_SETS[DEFAULT_DICE];
+// face label size per die type (relative to the die)
 const D3_LBL = {20:.6, 12:.58, 10:.5, 8:.58, 6:.82, 4:.52};
-// one die of a set as a mesh, oriented so face d.v faces the camera (number upright, tipped back a little):
-// used by the throw below, and by the front page's dice swatches (tools/build.js → home-dice.js)
+// One die of a set as a mesh, oriented so face d.v faces the camera (number upright, tipped back a little):
+// used by the throw below, and by the front page's dice swatches (tools/build.js → home-dice.js).
+// d: {s: sides, v: value}. Returns {die, mat, fin}: fin is the resting rotation. Unknown sizes become a d6.
 function d3Die(d, SET){
   const T = THREE, sides = [4,6,8,10,12,20].includes(d.s) ? d.s : 6, shp = d3Shape(sides), pips = !!SET.pips && sides===6, ls = pips ? .95 : D3_LBL[sides];
   if (SET.grad) {   // sea-depth gradient: light at the top-left of the die, deep at the bottom-right, each facet a touch different
@@ -333,7 +355,9 @@ function d3Die(d, SET){
   const fin = tilt.multiply(q2.multiply(q1));
   return { die, mat, fin };
 }
-// throw 3D dice that land showing the given values, then call done
+// ── The throw ──────────────────────────────────────────────────────────────────────────────────────────────
+// Throws 3D dice that land showing the given values, then calls done. dice: [{s, v, off?}] (off: dimmed, the dropped
+// die of advantage). Falls back to the flat dice without WebGL. A natural 1 on a d20 turns grey, a 20 lands bigger.
 function dice3d(dice, done){
   if (!d3Ready()) return diceFx(dice, done);
   const T = THREE, W = window.innerWidth, Hh = window.innerHeight;
@@ -341,8 +365,9 @@ function dice3d(dice, done){
   D3.cam.aspect = W / Hh; D3.cam.updateProjectionMatrix();
   const wrap = document.createElement('div'); wrap.className = 'fx fxdice'; wrap.setAttribute('aria-hidden','true'); wrap.appendChild(D3.canvas); document.body.appendChild(wrap);
   const visH = 2 * Math.tan(T.MathUtils.degToRad(17.5)) * 12, px = visH / Hh;   // world units per pixel
-  // desktop: dice are thrown up from the bottom edge and roll and bounce across the table; phones keep the quick side throw
-  const desk = true;   // since V237 every device gets the rolling throw from the bottom
+  // Every device gets the rolling throw: dice come up from the bottom edge and roll and bounce across the table.
+  // desk is always true; the `: …` branches below are the old quick side throw that phones used to get.
+  const desk = true;
   const n = dice.length, perRow = Math.min(n, 4), gapPx = n > 2 ? 92 : 130, size = (n > 2 ? 46 : 58) * px;
   const objs = dice.map((d, i) => {
     const { die, mat, fin } = d3Die(d, diceSet());
@@ -365,6 +390,7 @@ function dice3d(dice, done){
   const t0 = performance.now(), end = Math.max(...objs.map(o => o.dur + o.delay)) + 1400;   // landed dice stay on screen a while before the sheet
   const minD = size * 1.9, maxX = W/2*px - size, maxY = Hh/2*px - size, kickQ = new T.Quaternion();
   const ease = t => 1 - Math.pow(1-t, 3), spinQ = new T.Quaternion();
+  // one animation frame: place, spin and knock every die, then render; at the end fade out and clean up
   (function frame(now){
     const el = now - t0;
     objs.forEach(o => {
@@ -415,6 +441,7 @@ function dice3d(dice, done){
     if (typeof dicePromptMaybe === 'function') dicePromptMaybe();
   })(t0);
 }
+// ── Roll-card helpers ──────────────────────────────────────────────────────────────────────────────────────
 // a d20 roll as 3D dice (the dropped die of advantage/disadvantage shown dimmed)
 const d20Dice = t => { const k = t.dice.length>1 && t.dice[0]===t.dice[1] ? 0 : t.dice.indexOf(t.pick); return t.dice.map((v,i)=>({s:20, v, off: t.dice.length>1 && i!==k})); };
 // [values] + die size → [{s, v}] for the dice animations

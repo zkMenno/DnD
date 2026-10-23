@@ -1,19 +1,23 @@
-// ── Feedback: report a bug, share an idea ────────────────────────────────────────────────────────────────────────
-// Loaded on every web page (src/head.html via tools/build.js). Any element with data-feedback opens a small dialog
-// (🐞 Bug · 💡 Idea · 💬 Other, a text box, an optional reply email when signed out, and a tick box for page + device
-// details). It posts straight to the PocketBase "feedback" collection (server/pb_migrations/1761800000_feedback.js):
-// anyone may create, only the superuser can read. The engine's ☰ menu calls window.openFeedback() too.
+// ── Feedback: report a bug, share an idea ──────────────────────────────────────────────────────────────────
+// Loaded on every web app page (the shared <head> that tools/build.js writes). Any element with data-feedback opens
+// a small dialog (🐞 Bug · 💡 Idea · 💬 Other, a text box, an optional reply email when signed out, and a tick box for
+// page + device details). It posts straight to the PocketBase "feedback" collection
+// (server/pb_migrations/1761800000_feedback.js): anyone may create, only the superuser can read.
+// Defines window.openFeedback(kind); the engine's ☰ menu (src/engine/18 + 20) calls it too. Reads the PocketBase
+// sign-in from localStorage, so it needs no PocketBase SDK and works on the sheet pages as well.
 // No inline scripts or handlers (CSP); styles live in /feedback.css, added the first time the dialog opens.
 (function () {
+  // the three kinds: [value, emoji, label]
   const KINDS = [['bug', '🐞', 'Bug'], ['idea', '💡', 'Idea'], ['other', '💬', 'Other']];
   // the signed-in player's token and id, if any (PocketBase keeps them in localStorage under pocketbase_auth)
   const auth = () => { try { const a = JSON.parse(localStorage.getItem('pocketbase_auth') || 'null'); return a && a.token && a.record ? a : null; } catch (_) { return null; } };
-  // add the dialog's stylesheet once, with the same ?v= build tag as this script
+  // this script's ?v= build tag (read now: document.currentScript is only set while the script first runs)
   let V = ''; try { V = new URL(document.currentScript.src).searchParams.get('v') || ''; } catch (_) {}
+  // adds the dialog's stylesheet once, with the same ?v= build tag as this script
   const css = () => { if (document.getElementById('fbcss')) return;
     const v = V;
     const l = document.createElement('link'); l.id = 'fbcss'; l.rel = 'stylesheet'; l.href = '/feedback.css' + (v ? '?v=' + v : ''); document.head.appendChild(l); };
-  // open the dialog; kind preselects Bug / Idea / Other
+  // Opens the dialog; kind ('bug' | 'idea' | 'other') preselects the kind. Does nothing if it's already open.
   function openFeedback(kind) {
     css(); if (document.getElementById('fbpop')) return;
     const me = auth(), p = document.createElement('div');
@@ -30,14 +34,19 @@
       <p class="fberr" role="alert" hidden></p>
       <div class="fbrow"><button type="button" class="btn fbcancel">Cancel</button><button type="submit" class="btn primary fbsend">Send <span aria-hidden="true">→</span></button></div>
     </form>`;
+    // closes with a fade, then removes the dialog and its Escape listener
     const close = () => { p.classList.remove('show'); setTimeout(() => p.remove(), 200); document.removeEventListener('keydown', key); };
+    // Escape closes
     const key = e => { if (e.key === 'Escape') close(); };
+    // shows an error line under the form (empty text hides it)
     const err = t => { const e = p.querySelector('.fberr'); e.textContent = t || ''; e.hidden = !t; };
+    // clicks: the backdrop, × or Cancel close; a kind button becomes the checked one
     p.addEventListener('click', e => {
       if (e.target === p || e.target.closest('.fbx,.fbcancel')) return close();
       const k = e.target.closest('[data-kind]'); if (k) p.querySelectorAll('[data-kind]').forEach(b => b.setAttribute('aria-checked', String(b === k)));
     });
-    // send it: the text is required; page and device only when ticked; a signed-in player is the author
+    // Sends it: the text is required; page and device only when ticked; a signed-in player is the author.
+    // On success the card turns into a thank-you; on failure the button comes back with a reason (rate limit, offline).
     p.querySelector('form').addEventListener('submit', async e => {
       e.preventDefault();
       const text = p.querySelector('#fbtext').value.trim(), mail = p.querySelector('#fbmail'), dev = p.querySelector('#fbdev').checked;
@@ -60,6 +69,6 @@
     requestAnimationFrame(() => p.classList.add('show')); setTimeout(() => p.querySelector('#fbtext').focus(), 50);
   }
   window.openFeedback = openFeedback;
-  // any [data-feedback] link or button opens it (footer, account page)
+  // any [data-feedback] link or button opens it, with its value as the kind (footer, Account tab)
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-feedback]'); if (t) { e.preventDefault(); openFeedback(t.dataset.feedback || 'bug'); } });
 })();

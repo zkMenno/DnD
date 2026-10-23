@@ -1,7 +1,16 @@
-/* ============================================================================
-   §17 CONFIRM DIALOG AND NOTES — every delete or wipe asks first
-   ============================================================================ */
-// read(wrap): optional, called just before the dialog closes, to pick up what was typed in it
+// ── §17 Confirm dialog and notes: every delete or wipe asks first; story log, to-dos, party log ────────────
+// confirmBox() is the one confirm dialog. The Notes tab keeps a log per character in the page db (claude.ai) or
+// PocketBase (web app, via the db stand-in in web/sheet-boot.js: collections "notes" and "partynotes").
+// bootStore() connects that db at startup (called from §21): notes, plus the shared play state S (§3).
+// Defines: confirmBox, NOTES and the notes UI state, notesPanel, paintNotes, notesStore, addNote, setNoteScope,
+//   subscribeNotes, bootStore, PARTY_LOG, pendingIds.
+// Uses: S, save, DB, DIRTY, PLAY_DOC, normalizeState (§3); changesHtml, paintRes, paintCoins, paintVitals,
+//   addedChanged, linkify, decorate (other sections, called later). Without a db, notes stay on this device.
+// ── Confirm dialog ─────────────────────────────────────────────────────────────────────────────────────────
+// Asks a yes/no question; resolves true for OK, false for Cancel, Escape or a click outside. title and body are HTML
+// (callers escape data); body without a leading tag is wrapped in <p>. danger === false makes OK a plain primary
+// button. no: the Cancel label (default WORD.cancel). read(wrap): optional, called just before the dialog closes, to
+// pick up what was typed in it. Focus returns to where it was.
 function confirmBox(title, body, ok, danger, read, no){
   return new Promise(res => {
     const prev = document.activeElement;
@@ -15,12 +24,15 @@ function confirmBox(title, body, ok, danger, read, no){
   });
 }
 
-/* ---- notes: story log and to-dos, kept in the page's private store ---- */
+// ── Notes: story log and to-dos ────────────────────────────────────────────────────────────────────────────
+// NOTES: the notes on show; notesReady: loaded at least once; notesLocal: no db, kept on this device (NKEY);
+// noteKind / noteFilter: the composer's type and the list filter; editing: id of the note being edited.
 let NOTES = [], notesReady = false, notesLocal = false, noteKind = 'story', noteFilter = 'all', editing = null;
+// localStorage key for notes kept on this device
 const NKEY = PACK.id+'-notes-' + DATA.id;
 // Session number: follows the highest session in the log unless you pick one with − / +
 let pickedSession = null;
-// session number for a new note
+// session number for a new note (at least PACK.firstSession)
 function curSession(){ return pickedSession || Math.max(PACK.firstSession || 1, ...NOTES.map(n => +n.session || 0)); }
 // repaint the session number
 function paintSession(){ const o = $('#sessnum'); if (o) o.textContent = curSession(); }
@@ -38,7 +50,8 @@ function notesPanel(){
     + '<div class="mode"><div class="seg" role="group" aria-label="Note type" id="notekinds">'+k('story','Story')+k('todo','To do')+'</div><button class="btn primary" data-act="addnote">✍️ Add note</button><span class="small muted" id="notemsg"></span></div></div></section>'
     + '<section class="card"><div class="cardhead"><div class="chips" id="notefilters"></div></div><div class="notelist" id="notelist"><p class="muted" style="margin:0">Loading notes…</p></div></section>';
 }
-// repaint the note list and filters
+// Repaints the note list, filters and the where-it's-saved line. Notes still saving show "saving…".
+// On the party log, notes by other characters (mine === false) can't be edited or deleted here.
 function paintNotes(){
   const list = $('#notelist'); if (!list) return; paintSession();
   const w = $('#notewhere'); if (w) w.textContent = !notesReady ? '' : notesLocal ? 'Saved on this device only' : notesOffline ? 'Reconnecting… showing your last copy' : noteScope === 'party' ? 'Shared with your party' : 'Private to you, on every device';
@@ -62,7 +75,7 @@ function paintNotes(){
       + '</div>'+body+'</div></article>';
   }).join('');
 }
-// Optimistic: the list updates instantly; the account store saves in the background.
+// ids of notes still on their way to the db. Optimistic: the list updates instantly; the db saves in the background.
 const pendingIds = new Set();
 // Notes sub-tabs (web app, verified character in a campaign): "own" = this character's log, "party" = the shared party log
 let noteScope = 'own';
@@ -70,12 +83,14 @@ let noteScope = 'own';
 const PARTY_LOG = () => !!(window.SHEET && window.SHEET.partyLog);
 // db collection for the notes on show
 const NOTE_COL = () => noteScope === 'party' ? 'partynotes' : 'notes';
-// switch between My notes and Party log
+// switches between My notes and Party log: redraws the panel and subscribes to the other collection
 function setNoteScope(sc){
   if (sc === noteScope) return; noteScope = sc; NOTES = []; notesReady = false; editing = null;
   const el = document.querySelector('[data-panel="notes"]'); if (el) { el.innerHTML = notesPanel(); linkify(el); decorate(el); }
   paintNotes(); if (DB) subscribeNotes(DB);
 }
+// Add, update, delete. Each changes NOTES first and rolls back if the db refuses (the error is rethrown for the
+// caller's message). Without a db (notesLocal) they write to localStorage instead.
 const notesStore = {
   async add(n){
     if (notesLocal) { NOTES.push(Object.assign({id:'n'+Date.now()}, n)); ls.set(NKEY, NOTES); paintNotes(); return; }
@@ -98,7 +113,7 @@ const notesStore = {
 };
 // status line under the composer
 function noteMsg(t){ const m = $('#notemsg'); if (m) m.textContent = t; }
-// save a note to the page db (or this device when offline)
+// Saves the composer's note to the page db (or this device without one). On failure the text goes back in the box.
 async function addNote(){
   const ta = $('#note-text'); const text = ta.value.trim(); if (!text) { ta.focus(); return; }
   ta.value = ''; ta.blur(); noteMsg('Added.'); setTimeout(()=>noteMsg(''), 1500);
@@ -106,10 +121,11 @@ async function addNote(){
   catch(e){ if (!ta.value) ta.value = text; noteMsg(e && e.code==='quota_exceeded' ? 'Notes are full. Delete a few old ones first.' : 'Couldn’t save that note, so it’s back in the box. Try again.'); }
 }
 // A dropped connection must never blank the list: keep what's shown, fall back to the
-// last copy cached on this device, and quietly reconnect.
+// last copy cached on this device (NCACHE, own notes only), and quietly reconnect.
 const NCACHE = PACK.id+'-notes-cache-' + DATA.id;
 let notesOffline = false, notesRetry = 0, notesUnsub = null;
-// live note updates from the page db
+// Live note updates from the db for the current scope (replaces any earlier subscription). On an error it shows the
+// cached copy and retries with backoff (2 s, doubling, up to 30 s).
 function subscribeNotes(db){
   if (notesUnsub) { try { notesUnsub(); } catch(_){} notesUnsub = null; }
   notesUnsub = db.collection(NOTE_COL()).onSnapshot(snap => {
@@ -138,7 +154,10 @@ function moveLocalNotes(db){
   ls.set(NKEY+'-moved', Date.now());
   local.forEach(n => { const o = {}; ['text','kind','done','at','session'].forEach(k => { if (k in n) o[k] = n[k]; }); db.collection('notes').doc().set(o).catch(() => {}); });
 }
-// connect the page db: notes plus shared play state; falls back to this device
+// ── Connecting the db ──────────────────────────────────────────────────────────────────────────────────────
+// Connects the page db at startup: notes plus the shared play state. Without a db (window.claude.use missing or
+// failing), notes stay on this device. Tracker updates from the db replace S only when they belong to the same sync
+// (stamp) and this device has nothing unsaved; a shared sheet (VIEW) reloads when its owner synced.
 async function bootStore(){
   // show the cached copy straight away so the log never flashes empty
   const cached = ls.get(NCACHE); if (cached && cached.length && !NOTES.length) { NOTES = cached; notesReady = true; paintNotes(); }
@@ -161,9 +180,7 @@ async function bootStore(){
   }, () => {});
   paintRes();
 }
+// Ctrl/⌘ + Enter in the composer adds the note
 document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && e.target && e.target.id === 'note-text') { e.preventDefault(); addNote(); }
 });
-
-
-/* ---- rests ---- */
