@@ -1656,3 +1656,20 @@ button.btn:not(:disabled):is(:active,.pressing),.restopt:is(:active,.pressing),.
 .qrsearch::placeholder{color:var(--muted);opacity:1}
 .qrsearch:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 30%,transparent)}
 @media (hover:hover) and (pointer:fine){ .qrsearch:hover:not(:focus){border-color:color-mix(in srgb,var(--brass) 75%,var(--line))} }
+
+/* ── Throw it yourself (src/engine/06b-throw-dice.js; staging only for now, FEATURES.throwDice) ──────────────
+   The dice overlay takes touches while the dice wait to be thrown; the hint sits at the bottom with "Roll for me",
+   and slides away once the dice are thrown. */
+.throwfx{pointer-events:auto;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;outline:none}
+.throwfx:active{cursor:grabbing}
+.throwfx.thrown{cursor:default}
+.throwhint{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:1;
+  display:flex;align-items:center;gap:12px;width:min(calc(100vw - 32px),420px);padding:10px 10px 10px 16px;border-radius:16px;
+  background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid color-mix(in srgb,var(--brass) 45%,var(--line));
+  color:var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.35);transition:opacity .2s,transform .2s;animation:throwhint 1.8s ease-in-out infinite}
+.throwtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.throwtxt b{font-size:1rem}
+.throwtxt small{color:var(--muted,var(--ink));opacity:.8;font-size:.82rem}
+.throwhint .throwskip{flex:0 0 auto}
+.throwfx.thrown .throwhint{opacity:0;transform:translate(-50%,12px);pointer-events:none;animation:none}
+@keyframes throwhint{0%,100%{box-shadow:0 8px 24px rgba(0,0,0,.35)}50%{box-shadow:0 8px 24px rgba(0,0,0,.35),0 0 0 3px color-mix(in srgb,var(--brass) 35%,transparent)}}

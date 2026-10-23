@@ -154,7 +154,8 @@ function pushPlay(){
 // back online with unsaved changes: push them
 addEventListener('online', () => { if (ls.get(DIRTY)) save(); });
 
-// UI prefs (this device only): tab, roll mode, dice set, card/section order, favourites, filters, last bardic die
+// UI prefs (this device only): tab, roll mode, dice set, rolling style (rolling: 'auto' / 'throw', §6b), card/section
+// order, favourites, filters, last bardic die
 let ui = ls.get(PACK.id+'-ui') || { tab: PACK.tabs[0][0], mode: 'adv' };
 // persist UI prefs on this device
 const saveUi = () => ls.set(PACK.id+'-ui', ui);

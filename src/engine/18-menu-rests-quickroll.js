@@ -4,7 +4,7 @@
 // drag-to-reorder helper that §10 uses for its favourite lists too, and autoCloseRoll() for confirmation sheets.
 // Only one drawer is open at a time: each opener closes the others. On desktop (deskFine) they open as windows.
 // Uses: S, save, ui, saveUi (§3); RES, D, DATA, WORD, esc (§2); DICE_SETS, DICE_GROUPS, DICE_LOOK, DICE_PREVIEW (§6);
-//   fx, fxBusy (§5); showRoll, closeRoll, fitDock, deskFine, r (§4); G (§16); window.Skin (web/sw-register.js),
+//   rollStyleRow (§6b); fx, fxBusy (§5); showRoll, closeRoll, fitDock, deskFine, r (§4); G (§16); window.Skin (web/sw-register.js),
 //   window.SHEET (web app).
 // State: menuOpen, menuView ('main' | 'sync' | 'dice' | 'skin'), diceEdit, restMode, rollBoxOpen, restLog, restSpent.
 
@@ -76,6 +76,8 @@ function paintMenu(){
     + '<div style="height:8px"></div>'
     + '<button class="menulink'+(diceOpen?' open':'')+'" data-act="menuview" data-v="dice" aria-expanded="'+diceOpen+'">'+sw(DICE_SETS[cur]).replace('class="dsw"','class="dsw one"')+'<span class="dst"><b>Dice Sets</b><span>'+esc(DICE_SETS[cur].name)+'</span></span>'+chev(diceOpen)+'</button>'
     + (diceOpen ? diceBody : '')
+    // Rolling: Automatic · Throw it yourself (§6b; only where that feature is on)
+    + (diceEdit ? '' : rollStyleRow())
     // web app: report a bug or share an idea (web/feedback.js opens the box)
     + (window.SHEET && window.openFeedback && !diceEdit ? '<div style="height:8px"></div><button class="menulink" data-act="feedback"><span class="mico" aria-hidden="true">🐞</span><span class="dst"><b>Report a bug or share an idea</b><span>Goes straight to Menno, who builds Dungeon Tracker</span></span></button>' : '')
     + (diceEdit ? '' : done);
