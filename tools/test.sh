@@ -32,6 +32,8 @@ mkdir -p dist/lint
 for pack in packs/*.js; do n=$(basename "$pack" .js); cat src/themes.js src/classes.js "$pack" dist/web/engine/main.js > "dist/lint/$n.js"; done
 if [ -x node_modules/.bin/eslint ]; then node_modules/.bin/eslint dist/lint web tools src/looks || fail=1
 else echo "(skipped: run npm install once to get eslint)"; fi
+# CSS: one rule per selector, so a component's styles stay in one place (tools/css-check.js)
+node tools/css-check.js || fail=1
 
 [ "$part" = lint ] && { echo; [ $fail = 0 ] && echo "ALL GREEN (build + lint)" || echo "SOMETHING FAILED"; exit $fail; }
 

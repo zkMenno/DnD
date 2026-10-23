@@ -5,19 +5,31 @@
    "not here" message (web/sheet-boot.js, web/try-boot.js), the offline pill, the try-out bar, and the throwable
    background dice (web/home-anim.js). Loaded after app.css, so it wins ties.
    Keep home.css off this page: its generic rules (.card, .btn, .top, label, input) restyle the sheet.
-   Later blocks override earlier ones on purpose (.boot, .trialin): don't merge them.
+   One rule per selector (tools/css-check.js): change a component in its own block.
    ============================================================================ */
-/* ── Loading message and offline pill ──────────────────────────────────────────────────────────────────── */
-.boot{max-width:560px;margin:60px auto;padding:0 16px;text-align:center;color:var(--muted)}
+/* ── Loading card and offline pill ─────────────────────────────────────────────────────────────────────── */
+/* the loading card (also the "not here" message): a spinning d20 and a quick gold bar */
+.boot{max-width:340px;margin:18vh auto 0;padding:26px 28px;text-align:center;color:var(--muted);display:grid;justify-items:center;gap:12px;
+  border-radius:18px;background:var(--surface,#131f2b);border:1px solid var(--line,rgba(255,255,255,.1));box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .offline{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:300;background:#7a4b12;color:#fff;padding:6px 14px;border-radius:999px;font-size:.82rem;box-shadow:0 4px 14px rgba(0,0,0,.35);max-width:calc(100vw - 24px);text-align:center}
 /* ── Try-out bar ───────────────────────────────────────────────────────────────────────────────────────── */
-/* try-out sheets (web/try-boot.js): the bar on top, as wide as the sheet below it */
+/* try-out sheets (web/try-boot.js): the bar on top, as wide as the sheet below it. It follows the theme: text
+   and button in the page's own colours on the accent; the gold leans towards the text's opposite (darker in
+   light themes, lighter in dark ones) for contrast. The button always sits on the right; phones get a one-line
+   short message. */
 .trialbar{padding-top:12px;box-sizing:border-box}
 .trialin{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 10px 8px 14px;border-radius:12px;
-  background:var(--brass);color:#2a1a04;font-size:.9rem;line-height:1.35}
-.trialin .btn{background:#2a1a04;color:#f6e7c1;border-color:#2a1a04;padding:6px 12px;font-size:.85rem;text-decoration:none;white-space:nowrap}
-.trialin .btn{transition:background .15s,color .15s,transform .15s,box-shadow .15s}
-.trialin .btn:hover{background:#fff4d6;color:#2a1a04;border-color:#fff4d6;transform:translateY(-1px);box-shadow:0 4px 14px rgba(42,26,4,.35)}
+  color:var(--bg);font-size:.9rem;line-height:1.35;background:color-mix(in srgb,var(--brass) 80%,var(--ink))!important}
+.trialin .btn{background:var(--ink);color:var(--bg);border-color:var(--ink);padding:6px 12px;font-size:.85rem;text-decoration:none;white-space:nowrap;
+  transition:background .15s,color .15s,transform .15s,box-shadow .15s;margin-left:auto}
+.trialin .btn:hover{background:var(--bg);color:var(--ink);border-color:var(--bg);transform:translateY(-1px);box-shadow:0 4px 14px rgba(42,26,4,.35)}
+.trialshort{display:none}
+@media (max-width:600px){
+  .trialtxt{display:none}
+  .trialshort{display:inline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:.9rem}
+  .trialin{flex-wrap:nowrap;padding:6px 6px 6px 12px}
+  .trialin .btn{padding:6px 10px;font-size:.8rem}
+}
 
 /* ── Background dice ───────────────────────────────────────────────────────────────────────────────────── */
 /* background dice on sheet pages (src/bgdice.html; home-anim.js lets you throw them): fixed behind the sheet */
@@ -31,9 +43,7 @@
 /* the sheet stays above the dice; grab cursors while a die is under the mouse or held */
 #app{position:relative;z-index:1}
 html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.grabbing-die *{cursor:grabbing!important;user-select:none!important}
-/* ── Loading card ──────────────────────────────────────────────────────────────────────────────────────── */
-/* the loading card: a spinning d20 and a quick gold bar (overrides the plain .boot above) */
-.boot{display:grid;justify-items:center;gap:12px;max-width:340px;margin:18vh auto 0;padding:26px 28px;border-radius:18px;background:var(--surface,#131f2b);border:1px solid var(--line,rgba(255,255,255,.1));box-shadow:0 20px 60px rgba(0,0,0,.4)}
+/* ── Loading card: the d20 and the bar ─────────────────────────────────────────────────────────────────── */
 .boot p{margin:0;font-weight:700;color:var(--ink)}
 .bootd20{width:54px;height:54px;color:var(--brass)}
 .bootbar{width:100%;height:6px;border-radius:999px;background:color-mix(in srgb,var(--brass) 18%,transparent);overflow:hidden}
@@ -42,22 +52,6 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
   .bootd20{animation:bootspin 1.1s cubic-bezier(.4,.1,.3,1) infinite} @keyframes bootspin{to{transform:rotate(360deg)}}
   .bootbar span{animation:bootbar 1.1s ease-in-out infinite} @keyframes bootbar{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
 }
-/* ── Try-out bar in the theme's colours ────────────────────────────────────────────────────────────────── */
-/* the try-out bar follows the theme: text and button in the page's own colours on the accent (overrides the fixed
-   colours above) */
-.trialin{color:var(--bg)} .trialin .btn{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.trialin .btn:hover{background:var(--bg);color:var(--ink);border-color:var(--bg)}
-/* ── Try-out bar: the button always on the right; on phones a one-line short message ─────────────────────────── */
-.trialin .btn{margin-left:auto}
-.trialshort{display:none}
-@media (max-width:600px){
-  .trialtxt{display:none}
-  .trialshort{display:inline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:.9rem}
-  .trialin{flex-wrap:nowrap;padding:6px 6px 6px 12px}
-  .trialin .btn{padding:6px 10px;font-size:.8rem}
-}
-/* try-out bar contrast: the gold leans towards the text's opposite (darker in light themes, lighter in dark ones) */
-.trialin{background:color-mix(in srgb,var(--brass) 80%,var(--ink))!important}
 
 /* Recording mode (try.html?rec=1, from Site admin → Record): nothing on screen that isn't the sheet itself */
 html.rec [data-feedback],html.rec .menulink[data-act="feedback"],html.rec #jumpbtn,html.rec #jumpmenu,html.rec .diceask,html.rec footer{display:none!important}
