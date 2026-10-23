@@ -8,7 +8,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }), errs = [];
   const page = async () => { const p = await (await b.newContext({ viewport: { width: 390, height: 900 } })).newPage(); watch(p, errs); p.setDefaultTimeout(30000); return p; };
   const signUp = async (p, who) => { await p.goto(B + '/#signin'); await p.fill('input[name=email]', who + '@example.test'); await p.click('.pwbox summary');
-    await p.fill('input[name=password]', 'Passw0rd-' + who); await p.click('button[value=up]'); await p.waitForSelector('#add'); };
+    await p.fill('input[name=password]', 'Passw0rd-' + who); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await p.click('button[value=up]'); await p.waitForSelector('#add'); };
   const sheet = async p => { await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved); return new URL(p.url()).pathname; };
   const rename = async (p, name) => { await p.fill('#uname input[name=u]', name); await p.click('#uname button'); await p.waitForTimeout(800); };
 
@@ -32,7 +32,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   // front page → paste a link → sign up → the character is added straight away
   const r = await page(); await r.goto(B + '/'); await r.fill('#ql-url', 'https://www.dndbeyond.com/characters/170557047/abc'); await r.click('#quicklink button');
   await r.waitForSelector('#login'); ok('a pasted link carries over to sign-in', /add your character straight away/.test(await r.textContent('#login')));
-  await r.click('.pwbox summary'); await r.fill('input[name=email]', 'pender@example.test'); await r.fill('input[name=password]', 'Passw0rd-pender'); await r.click('button[value=up]');
+  await r.click('.pwbox summary'); await r.fill('input[name=email]', 'pender@example.test'); await r.fill('input[name=password]', 'Passw0rd-pender'); await r.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await r.click('button[value=up]');
   await r.waitForSelector('#ustep'); await r.click('#ustep button[value=go]');
   ok('…and the character is there after signing up', /^\/player-[a-z0-9]{5}\/170557047$/.test(await sheet(r)));
   const q = await page(); await signUp(q, 'stranger');

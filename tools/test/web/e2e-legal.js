@@ -16,7 +16,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
 
   await p.goto(B + '/'); ok('the home page links to it', !!(await p.$('footer a[href="/legal.html"]')));
   await p.click('.hero .btn.cta'); await p.fill('input[name=email]', 'leaver@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-leaver');
-  await p.click('button[value=up]'); await p.waitForSelector('#add');
+  await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await p.click('button[value=up]'); await p.waitForSelector('#add');
   await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved);
   await p.evaluate(() => notesStore.add({ text: 'A note to take home', kind: 'story', done: false, at: Date.now(), session: 1 })); await p.waitForTimeout(1200);

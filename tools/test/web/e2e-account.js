@@ -12,7 +12,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   const p = await (await b.newContext({ viewport:{width:390, height:844} })).newPage(); p.setDefaultTimeout(15000);
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const email = 'acct'+Date.now()+'@example.test', email2 = 'new'+Date.now()+'@example.test';
-  await p.goto(B + '/#signin'); await p.fill('input[name=email]', email); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'First-pass-123'); await p.click('button[value=up]');
+  await p.goto(B + '/#signin'); await p.fill('input[name=email]', email); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'First-pass-123'); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await p.click('button[value=up]');
   await p.waitForSelector('#add'); await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/170557047'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForSelector('#vitals'); await p.goto(B + '/'); await p.waitForSelector('#secem');
   // change email: wrong code refused, right code changes it

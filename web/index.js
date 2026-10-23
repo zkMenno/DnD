@@ -74,6 +74,8 @@ async function renderLogin(mode) {
       <details class="pwbox"><summary class="btn">🔑 Use a password instead</summary>
         <label class="authlbl" for="authpw">Password</label>
         <input id="authpw" name="password" type="password" autocomplete="current-password" minlength="8" placeholder="At least 8 characters">
+        <div id="pw2box" hidden><label class="authlbl" for="authpw2">Repeat the password</label>
+          <input id="authpw2" name="password2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again"></div>
         <div class="row authsub"><button class="btn primary" name="go" value="in">Sign in</button><button class="btn" name="go" value="up">Create account</button></div>
       </details>
       <div class="authfoot"><a class="btn" href="/" id="tofront">← Back to the front page</a></div>
@@ -105,12 +107,20 @@ async function renderLogin(mode) {
     }
     const password = f.password.value, up = go === 'up';
     if (password.length < 8) { f.querySelector('.pwbox').open = true; return msg('Passwords are at least 8 characters.', true); }
+    // a new account: ask for the password twice (the first press shows the second box)
+    if (up && $('#pw2box').hidden) { $('#pw2box').hidden = false; f.password.autocomplete = 'new-password'; $('#authpw2').focus(); return msg('Type the password once more to create your account.'); }
+    if (up && f.password2.value !== password) { $('#authpw2').focus(); return msg('The two passwords aren’t the same.', true); }
     msg(up ? 'Creating your account…' : 'Signing in…');
     try {
       if (up) await pb.collection('users').create({ email, password, passwordConfirm: password });
       await pb.collection('users').authWithPassword(email, password);
       msg(''); signedIn();
-    } catch (err) { msg(up ? 'Couldn’t create that account. Is the email already used, or the password under 8 characters?' : 'Email or password not right.', true); }
+    } catch (err) {
+      const taken = up && err && err.response && err.response.data && err.response.data.email;
+      if (taken) return msg('That email already has an account. Sign in with your password, or press “Email me a code” if you never set one: you can save a password on your account page after.', true);
+      msg(up ? 'Couldn’t create that account. Check the email, and use at least 8 characters for the password.'
+        : 'Email or password not right. Never set a password? Press “Email me a code” to sign in, then save one on your account page.', true);
+    }
   });
 }
 

@@ -7,7 +7,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const p = await ctx.newPage(); const errs = []; watch(p, errs); p.setDefaultTimeout(20000);
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   await p.goto(B + '/#signin'); await p.fill('input[name=email]', 'menno@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-menno');
-  await p.click('button[value=up]'); await p.waitForSelector('#add');
+  await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await p.click('button[value=up]'); await p.waitForSelector('#add');
   ok('sign up and land on the home page', true);
   await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421/NuPqJA'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals', {timeout: 30000}); await p.waitForTimeout(1500);

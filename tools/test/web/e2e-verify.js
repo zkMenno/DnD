@@ -8,7 +8,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }), errs = [];
   const p = await (await b.newContext({ viewport: { width: 390, height: 900 }, colorScheme: 'dark' })).newPage(); watch(p, errs); p.setDefaultTimeout(30000);
   await p.goto(B + '/#signin'); await p.fill('input[name=email]', 'verifier@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-verifier');
-  await p.click('button[value=up]'); await p.waitForSelector('#add');
+  await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await p.click('button[value=up]'); await p.waitForSelector('#add');
   await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/170557047'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved);
   const cid = await p.evaluate(() => window.SHEET.character.id);
