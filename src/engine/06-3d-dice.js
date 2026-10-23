@@ -252,14 +252,14 @@ function d3Grain(){
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return (D3.tex.grain = t);
 }
 // pirate dice: Pirata One numerals carved into the face (dark cut + light rim), bone d6s with pips
-function d3Label(text, ink, rim, pips, bold, font){
-  const key = text + ink + rim + (pips?'p':'') + (bold?'b':'') + (font||''); if (D3.tex[key]) return D3.tex[key];
+function d3Label(text, ink, rim, pips, bold, font, scale){
+  const key = text + ink + rim + (pips?'p':'') + (bold?'b':'') + (font||'') + (scale||''); if (D3.tex[key]) return D3.tex[key];
   const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
   if (pips) {
     const P = {1:[[64,64]],2:[[36,36],[92,92]],3:[[34,34],[64,64],[94,94]],4:[[36,36],[92,36],[36,92],[92,92]],5:[[34,34],[94,34],[64,64],[34,94],[94,94]],6:[[38,30],[90,30],[38,64],[90,64],[38,98],[90,98]]}[+text] || [];
     P.forEach(([px,py]) => { x.beginPath(); x.arc(px+2, py+2, 12, 0, 7); x.fillStyle = rim; x.fill(); x.beginPath(); x.arc(px, py, 12, 0, 7); x.fillStyle = ink; x.fill(); });
   } else {
-    x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = font ? (bold ? '700 ' : '')+(text.length > 1 ? 66 : 80)+'px '+font : (text.length > 1 ? 70 : 84)+'px "Pirata One", Georgia, serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = font ? (bold ? '700 ' : '')+Math.round((text.length > 1 ? 66 : 80)*(scale||1))+'px '+font : (text.length > 1 ? 70 : 84)+'px "Pirata One", Georgia, serif';
     if (bold) {   // legible on a busy surface: a pale halo, then a solid numeral with a thin same-colour stroke
       x.lineJoin = 'round'; x.lineWidth = 9; x.strokeStyle = rim; x.strokeText(text, 64, 69);
       x.lineWidth = 2.5; x.strokeStyle = ink; x.strokeText(text, 64, 69); x.fillStyle = ink; x.fillText(text, 64, 69);
@@ -275,7 +275,7 @@ const DICE_SKIN = typeof SKIN === 'string' && SKIN && THEME.skinDice && THEME.sk
 function skinDiceSets(sd){
   const hex = c => parseInt(c.slice(1), 16), out = {};
   for (const [k, spec] of Object.entries(sd.sets)) {
-    const s = Object.assign({}, THEME.dice[spec.from] || {}, { font: sd.font, bold: sd.bold || (THEME.dice[spec.from] || {}).bold }, spec);
+    const s = Object.assign({}, THEME.dice[spec.from] || {}, { font: sd.font, fscale: sd.fscale, bold: sd.bold || (THEME.dice[spec.from] || {}).bold }, spec);
     if (spec.col) { const [l, d, ink] = spec.col, a = hex(l), b = hex(d);
       const mid = [16, 8, 0].reduce((v, sh) => v | (Math.round((((a >> sh) & 255) + ((b >> sh) & 255)) / 2) << sh), 0);
       Object.assign(s, { grad: [a, b], body: mid, ink, css: [l, d, ink] }); }
@@ -321,7 +321,7 @@ function d3Die(d, SET){
                         : new T.MeshStandardMaterial({color: SET.grad ? 0xffffff : SET.body, vertexColors: !!SET.grad, roughness: SET.rough, metalness: SET.metal, flatShading: true, transparent: true, opacity: SET.alpha || 1, map: SET.tex ? d3Surface(SET.tex) : null, envMap: SET.shine ? d3Studio(SET.studio) : null, emissive: SET.tex === 'char' ? 0xff6a1a : SET.glow != null ? SET.glow : 0x000000, emissiveMap: SET.tex === 'char' || SET.glow != null ? d3Glow(SET.tex) : null, emissiveIntensity: SET.tex === 'char' ? 1.2 : SET.glow != null ? 1.3 : 1, envMapIntensity: SET.shine ? 1.15 : 1});
   const die = new T.Mesh(shp.g, mat);
   shp.faces.forEach((f, k) => {
-    const lbl = new T.Mesh(new T.PlaneGeometry(ls, ls), new T.MeshBasicMaterial({map: d3Label(String(k+1), SET.ink, SET.rim, pips, SET.bold, SET.font), transparent: true, depthWrite: false}));
+    const lbl = new T.Mesh(new T.PlaneGeometry(ls, ls), new T.MeshBasicMaterial({map: d3Label(String(k+1), SET.ink, SET.rim, pips, SET.bold, SET.font, SET.fscale), transparent: true, depthWrite: false}));
     lbl.position.copy(f.c).addScaledVector(f.n, .004); lbl.lookAt(new T.Vector3().copy(f.c).add(f.n)); die.add(lbl); f.lbl = lbl;
   });
   // orientation that shows face (value) to the camera, number upright, tipped back a little so it reads as 3D
