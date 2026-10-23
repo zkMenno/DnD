@@ -80,7 +80,7 @@ function ruleTips(){
       + '\n## 🧮 Your bonus\n• +'+pb+' at character level '+L + (next ? '\n## 📈 Progression\n• +'+next[1]+' at level '+next[0] : '')]
   };
 }
-// G: every tappable term → [category, body, (unused), button html, footer]. Later sources overwrite earlier ones here;
+// G: every tappable term → [category, body, (unused, keep empty), button html, footer]. Later sources overwrite earlier ones here;
 // everything added after this line only fills gaps (if (!G[k])).
 const G = Object.assign({}, ruleTips(), PACK.glossary ? PACK.glossary() : {}, abilityTips(), skillTips(), PROF_INFO());
 // every spell on the sheet: "3rd-level Evocation · Sorcerer" and its spell text
@@ -90,8 +90,8 @@ if (!G['Armour Class']) { const ua = !D.armor && D.c.mods.some(m => m.type==='se
   G['Armour Class'] = ['Defence', '**AC '+D.ac+': an attack hits you if it meets or beats this.**\n## 🧮 Made of'
     + (D.armor ? '\n• '+D.armor.name+' '+D.armor.ac + (D.armor.armorType===1 ? '\n• DEX '+sgn(D.mod.dex) : D.armor.armorType===2 ? '\n• DEX '+sgn(Math.min(D.mod.dex,2))+' (max +2)' : '')
       : ua ? '\n• 10 + DEX '+sgn(D.mod.dex)+' + '+ABIL[ua.statId-1].toUpperCase()+' '+sgn(D.mod[ABIL[ua.statId-1]])+' (no armour)' : '\n• 10 + DEX '+sgn(D.mod.dex)+' (no armour)')
-    + (D.shield ? '\n• Shield +'+(D.shield.ac||2) : ''), 'You.']; }
-if (!G['Speed']) G['Speed'] = ['Movement', '**'+D.speedM+' m per turn** ('+D.speedFt+' ft, '+(D.speedFt/5)+' squares).\n• Split it before and after your action\n• Dash: move your speed again this turn\n• Difficult terrain: every metre costs 2', 'You.'];
+    + (D.shield ? '\n• Shield +'+(D.shield.ac||2) : '')]; }
+if (!G['Speed']) G['Speed'] = ['Movement', '**'+D.speedM+' m per turn** ('+D.speedFt+' ft, '+(D.speedFt/5)+' squares).\n• Split it before and after your action\n• Dash: move your speed again this turn\n• Difficult terrain: every metre costs 2'];
 if (!G['Initiative']) G['Initiative'] = ['Combat', '**d20 '+sgn(D.initiative)+' when a fight starts.** Highest goes first.\n## 🧮 Yours\n• DEX '+sgn(D.mod.dex)
   + (D.initNote ? D.initNote.split(' · ').map(t => '\n• '+t).join('') : ''), null, '<button class="btn primary rollbtn" data-act="rollinit">🎲 Roll</button>'];
 // Proficiencies and senses: a plain explanation for any the pack doesn't describe, so every character's taps work.
@@ -162,7 +162,7 @@ const CORE_PROF = new Set();   // proficiency terms added here: tappable in the 
   RES.forEach(r => { try { resTerm(r); } catch(_){} });   // every tracked feature (Bardic Inspiration, Sorcery Points…) gets a tooltip and links in text
 })();
 // Concentration, unless the pack explained it
-if (!G['Concentration']) G['Concentration'] = ['Rule', '**One concentration spell at a time.**\n• Casting another ends the first\n• Taking damage: CON save, DC 10 or half the damage (max 30)\n• Incapacitated → it ends', 'You.'];
+if (!G['Concentration']) G['Concentration'] = ['Rule', '**One concentration spell at a time.**\n• Casting another ends the first\n• Taking damage: CON save, DC 10 or half the damage (max 30)\n• Incapacitated → it ends'];
 
 // ── Linking terms in text ──────────────────────────────────────────────────────────────────────────────────
 // Aliases: words in prose that open an existing term (null = never link that word).
