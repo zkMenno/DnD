@@ -1,21 +1,29 @@
 /* ============================================================================
    §5  ACTION ANIMATIONS — a short burst over the middle of the screen, then the dice, then the result
+   Defines: FX (burst kinds, extended by §7), fx() (the one entry point), fxParts(), DMG_ICON, dmgIcon(), dmgTag(),
+   spellEl(), spellIcon(), healMe(), healNote(), DIE_SHAPE, diceFx() (flat dice when 3D can't run).
+   Relies on: reduceMotion, DIE_SVG (§4), esc, WORD, D (§2), S, save (§3). At run time: dice3d (§6), paintRes (§10),
+   paintVitals (§12). Everything is skipped (the callback runs at once) when the OS asks for reduced motion.
    ============================================================================ */
-let fxBusy = false;
+// ── Burst animations ───────────────────────────────────────────────────────────────────────────────────────
+let fxBusy = false;   // a burst or dice tumble is playing: fx() calls made meanwhile skip straight to their callback
 let HEAL_WORD = '';   // the "+12 HP" the hearts burst shows
-// n particles thrown outward from the centre (for the burst animations)
+// n copies of a character thrown outward from the centre at random angles and delays (CSS reads --dx / --dy / --dl)
 const fxParts = (ch, n, cls) => Array.from({length:n}, (_,i) => { const a = (i/n)*Math.PI*2 + Math.random()*.5, d = 70 + Math.random()*60;
   return '<span class="p '+(cls||'')+'" style="--dx:'+Math.round(Math.cos(a)*d)+'px;--dy:'+Math.round(Math.sin(a)*d)+'px;--dl:'+Math.round(Math.random()*120)+'ms">'+ch+'</span>'; }).join('');
+// ── Damage-type icons ──────────────────────────────────────────────────────────────────────────────────────
 // damage-type icons, used on weapons, spells, filters and the roll animations
 const DMG_ICON = {fire:'🔥', cold:'❄️', lightning:'🌩️', thunder:'🔊', acid:'🧪', poison:'☣️', necrotic:'💀', radiant:'☀️', psychic:'🌀', force:'💫', bludgeoning:'🔨', piercing:'🗡️', slashing:'🪓'};
-// emoji for a damage type
+// emoji for a damage type ('' if unknown); for "Fire / Cold" the first type counts
 const dmgIcon = t => DMG_ICON[String(t||'').toLowerCase().split(/[ /]/)[0]] || '';
-// damage type as a tappable term with its icon
+// a damage-type tag for a weapon card: icon and lower-case name ('' when there is no type)
 const dmgTag = t => t ? '<span class="dtag">'+dmgIcon(t)+' '+esc(String(t).toLowerCase())+'</span>' : '';
 // the main element of a spell (healing counts as its own)
 const spellEl = x => x.heal ? 'heal' : ((x.dmg||[])[0]||{}).type || '';
 // emoji for a spell: healing, its element, attack or generic
 const spellIcon = x => x.heal ? '💚' : dmgIcon(spellEl(x)) || (x.attack ? '🎯' : (x.dmg||[]).length ? '💥' : '✨');
+// The bursts by kind: d = how long it plays (ms), html() = what it shows. Read at play time, so a burst can use
+// values set just before (WORD.critIcon, HEAL_WORD). More kinds come from §7 (boosts, checks) and el_<type> below.
 const FX = {
   arrow:   { d:900, html:() => '<span class="e bow">🏹</span><span class="streak"></span><span class="e tgt">🎯</span>' },
   slash:   { d:850, html:() => '<span class="arc"></span><span class="e blade">🗡️</span>' },
@@ -45,11 +53,11 @@ const FX = {
   longrest: { d:1200, html:() => '<span class="e twirl">🌙</span>'+fxParts('⭐',10,'spark')+fxParts('💤',4,'rise late') },
   surge:   { d:850, html:() => '<span class="e flash">⚡</span><span class="word">SURGE!</span>' }
 };
-// one burst per damage type: 🔥 fire, ❄️ cold…
+// one burst per damage type (el_fire 🔥, el_cold ❄️…), for spells and spell attacks
 Object.entries(DMG_ICON).forEach(([k, e]) => { FX['el_'+k] = { d:800, html:() => '<span class="e twirl">'+e+'</span>'+fxParts('✦',8,'spark') }; });
 
-// fx(kind, then, dice): emoji burst first, then the real dice tumble across the screen and land on their values
-// fx(kind, then, dice, after): emoji burst → dice tumble → optional "after" burst (crit / fumble reveal) → result
+// Play one FX burst, then call cb. short = dice follow, so the burst is cut to 80% and cb runs a little later.
+// An unknown kind calls cb at once.
 function emojiFx(kind, short, cb){
   const spec = FX[kind]; if (!spec) return cb();
   const dur = short ? Math.round(spec.d * .8) : spec.d;
@@ -58,7 +66,9 @@ function emojiFx(kind, short, cb){
   document.body.appendChild(el);
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 160); setTimeout(cb, short ? 60 : 0); }, dur - 100);
 }
-// play an action burst, then the dice, then an optional after-burst (crit/fumble), then call `then`
+// fx(kind, then, dice, after): emoji burst → dice tumble (dice = [{s: sides, v: value}], §6) → optional "after"
+// burst (crit / fumble reveal) → then(). Any part can be missing. With reduced motion, or while another fx is
+// playing, then() runs straight away.
 function fx(kind, then, dice, after){
   const hasDice = dice && dice.length, spec = kind && FX[kind], aft = after && FX[after];
   if (reduceMotion() || fxBusy || (!spec && !hasDice && !aft)) { then && then(); return; }
@@ -68,8 +78,10 @@ function fx(kind, then, dice, after){
   const diceStep = () => hasDice ? dice3d(dice, afterStep) : afterStep();
   if (spec) emojiFx(kind, hasDice, diceStep); else diceStep();
 }
-// Heal yourself by v: HP up (never past the max), the HP tile pulses, and a burst of hearts shows the HP actually gained.
-// Returns what was gained. Safe to call from inside another animation's callback (the hearts wait their turn).
+// ── Healing ────────────────────────────────────────────────────────────────────────────────────────────────
+// Heal yourself by v: HP up (never past the max), saved and repainted, the HP tile pulses, and a burst of hearts
+// shows the HP actually gained. Returns what was gained. Safe to call from inside another animation's callback:
+// the hearts start 30 ms later, once that animation has finished.
 function healMe(v){
   const before = S.hp; S.hp = Math.min(D.hpMax, S.hp + Math.max(0, v)); const gained = S.hp - before;
   save(); paintRes(); paintVitals();
@@ -78,11 +90,13 @@ function healMe(v){
   setTimeout(() => fx('hearts'), 30);
   return gained;
 }
-// "+9 HP" or "+9 HP (rolled 12, you're at full)" for a heal result card
+// "+9 HP", or "+9 HP (rolled 12, now at full HP)" when the max cut it short, for a heal result card
 const healNote = (v, gained) => '+'+gained+' HP'+(gained < v ? ' <span class="small">(rolled '+v+', '+(gained ? 'now' : 'already')+' at full HP)</span>' : '');
-// die size → CSS shape class for the flat dice
+// ── Flat dice fallback ─────────────────────────────────────────────────────────────────────────────────────
+// die size → CSS shape class for the flat dice (d12s and anything else are drawn as d6)
 const DIE_SHAPE = s => s===20 ? 'd20' : s===8 ? 'd8' : s===4 ? 'd4' : s===10 ? 'd10' : 'd6';
-// flat (2D) tumbling dice: the fallback when 3D is unavailable
+// Flat (2D) tumbling dice, the fallback when 3D is unavailable: dice = [{s, v, off}] fly in from the left in rows
+// of up to four, flicker random faces, land on v (off = a dropped die; nat 20 / nat 1 get a style), then done().
 function diceFx(dice, done){
   const el = document.createElement('div'); el.className = 'fx fxdice'; el.setAttribute('aria-hidden','true');
   const n = dice.length, perRow = Math.min(n, 4), gap = n > 4 ? 70 : 84;

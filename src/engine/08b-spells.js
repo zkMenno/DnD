@@ -1,10 +1,18 @@
 /* ============================================================================
    §8b SPELLS — the Spells tab: casting numbers, slots, the spell list, and casting through the roll flow
+   Defines: SPELL_W (spell attacks as weapons, read by findW in §8), spell dice helpers (spellDice, spellCount,
+   spellGroups, diceTxt), concBox, spellsPanel / paintSpells, spellTip (the spell glossary bubble, §16), the
+   filters and search, castSpell / castAt / spellEffect.
+   Relies on: DATA, D, RES, resBy, SPELL, spellBy, spellStats, ORD (§2), S, ui (§3), §4 dice and dock, §5 fx and
+   icons, §8 attackSetup / afterSheet. At run time: pipsHtml, classEmo (§10), linkify, decorate, closeTip (§16),
+   autoCloseRoll (§18). Spell filter picks, the search text and favourites live in ui (this device).
    ============================================================================ */
-const SPELL_W = {};   // spell attacks, set up as weapons for the hit → damage flow
+// ── Spell numbers and dice ─────────────────────────────────────────────────────────────────────────────────
+const SPELL_W = {};   // spell attacks, set up as weapons for the hit → damage flow (filled by castAt)
 // feet → metres (5 ft = 1.5 m)
 const ftM = ft => Math.round(ft/5*1.5*10)/10;
-// dice for a spell at a slot level (or the character level, for cantrips): "8d6" + upcast dice
+// Dice for one damage / healing group g of spell sp, cast at slot level lvl → {n, d, flat}. Cantrips scale with
+// the character level (the last step reached), other spells add their upcast dice per slot level above their own.
 function spellDice(g, sp, lvl){
   if (!g || !g.dice) return null;
   const p = parseDice(g.dice), flat = +((String(g.dice).match(/[+-]\d+$/)||[0])[0]);
@@ -15,7 +23,8 @@ function spellDice(g, sp, lvl){
 }
 // {n, d, flat} → "2d8+3"
 const diceTxt = x => x ? x.n+'d'+x.d+(x.flat ? sgn(x.flat) : '') : '';
-// how many beams / darts / rays a spell makes at this level
+// How many beams / darts / rays a spell makes at this level. Magic Missile and Scorching Ray start at 3 (by name);
+// extra ones come from D&D Beyond's "extra" steps (character level for cantrips, slot level otherwise).
 function spellCount(sp, lvl){
   const base = ({'Magic Missile':3, 'Scorching Ray':3})[sp.name] || 1, ex = sp.extra || [];
   if (!ex.length) return base;
@@ -24,13 +33,13 @@ function spellCount(sp, lvl){
 }
 // what one of a spell's multiple attacks is called (beam, ray, dart)
 const spellWord = sp => ((sp.extra||[])[0]||[])[2] || 'beam';
-// short lines about a spell: what it costs, how far, what you roll
+// one line about a spell: casting time · range · area · duration (an instant duration is left out)
 function spellMeta(sp){
   const rng = sp.origin==='Touch' ? 'Touch' : sp.origin==='Self' && !sp.range ? 'Self' : sp.range ? ftM(sp.range)+' m' : sp.origin||'';
   const aoe = sp.aoe ? sp.aoe[0]+' '+ftM(sp.aoe[1])+' m' : '';
   return [sp.castTime, rng, aoe, sp.duration && !/^Instant/.test(sp.duration) ? sp.duration.replace(/Minute/,'min').replace(/Hour/,'h') : ''].filter(Boolean).join(' · ');
 }
-// a spell's dice line for the spell list (damage or healing at its base level)
+// a spell's roll line for the spell list: to hit (× beams), save DC, and damage or healing at its base level (HTML)
 function spellRollLine(sp){
   const st = spellStats(sp), out = [];
   if (sp.attack) out.push('To hit d20 '+sgn(st.atk)+(spellCount(sp, sp.level) > 1 ? ' × '+spellCount(sp, sp.level) : ''));
@@ -39,7 +48,10 @@ function spellRollLine(sp){
   if (groups.length) out.push(groups.map(g => diceTxt(g.x)+(g.mod ? sgn(g.mod) : '')+' '+(g.heal ? '💚' : g.type.split(' / ').map(t => dmgIcon(t)).join(''))+' '+(g.type||'')).join(' + ')+(groups[0].heal ? ' healing' : ''));
   return out.join(' · ');
 }
-// the dice groups a spell rolls: damage types (one roll when the options share a die, e.g. Chromatic Orb), or healing
+// The dice groups a spell rolls at slot level lvl: [{x: {n, d, flat}, mod, type, heal}]. Damage types are one
+// group when the options share a die (Chromatic Orb: "Acid / Cold / …"); healing adds the casting modifier if the
+// spell says so. Save spells with several beams roll them all together; attack spells roll per beam. Agonizing
+// Blast adds the casting modifier to Eldritch Blast.
 function spellGroups(sp, lvl){
   const st = spellStats(sp), times = sp.attack ? 1 : spellCount(sp, lvl);
   if (sp.heal) { const x = spellDice(sp.heal, sp, lvl); return x ? [{x, mod: sp.heal.mod ? st.mod : 0, type:'', heal:true}] : []; }
@@ -50,10 +62,12 @@ function spellGroups(sp, lvl){
   return (same ? [ds[0]] : ds).map((g, i) => { const x = spellDice(g, sp, lvl); if (x && times > 1) { x.n *= times; x.flat *= times; }
     return {x, mod: i === 0 ? agon : 0, type: same ? ds.map(z => z.type).join(' / ') : g.type}; }).filter(g => g.x);
 }
-// Concentration on the Spells tab. Concentrating: a banner with the spell, how long it lasts, a CON save button for when
-// you take damage, End and Change. Not concentrating (or Change): your concentration spells as cards in a fold-out list,
-// for a spell cast earlier or tracked at the table; casting one sets it too. Rage (or anything with noSpells) locks it.
-let concOpen = false;
+// ── Concentration ──────────────────────────────────────────────────────────────────────────────────────────
+let concOpen = false;   // the fold-out list of concentration spells is open
+// Concentration on the Spells tab (sp = the prepared spells). Concentrating: a banner with the spell, how long it
+// lasts, a CON save button for when you take damage, End and Change. Not concentrating (or Change): your
+// concentration spells as cards in a fold-out list, for a spell cast earlier or tracked at the table; casting one
+// sets it too. Rage (or anything with noSpells) locks it. S.conc holds the spell's name.
 function concBox(sp){
   const list = sp.filter(x => x.conc), lock = RES.find(r => r.toggle && r.toggle.noSpells && S.active[r.key]);
   if (!list.length && !S.conc) return '';
@@ -77,7 +91,9 @@ function concBox(sp){
     + (lock ? '' : toggle('🧠 Pick a spell'))+'</div>'
     + (concOpen && !lock ? picker : '')+'</div>';
 }
-// Spells tab: casting numbers, slots, filters and the spell list by level
+// ── Spells tab ─────────────────────────────────────────────────────────────────────────────────────────────
+// Spells tab: casting numbers (one box per ability and bonus, shared by classes), concentration, slots, ⭐ favourites,
+// the filter card, then the prepared spells by level. Clears saved filter picks that no longer match any spell.
 function spellsPanel(){
   const sp = (DATA.spells||[]).filter(x => x.prepared);
   if (!sp.length) return '<section class="card"><h2><span class="emo" aria-hidden="true">🪄</span>Spells</h2><p class="small muted">No spells on the D&amp;D Beyond sheet yet.</p></section>';
@@ -90,6 +106,7 @@ function spellsPanel(){
   const slotCard = slots.length ? '<section class="card"><h2><span class="emo" aria-hidden="true">🔮</span>Spell slots</h2><div class="res slotcols'+(lo.length && hi.length ? ' two' : '')+'">'
     + (lo.length ? '<div class="slotcol">'+lo.map(slotRow).join('')+'</div>' : '') + (hi.length ? '<div class="slotcol">'+hi.map(slotRow).join('')+'</div>' : '') + '</div></section>' : '';
   const levels = [...new Set(sp.map(x => x.level))].sort((a,b) => a-b);
+  // one spell: star, name (a glossary term), tags, meta line, roll line, free-cast pips and 🪄 Cast
   const row = x => { const free = RES.find(r => r.freeOf === x.name);
     // tag icons are glossary terms: tap (or hover on desktop) to see what they mean
     const ic = (term, e) => '<button type="button" class="chip ic term hovertip" data-term="'+term+'" aria-label="'+term+'">'+e+'</button>';
@@ -120,28 +137,30 @@ function spellsPanel(){
   return casting + slotCard + favCard + finder + levels.map(l => '<section class="card spsec"><h2><span class="emo" aria-hidden="true">'+(l ? '📜' : '✨')+'</span>'+(l ? ORD(l)+' level' : 'Cantrips')+'</h2><div class="splist">'
     + sp.filter(x => x.level === l).sort((a,b) => a.name.localeCompare(b.name)).map(row).join('')+'</div></section>').join('');
 }
-// repaint the Spells tab in place (keeps the scroll position)
+// repaint the Spells tab in place and re-apply the filters; keeps the search box focused (cursor at the end) if it was
 function paintSpells(){ const el = document.querySelector('.panel[data-panel="spells"]'); if (!el) return;
   const q = document.activeElement && document.activeElement.id === 'spq';
   el.innerHTML = spellsPanel(); linkify(el); decorate(el); filterSpells();
   if (q) { const i = $('#spq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+// ── Spell tooltips ─────────────────────────────────────────────────────────────────────────────────────────
 // feet → metres in rules text: "60 feet" → "18 m", "5-foot-radius" → "1.5 m radius"
 function ftText(t){
   const m = n => String(Math.round(n/5*1.5*10)/10).replace('.', '.');
   return String(t||'').replace(/(\d[\d,]*)-foot-(\w)/g, (_, n, c) => m(+n.replace(/,/g,''))+' m '+c).replace(/(\d[\d,]*)[- ](?:foot|feet)\b/g, (_, n) => m(+n.replace(/,/g,''))+' m');
 }
-// a spell's tooltip: the gist in bold, the rest plain, then cantrip upgrade / higher slots / casting facts in their own sections
-// spell text → readable paragraphs: new paragraph at outcomes and follow-up actions ("On a hit…",
-// "As a Magic action on later turns…"), and long stretches split every two sentences
+// sentence openings that start a new paragraph in spell text: outcomes and follow-up actions ("On a hit…",
+// "As a Magic action on later turns…")
 const SP_BREAK = /^(On a (hit|miss|failed|successful)|On a failed save|If (the|a|you) (target|creature|spell)|At the (start|end) of|Until the spell ends|Whenever|While the spell|The spell ends|As an? (Magic |Bonus |Utilize )?[Aa]ction|As a Reaction|When you (cast|reach)|You can (also |use |dismiss )|Additionally|In addition|Once on each|For the duration)\b/;
-// long spell text → short paragraphs, breaking before "On a hit", "At Higher Levels" and the like
+// long spell text → short paragraphs joined by \n: a break before an SP_BREAK sentence, and after two sentences or
+// about 200 characters
 function spellParas(text){
   const sents = String(text||'').split(/(?<=[.!?])\s+(?=[A-Z(])/).filter(Boolean), out = []; let para = [];
   const flush = () => { if (para.length) out.push(para.join(' ')); para = []; };
   sents.forEach(x => { if (para.length && (SP_BREAK.test(x) || para.length >= 2 || para.join(' ').length > 200)) flush(); para.push(x); });
   flush(); return out.join('\n');
 }
-// glossary bubble for a spell: casting line, what it does, higher levels
+// A spell's glossary bubble text (the markup fmtTip reads: **bold**, ## headings, • bullets): the first sentence in
+// bold, the rest in paragraphs, then Cantrip upgrade (with the dice at your level), Higher slot and Casting facts.
 function spellTip(sp){
   let t = ftText(sp.text||'').replace(/\*/g,'').trim(), up = '', hi = '';
   const cut = (re) => { const m = t.match(re); if (!m) return ''; const part = t.slice(m.index + m[0].length).trim(); t = t.slice(0, m.index).trim(); return part; };
@@ -161,19 +180,22 @@ function spellTip(sp){
     + (sp.duration ? '\n• Duration: '+sp.duration.toLowerCase() : '')
     + (sp.conc ? '\n• 🧠 Concentration' : '') + (sp.ritual ? '\n• 📖 Ritual: no slot, takes 10 minutes longer' : '');
 }
-// spell filter picks (this device): several at once; tap a lit one to turn it off, All clears the row
+// ── Spell filters and search ───────────────────────────────────────────────────────────────────────────────
+// the picks in one filter row (k = 'spF' types, 'spE' elements) as an array; older saves kept a single string
 const spSel = k => Array.isArray(ui[k]) ? ui[k] : (ui[k] && ui[k] !== 'all' ? [ui[k]] : []);
-// toggle one spell filter chip ('all' clears the row)
+// toggle one spell filter chip: several can be lit at once, tapping a lit one turns it off, 'all' clears the row
 function spToggle(k, v){ const cur = spSel(k).slice(), i = cur.indexOf(v); ui[k] = v === 'all' ? [] : i < 0 ? cur.concat(v) : cur.filter(x => x !== v); saveUi(); }
-// favourite spells (this device)
+// is this spell a favourite (ui.spFav, this device)?
 const spIsFav = n => (ui.spFav||[]).includes(n);
-// star or unstar a spell
+// star or unstar a spell (new stars go last) and repaint the Spells tab
 function toggleSpFav(n){ const f = (ui.spFav||[]).slice(), i = f.indexOf(n); if (i < 0) f.push(n); else f.splice(i, 1); ui.spFav = f; saveUi(); paintSpells(); }
-// what a spell is about, for the search box: name, school, damage types, source, the description
+// what a spell is about, for the search box (lower case): name, school, source, damage types, healing,
+// concentration, ritual, casting time and the description
 function spellSearchText(x){
   return [x.name, x.school, x.from, (x.dmg||[]).map(g => g.type).join(' '), x.heal ? 'healing heal' : '', x.conc ? 'concentration' : '', x.ritual ? 'ritual' : '', x.castTime, x.text].join(' ').toLowerCase();
 }
-// filter keys a spell matches (attack, save, damage, healing, concentration, ritual, bonus action…)
+// the filter keys a spell matches, space-separated (atk save dmg heal conc rit bonus react free, and el-<type>
+// for each element); stored on its row as data-f
 const spellFlags = x => [x.attack && 'atk', x.save && 'save', ((x.dmg||[]).length) && 'dmg', x.heal && 'heal', x.conc && 'conc', x.ritual && 'rit',
   /bonus action/.test(x.castTime||'') && 'bonus', /reaction/.test(x.castTime||'') && 'react', (!x.level || !x.slot) && 'free',
   ...(x.dmg||[]).map(g => 'el-'+g.type), x.heal && 'el-heal'].filter(Boolean).join(' ');
@@ -187,14 +209,16 @@ const SPELL_WORDS = {
   charm:['charm','charmed','control','dominate','command'], fear:['fear','frightened','scare','terror'], movement:['teleport','fly','flight','speed','move','misty'],
   defence:['defence','defense','shield','protect','armour','armor','ac']
 };
-// a search word plus its synonyms ("fire" → burn, flame…)
+// a search word plus its synonyms ("fire" → burn, flame…); from 3 letters on, a word that starts a synonym counts
 function spellTerms(word){
   const out = new Set([word]);
   Object.entries(SPELL_WORDS).forEach(([k, list]) => { if (k === word || list.some(w => w === word || (word.length >= 3 && w.startsWith(word)))) { out.add(k); list.forEach(w => out.add(w)); } });
   return [...out];
 }
-const wordRe = w => new RegExp('(^|[^a-z])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));   // a word that starts with w
-// show only the spells that match the search box and the filter chip; hide empty level cards
+// regex for a word that starts with w (w is escaped)
+const wordRe = w => new RegExp('(^|[^a-z])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+// Show only the spells that match the search box and the filter chips (no repaint); hide level cards left empty
+// and show the "No spells match" line when nothing is left.
 function filterSpells(){
   const box = document.querySelector('.panel[data-panel="spells"]'); if (!box) return;
   const q = (($('#spq')||{}).value || '').trim().toLowerCase(), f = spSel('spF'), e = spSel('spE');
@@ -209,8 +233,12 @@ function filterSpells(){
   box.querySelectorAll('.spsec').forEach(sec => { sec.hidden = !sec.querySelector('.spell:not([hidden])'); });
   const none = box.querySelector('.spnone'); if (none) none.hidden = shown > 0;
 }
+// typing in the spell search box filters as you type (the text is kept in ui.spQ until the next saveUi)
 document.addEventListener('input', e => { if (e.target && e.target.id === 'spq') { ui.spQ = e.target.value; filterSpells(); } });
-// Cast: pick a slot (or a free cast / ritual), then roll. Cantrips go straight to the roll.
+
+// ── Casting ────────────────────────────────────────────────────────────────────────────────────────────────
+// 🪄 Cast: pick a slot (free cast, a slot of the spell's level or higher, Pact slot, or as a ritual), then castAt().
+// Cantrips go straight to castAt. While Rage (or another noSpells toggle) is on, it says so and offers to end it.
 function castSpell(name){
   const sp = spellBy(name); if (!sp) return;
   cur = null; checkRoll = null; closeTip();
@@ -230,7 +258,9 @@ function castSpell(name){
     + '<div class="stepnote"><b>🪄 Which slot?</b> '+esc(spellRollLine(sp).replace(/<[^>]+>/g,'') || spellMeta(sp))+'</div>'
     + '<div class="atkpick slotpick">'+opts.map(([k,l,t,why]) => '<button class="atkopt slotopt" data-act="castat" data-spell="'+esc(sp.name)+'" data-l="'+l+'" data-k="'+k+'"><b>'+t+'</b><span>'+why+'</span></button>').join('')+'</div>', false, 'next');
 }
-// cast a spell with a slot (or free cast / ritual): spend it, start concentration, then roll its attack, save or healing
+// Cast a spell at level lvl with key = a slot's resource key, 'free', 'ritual' or '' (no slot): spend it, start
+// concentration (ending any other), then: an attack spell goes to the attack mode step as SPELL_W[name]; damage or
+// healing goes to spellEffect(); anything else (or a concentration rider like Hex) gets a short self-closing card.
 function castAt(name, lvl, key){
   const sp = spellBy(name); if (!sp) return;
   const r = key && key !== 'ritual' ? (key === 'free' ? RES.find(x => x.freeOf === sp.name) : resBy(key)) : null;
@@ -257,7 +287,8 @@ function castAt(name, lvl, key){
     + '<div class="nextrow"><span></span><button class="btn done" data-act="close">'+WORD.ok+'</button></div>', false, 'next');
   autoCloseRoll();
 }
-// damage or healing from a save spell / auto-hit spell / healing spell: sheet first, then the dice, then the numbers
+// Damage or healing from a save spell / auto-hit spell / healing spell: sheet first, then the dice, then the numbers.
+// ended = the concentration spell this cast replaced (shown on the card). Healing offers ❤️ Heal myself.
 function spellEffect(sp, lvl, ended){
   const st = spellStats(sp), groups = spellGroups(sp, lvl).map(g => ({...g, v: rollDice(g.x.n, g.x.d)}));
   const total = groups.reduce((t,g) => t + sum(g.v) + g.x.flat + g.mod, 0), heal = !!sp.heal;

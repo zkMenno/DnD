@@ -1,21 +1,32 @@
 /* ============================================================================
    §13 RENDER — the whole page, built once; panels repaint themselves after that
+   Defines: TABS ([key, label]) and TAB_EMO, CORE_PANELS, panelFn(), PANEL_ORDER, render().
+   Relies on: PACK, DATA, D, VIEW, INITIALS, esc, $ (§2–§3), ui (§3), autoCombos (§9), every panel builder (§8b–§11,
+   §17) and, inside render(), the binders and painters of §4 and §10–§19. The tab list is fixed as this file loads,
+   so autoCombos() runs here once. render() runs at start-up (end of §21) and again whenever the whole page changes.
    ============================================================================ */
+// ── Tabs ───────────────────────────────────────────────────────────────────────────────────────────────────
 // Tabs come from the pack: [key, label, emoji]. Core panels below; the pack can add its own (PACK.panels) or override one.
 // a character with spells gets a Spells tab right after the first tab, unless the pack already places it
 const PTABS = PACK.tabs.slice();
 if ((DATA.spells||[]).length && !PTABS.some(t => t[0]==='spells')) PTABS.splice(1, 0, ['spells','Spells','🪄']);
-// automatic combos give a character without a pack Combos tab one, right after Spells (or Combat)
+// a character without hand-written combos gets a Combos tab when there are automatic ones: right after Spells, or
+// after the first tab when there's no Spells tab (unless the pack already places one)
 if (!PTABS.some(t => t[0]==='combos') && !PACK.combos && autoCombos().length) PTABS.splice(PTABS.findIndex(t => t[0]==='spells') + 1 || 1, 0, ['combos','Combos','💥']);
 const TABS = PTABS.map(([k,l]) => [k,l]);
 const TAB_EMO = Object.fromEntries(PTABS.map(([k,,e]) => [k,e]));
+// the panel builder for each core tab
 const CORE_PANELS = { spells:spellsPanel, combat:combatPanel, combos:combosPanel, notes:notesPanel, stats:() => statsCards()+skillsCard(), gear:gearPanel, traits:traitsPanel };
-// panel builder for a tab key (pack first, then core)
+// panel builder for a tab key: the pack's (PACK.panels) first, then core. Combos always uses combosPanel, which
+// adds the favourites and then calls the pack's own combos layout itself.
 const panelFn = k => k === 'combos' ? combosPanel : (PACK.panels && PACK.panels[k]) || CORE_PANELS[k];
-// DOM order of panels: the core ones in their historic order, then any pack tabs in tab order
+// DOM order of panels: combat, combos, notes, stats, gear in their historic order (stats always, for the phone
+// layout), then every other tab (spells, traits, pack tabs) in tab order
 const PANEL_ORDER = ['combat','combos','notes','stats','gear'].filter(k => TABS.some(t=>t[0]===k) || k==='stats')
   .concat(TABS.map(t=>t[0]).filter(k => !['combat','combos','notes','stats','gear'].includes(k)));
-// build the whole page once; later updates repaint parts in place
+// Build the whole page into #app: header (name, Rest, ☰, vitals, drawers, tabs), the desktop sidebars, every panel,
+// the ↕ Sections button and the roll dock; then bind and paint the live parts. msg = an optional line under the
+// header (#syncmsg). Later updates repaint parts in place; this runs again only when the whole page changes.
 function render(msg){
   document.body.classList.toggle('viewonly', VIEW);
   $('#app').innerHTML =

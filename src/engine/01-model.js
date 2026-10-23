@@ -1,6 +1,11 @@
 /* ============================================================================
-   §1  MODEL — D&D Beyond JSON → compact() → derive(). Rules constants first, then the two transforms.
+   §1  MODEL — D&D Beyond JSON → compact() → DATA → derive() → D. Rules constants first, then the two transforms.
+   Defines: ABIL, ABIL_NAME, ABIL_SLUG, SKILLS, MASTERY_WORDS, CAMPAIGN_FEATS, slug(), richText(), clean(),
+   compact() (used by Sync, §21), activeModules() and derive() (re-run whenever the inventory changes).
+   Relies on: PACK (the pack script), CLASS_MODULES (src/classes.js, optional), DATA_V (§2, read when compact() runs).
+   Both transforms are pure: no DOM, no S. This file runs before DATA and D exist (§2 builds them).
    ============================================================================ */
+// ── Rules constants ────────────────────────────────────────────────────────────────────────────────────────
 const ABIL = ['str','dex','con','int','wis','cha'];
 const ABIL_NAME = {str:'Strength',dex:'Dexterity',con:'Constitution',int:'Intelligence',wis:'Wisdom',cha:'Charisma'};
 const ABIL_SLUG = {str:'strength',dex:'dexterity',con:'constitution',int:'intelligence',wis:'wisdom',cha:'charisma'};
@@ -14,20 +19,24 @@ const MASTERY_WORDS = ['Vex','Sap','Nick','Slow','Topple','Push','Cleave','Graze
 // Campaign-only "feats" (DM handouts stored as feats in D&D Beyond) and custom tool ids come from the pack.
 const CAMPAIGN_FEATS = PACK.campaignFeats || [];
 const TOOL_IDS = PACK.toolNames || {};   // D&D Beyond stores custom tool proficiencies by item id only
+// XP needed for each level: XP_TABLE[level - 1]; XP_TABLE[totalLevel] is the next level's threshold
 const XP_TABLE = [0,300,900,2700,6500,14000,23000,34000,48000,64000,85000,100000,120000,140000,165000,195000,225000,265000,305000,355000];
 
-// kebab-case id from a name (for D&D Beyond URLs and keys)
+// ── Text helpers ───────────────────────────────────────────────────────────────────────────────────────────
+// kebab-case id from a name ("Sleight of Hand" → "sleight-of-hand"), the form D&D Beyond uses in modifier subtypes
 const slug = s => String(s||'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-// strip D&D Beyond HTML down to plain text
-// like clean(), but keeps paragraph and list breaks (\n, and "• " for list items) and cuts at a sentence end
+// D&D Beyond HTML → plain text that keeps its shape: paragraph breaks (\n), list items ("• "), table cells (" ¦ ").
+// With max, the text is cut at the last sentence end before max characters (if that keeps at least half) and gets " …".
 const richText = (s, max) => { let t = String(s||'').replace(/<\/t[dh]>\s*<t[dh][^>]*>/gi, ' ¦ ').replace(/<caption[^>]*>/gi, '\n').replace(/<\/caption>/gi, '\n').replace(/<li[^>]*>/gi, '\n• ').replace(/<\/(p|li|h\d|div|tr)>|<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g,' ')
     .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&mdash;/g,'—').replace(/&ndash;/g,'–').replace(/&rsquo;/g,'’').replace(/[ \t]+/g,' ').replace(/ *\n */g,'\n').replace(/\n{2,}/g,'\n').trim();
   if (max && t.length > max) { const cut = t.slice(0, max), end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('.\n')); t = (end > max * .5 ? cut.slice(0, end + 1) : cut) + ' …'; }
   return t; };
-// strip D&D Beyond HTML down to one line of plain text
+// D&D Beyond HTML → one line of plain text (all whitespace collapsed)
 const clean = s => String(s||'').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&mdash;/g,'—').replace(/&ndash;/g,'–').replace(/\s+/g,' ').trim();
 
-// D&D Beyond character JSON → the small DATA object stored in this page (only what the sheet uses)
+// ── compact(): D&D Beyond JSON → DATA ──────────────────────────────────────────────────────────────────────
+// D&D Beyond character JSON (with or without its {data:…} wrapper) → the small DATA object stored in the page:
+// only what the sheet uses, long texts trimmed. Stamps DATA_V and syncedAt (a new syncedAt resets the play state).
 function compact(full){
   const d = full.data || full;
   const coreIds = {};
@@ -80,8 +89,11 @@ function compact(full){
   // spells, kept compact for the Spells tab. D&D Beyond stores slots *used* only; the app works out the totals.
   const featCls = {};   // class-feature id → class name, to tell which class a feature-granted spell belongs to
   (d.classes||[]).forEach(c => (c.classFeatures||[]).forEach(f => { if (f.definition) featCls[f.definition.id] = c.definition.name; }));
+  // "2d6 + 3" → "2d6+3"
   const dieStr = dd => dd && dd.diceString ? String(dd.diceString).replace(/\s+/g,'') : null;
+  // a modifier's upcast / cantrip steps: [[level, dice], …]
   const ups = m => ((m.atHigherLevels||{}).higherLevelDefinitions||[]).filter(h => h.dice && h.dice.diceString).map(h => [h.level, dieStr(h.dice)]);
+  // one D&D Beyond spell entry → the compact spell the Spells tab and castSpell() (§8b) use; from = class or source
   const spellDef = (sp, from) => { const x = sp.definition || {}; const act = x.activation || {}, rng = sp.range || x.range || {}, dur = x.duration || {}, mods = x.modifiers || [];
     const hl = (x.atHigherLevels||{}).higherLevelDefinitions || [], lu = sp.limitedUse && sp.limitedUse.maxUses ? {max: sp.limitedUse.maxUses, used: sp.limitedUse.numberUsed||0, reset: sp.limitedUse.resetType} : null;
     const hm = mods.find(m => m.type==='bonus' && m.subType==='hit-points' && m.die && m.die.diceString);
@@ -97,6 +109,7 @@ function compact(full){
       extra: hl.filter(h => h.typeId===16).map(h => [h.level, h.value||0, h.details||'']),   // extra beams / darts / rays
       higher: !!(x.higherLevelDescription || hl.length || mods.some(m => ups(m).length)),
       text: clean(x.description || x.snippet || '').slice(0,1200) }; };
+  // class name for a character-class id
   const clsName = id => ((d.classes||[]).find(c => c.id === id) || {definition:{}}).definition.name || null;
   // never let spell parsing break a sync: anything odd in the data just leaves the lists empty
   let spells = [], slotsUsed = [], pactUsed = [];
@@ -131,14 +144,16 @@ function compact(full){
   };
 }
 
-// DATA → D: every number the sheet shows (mods, skills, saves, attacks, resources), computed once
-// the class / species modules this character uses: classes by name, others by their match()
+// ── derive(): DATA → D ─────────────────────────────────────────────────────────────────────────────────────
+// The class / species modules (CLASS_MODULES) this character uses: classes by name, others by their match(c).
+// Takes DATA (c); empty when src/classes.js isn't loaded.
 function activeModules(c){
   const names = new Set(c.classes.map(k => k.name));
   return Object.entries(typeof CLASS_MODULES === 'object' ? CLASS_MODULES : {})
     .filter(([k, m]) => m.match ? m.match(c) : names.has(k)).map(([, m]) => m);
 }
-// DATA → D: every number the sheet shows (scores, saves, skills, AC, speed, weapons, class module numbers). Pure; re-run when the inventory changes.
+// DATA → D: every number the sheet shows (scores, saves, skills, AC, speed, weapons, class module numbers).
+// Pure; callers re-run it (Object.assign(D, derive(DATA))) when the inventory changes, e.g. after ➕ Add item.
 function derive(c){
   const sgn = n => (n>=0?'+':'') + n;
   const totalLevel = c.classes.reduce((a,k)=>a+k.level,0);
@@ -147,7 +162,9 @@ function derive(c){
   // multiclass: proficiencies from a non-starting class's core traits only grant weapons + light/medium armor + shields
   const nonStartCore = new Set(c.classes.filter(k=>!k.starting && k.coreId).map(k=>k.coreId));
   const mods = c.mods.filter(m => !(nonStartCore.has(m.comp) && m.type==='proficiency' && /saving-throws$|^choose-|heavy-armor/.test(m.sub)));
+  // is there a modifier of this type and subtype (e.g. 'proficiency', 'stealth')?
   const has = (type, sub) => mods.some(m => m.type===type && m.sub===sub);
+  // total of the flat 'bonus' modifiers with this subtype (dice bonuses are left out)
   const bonusSum = sub => mods.filter(m=>m.type==='bonus' && m.sub===sub && !m.dice).reduce((a,m)=>a+(m.fixed!=null?m.fixed:(m.value||0)),0);
 
   const score = {}, mod = {};
@@ -156,10 +173,11 @@ function derive(c){
     score[a] = ov ? +ov || 10 : (+c.stats[i]||10) + (c.bonusStats[i]||0) + bonusSum(ABIL_SLUG[a]+'-score');
     mod[a] = Math.floor((score[a]-10)/2);
   });
-  const statById = id => mod[ABIL[id-1]] || 0;
+  const statById = id => mod[ABIL[id-1]] || 0;   // D&D Beyond stat ids: 1 STR … 6 CHA
 
   const saveAll = bonusSum('saving-throws');   // Ring / Cloak of Protection and the like
   const saves = ABIL.map(a => { const p = has('proficiency', ABIL_SLUG[a]+'-saving-throws'); return {a, name:ABIL_NAME[a], prof:p, bonus: mod[a] + (p?pb:0) + saveAll + bonusSum(ABIL_SLUG[a]+'-saving-throws')}; });
+  // any "advantage on saving throws" modifier is assumed to be the Halfling's Brave trait
   const saveNotes = mods.filter(m=>m.type==='advantage' && m.sub==='saving-throws').length ? ['Advantage on saves vs Frightened (Brave)'] : [];
 
   const skills = SKILLS.map(([name,a]) => {
@@ -185,21 +203,27 @@ function derive(c){
   if (shield) ac += (shield.ac || 2) + (shield.bonus||0);
   ac += bonusSum('armor-class');
 
+  // initiative: DEX + bonuses that add an ability (CHA is taken to be Rakish Audacity), proficiency (Alert) or a number
   const initMods = mods.filter(m=>m.type==='bonus' && m.sub==='initiative');
   const initiative = mod.dex + initMods.reduce((a,m)=>a + (m.statId ? statById(m.statId) : m.pbBonus ? pb : (m.fixed||m.value||0)),0);
   const initNote = [initMods.some(m=>m.statId===6) && 'Rakish Audacity adds your CHA ('+sgn(mod.cha)+')',
     initMods.some(m=>m.pbBonus) && (c.feats.some(f=>f.name==='Alert') ? 'Alert' : 'A feature')+' adds your proficiency bonus ('+sgn(pb)+')'].filter(Boolean).join(' · ');
+  // walking speed in feet; Unarmored Movement only counts with no armour and no shield
   const speedFt = (c.race.walk||30) + bonusSum('speed') + (!armor && !shield ? bonusSum('unarmored-movement') : 0);
-  const ftToM = ft => Math.round(ft/5*1.5*10)/10;
+  const ftToM = ft => Math.round(ft/5*1.5*10)/10;   // feet → metres, 1.5 m per 5 ft, one decimal
 
   // weapons
+  // weapon masteries picked on D&D Beyond come as "Longsword (Sap)": base weapon → mastery
   const masteries = {};
   c.masteryOpts.forEach(n => { const m = n.match(/^(.+) \((\w+)\)$/); if (m && MASTERY_WORDS.includes(m[2])) masteries[m[1]] = m[2]; });
+  // Archery fighting style: bonus to ranged attack rolls
   const archery = mods.filter(m=>m.type==='bonus' && m.sub==='ranged-weapon-attacks').reduce((a,m)=>a+(m.value||0),0);
+  // proficient with this weapon: simple / martial category, or the base weapon by name
   const profWith = w => (w.category===1 && has('proficiency','simple-weapons')) || (w.category===2 && has('proficiency','martial-weapons')) || has('proficiency', slug(w.base || w.name));
   // Monk Martial Arts: unarmed strikes and Monk weapons (simple melee, martial melee with Light) may use DEX and the Martial Arts die
   const monk = lvl('Monk'), maDie = monk ? (monk >= 17 ? 12 : monk >= 11 ? 10 : monk >= 5 ? 8 : 6) : 0;
   const monkWeapon = w => monk && w.attackType !== 2 && (w.category === 1 || (w.category === 2 && w.props.includes('Light'))) && !w.props.some(p => /^(Heavy|Two-Handed)/.test(p));
+  // one entry per weapon name (an equipped copy wins over a spare); ranged weapons first, then equipped ones
   const seen = new Set(); const weapons = [];
   c.inventory.filter(i=>i.damage && i.filter==='Weapon').sort((a,b)=>(b.equipped-a.equipped)).forEach(w => {
     if (seen.has(w.name)) return; seen.add(w.name);
@@ -231,7 +255,8 @@ function derive(c){
     unarmed = null;
   }
 
-  // class / species modules (#classes) add their own numbers; core defaults first
+  // class / species modules (#classes) add their own numbers on top of these defaults; each derive(x) gets
+  // x = { c, lvl, act, mod, pb, sgn }. attacksPerAction keeps the highest, so Extra Attack never stacks.
   const act = n => c.actions.find(a=>a.name===n);
   const modular = { rogue:0, fighter:0, sneakDice:0, attacksPerAction:1, secondWind:null, actionSurge:null, superiorityDice:null,
     maneuvers:[], maneuverDC:0, luck:false };
@@ -243,6 +268,7 @@ function derive(c){
   const ammo = c.inventory.filter(i=>/^Arrows?$/.test(i.name)).reduce((a,i)=>a+i.qty,0);
 
   const nextXp = XP_TABLE[totalLevel] || null;
+  // "Fighter 5 (Battle Master) / Rogue 2" for the header; subclass names lose any "(…)" suffix
   const line = c.classes.map(k => k.name+' '+k.level+(k.sub?' ('+k.sub.replace(/\s*\(.*\)/,'')+')':'')).join(' / ');
 
   const profs = {
