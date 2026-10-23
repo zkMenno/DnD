@@ -426,7 +426,7 @@ body > .top,body > main,body > .foot,body > #landing{position:relative;z-index:1
   background:color-mix(in srgb,var(--bg) 16%,transparent)}
 .diceresult .rnote{margin:4px 0 0;font-size:.92rem;line-height:1.35;opacity:.85}
 .diceresult .rbtns{display:flex;justify-content:flex-end;margin-top:4px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--bg) 22%,transparent)}
-.diceresult .btn{background:var(--bg);color:var(--ink);border-color:var(--brass)}
+.diceresult .btn{background:var(--sea);color:var(--sea-ink,#fff);border-color:var(--sea)}   /* Roll again: the sea-blue action colour, not a black block on the parchment */
 @media (max-width:640px){ .diceresult{left:0;right:0;width:auto;border-radius:14px 14px 0 0} }
 @media (min-width:1000px){
   .tray{position:relative}
