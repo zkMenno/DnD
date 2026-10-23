@@ -118,7 +118,7 @@ TEX={
  'woodland':[noise(.012,.06,4,.10,7), noise(.9,.9,2,.05)],
  'gothic':  [noise(.006,.02,4,.12,11,'0 0 0'), noise(.9,.9,2,.06)],
  'underdark':[uri('<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><g fill="#7DF7DF"><circle cx="18" cy="24" r="1.4" fill-opacity=".22"/><circle cx="96" cy="14" r="1" fill-opacity=".18"/><circle cx="60" cy="70" r="1.8" fill-opacity=".14"/><circle cx="122" cy="96" r="1.2" fill-opacity=".2"/><circle cx="30" cy="118" r="1" fill-opacity=".16"/><circle cx="84" cy="128" r="1.5" fill-opacity=".12"/></g></svg>'), noise(.9,.9,2,.05)],
- 'icewind': [noise(.004,.18,3,.10,5), noise(.9,.9,2,.04)],
+ 'icewind': [noise(.004,.18,3,.035,5), noise(.9,.9,2,.04)],   # a faint frost; the thick fog only puffs out on open (below)
  'avernus': [noise(.02,.02,4,.16,9,'1 .45 .1'), noise(.9,.9,2,.05)],
 }
 # An inner vignette and a faint top highlight, shared by every card.
@@ -141,6 +141,13 @@ for k,sk in SK.items():
     css.append('@media (prefers-color-scheme: dark){%s{color:var(--bg)}}'%ch)
     css.append('%s[data-theme="dark"] .roll .chip,%s[data-theme="dark"] .bubble .chip{color:var(--bg)}'%(sel,sel))
 # Every skin: the close buttons fully visible; Starfarer: wider, bolder headings.
+# Icewind: opening a roll sheet is like opening a freezer — a cold fog that clears within a second or so
+FOG = noise(.004,.18,3,.22,5)
+css.append(':root[data-skin="icewind"] #dock .roll{position:relative;isolation:isolate}')
+css.append(':root[data-skin="icewind"] #dock .roll::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:5;'
+  'background:'+FOG+',linear-gradient(180deg,rgba(235,248,255,.45),rgba(235,248,255,.1) 70%,transparent);animation:freezerfog 1.3s ease-out forwards}')
+css.append('@keyframes freezerfog{0%{opacity:1;transform:translateY(0)}35%{opacity:.85}100%{opacity:0;transform:translateY(-14px)}}')
+css.append('@media (prefers-reduced-motion:reduce){:root[data-skin="icewind"] #dock .roll::before{display:none}}')
 css.append(':root[data-skin] .roll .x,:root[data-skin] .bubble .bclose{opacity:1}')
 css.append(':root[data-skin="space"] h1,:root[data-skin="space"] h2,:root[data-skin="space"] .roll .title,:root[data-skin="space"] .bubble .bt{letter-spacing:.06em;font-weight:700}')
 # ── Write ───────────────────────────────────────────────────────────────────────────────────────────────────
