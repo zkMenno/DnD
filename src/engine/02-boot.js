@@ -44,7 +44,7 @@ const MODS = activeModules(DATA);
 // ── Resources ──────────────────────────────────────────────────────────────────────────────────────────────
 // Limited-use resources, from the modules (#classes). Keys live flat in S, so they must not clash with core keys.
 // RES grows below: automatic counters, spell slots, Pact Magic, free casts.
-const CORE_KEYS = ['stamp','hp','temp','insp','arrows','potions','spent','hd','coins','coinLog','fired','base','conc','active','added'];
+const CORE_KEYS = ['stamp','hp','temp','insp','arrows','potions','spent','hd','coins','coinLog','fired','base','conc','active','added','at'];
 const RES = MODS.flatMap(m => m.resources ? m.resources(D) : []).filter(Boolean).filter(r => {
   if (CORE_KEYS.includes(r.key)) { console.warn('resource key clashes with play state:', r.key); return false; } return true; });
 // Fill D&D Beyond {{template}} snippets in feature text, e.g. {{modifier:wis@min:1#unsigned}}, {{5*classlevel}},

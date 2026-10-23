@@ -3,9 +3,10 @@
 // PocketBase (web app, via the db stand-in in web/sheet-boot.js: collections "notes" and "partynotes").
 // bootStore() connects that db at startup (called from §21): notes, plus the shared play state S (§3).
 // Defines: confirmBox, NOTES and the notes UI state, notesPanel, paintNotes, notesStore, addNote, setNoteScope,
-//   subscribeNotes, bootStore, PARTY_LOG, pendingIds.
-// Uses: S, save, DB, DIRTY, PLAY_DOC, normalizeState (§3); changesHtml, paintRes, paintCoins, paintVitals,
-//   addedChanged, linkify, decorate (other sections, called later). Without a db, notes stay on this device.
+//   subscribeNotes, bootStore, takeRemote, paintRemote, PARTY_LOG, pendingIds.
+// Uses: S, PREV, save, DB, PLAY_DOC, normalizeState, mergeState, sameState, seeTimes, stampChanges (§3); changesHtml,
+//   paintRes, paintCoins, paintVitals, paintChanges, addedChanged, linkify, decorate (other sections, called later).
+//   Without a db, notes stay on this device.
 // ── Confirm dialog ─────────────────────────────────────────────────────────────────────────────────────────
 // Asks a yes/no question; resolves true for OK, false for Cancel, Escape or a click outside. title and body are HTML
 // (callers escape data); body without a leading tag is wrapped in <p>. danger === false makes OK a plain primary
@@ -156,8 +157,9 @@ function moveLocalNotes(db){
 }
 // ── Connecting the db ──────────────────────────────────────────────────────────────────────────────────────
 // Connects the page db at startup: notes plus the shared play state. Without a db (window.claude.use missing or
-// failing), notes stay on this device. Tracker updates from the db replace S only when they belong to the same sync
-// (stamp) and this device has nothing unsaved; a shared sheet (VIEW) reloads when its owner synced.
+// failing), notes stay on this device. Tracker updates from the db are merged into S when they belong to the same
+// sync (stamp): fields this device changed and hasn't stored yet stay, the rest take the db's values (takeRemote).
+// A shared sheet (VIEW) shows the db's copy as it is, and reloads when its owner synced.
 async function bootStore(){
   // show the cached copy straight away so the log never flashes empty
   const cached = ls.get(NCACHE); if (cached && cached.length && !NOTES.length) { NOTES = cached; notesReady = true; paintNotes(); }
@@ -172,13 +174,29 @@ async function bootStore(){
     // a shared sheet whose owner synced since we opened it: reload to get the new character data (at most every 30 s)
     if (VIEW && r.stamp !== DATA.syncedAt) { let last = 0; try { last = +sessionStorage.getItem('view-reload') || 0; } catch(_){}
       if (Date.now() - last > 30000) { try { sessionStorage.setItem('view-reload', Date.now()); } catch(_){} return location.reload(); } }
-    // this device has changes it hasn't stored yet (made offline, or the tab closed too soon): they're newer, keep them
-    if (ls.get(DIRTY) && r.stamp === DATA.syncedAt) { if (JSON.stringify(r) !== JSON.stringify(S)) save(); return; }
-    if (r.stamp === DATA.syncedAt && JSON.stringify(r) !== JSON.stringify(S)) { S = normalizeState(JSON.parse(JSON.stringify(r))); ls.set(SKEY, S);
-      if (JSON.stringify(S.added) !== JSON.stringify(ADDED)) return addedChanged();   // items added on another device
-      paintRes(); paintCoins(); paintVitals(); }
+    if (r.stamp !== DATA.syncedAt) return;
+    // merge it in; when this device has something the db's copy lacks (changes made offline, or a write that
+    // crossed another device's), send the merged tracker back
+    if (takeRemote(r)) save();
   }, () => {});
   paintRes();
+}
+// Takes in the db's tracker r (same sync as this page): merged with S field by field (mergeState, §3), so changes
+// made here and not yet stored stay, and repaints what changed. A shared sheet just shows r.
+// Returns true when the merged tracker differs from r, i.e. the db should get it back.
+function takeRemote(r){
+  r = normalizeState(JSON.parse(JSON.stringify(r)));
+  if (VIEW) { if (!sameState(r, S)) { S = r; ls.set(SKEY, S); paintRemote(); } return false; }
+  stampChanges();   // anything changed here but not saved yet gets its time first
+  seeTimes(r);
+  const next = mergeState(S, r), changed = !sameState(next, S);
+  if (changed) { S = next; PREV = JSON.parse(JSON.stringify(S)); ls.set(SKEY, S); paintRemote(); }
+  return !sameState(next, r);
+}
+// repaint after the tracker came in from another device
+function paintRemote(){
+  if (JSON.stringify(S.added) !== JSON.stringify(ADDED)) return addedChanged();   // items added on another device
+  paintRes(); paintCoins(); paintVitals(); try { paintChanges(); } catch(_){}
 }
 // Ctrl/⌘ + Enter in the composer adds the note
 document.addEventListener('keydown', e => {

@@ -174,7 +174,7 @@ document.addEventListener('click', e => {
     case 'reload': {
       document.querySelectorAll('.crest').forEach(c => c.classList.add('spin'));
       const go = () => { try { location.reload(); } catch(e) { render(); } };
-      if (DB && remoteTimer) { clearTimeout(remoteTimer); remoteTimer = null; DB.doc(PLAY_DOC).set(JSON.parse(JSON.stringify(S))).then(go, go); } else go();
+      if (DB && (remoteTimer || pushing)) pushPlay().then(go, go); else go();
       return;
     }
     // arrows (recover half the fired ones) and coins (§19)
