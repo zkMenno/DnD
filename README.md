@@ -7,6 +7,7 @@ One engine, two ways to run it:
 ## Layout
 - `src/` the engine: `head.html`, `theme.css`, `app.css`, `themes.js`, `classes.js` (class/species modules: numbers, trackers, damage riders),
   and `engine/` (the main script, one file per section, joined in name order by the build; the map is in `engine/00-header.js`)
+- `src/looks/` the looks players pick in ☰ → Theme (web app only), one file per look: colours, fonts, textures, words, dice (see below)
 - `src/legal.html` + `src/site.json`: the web app's Privacy & terms page (operator, contact, email provider filled in from site.json)
 - `packs/` per-character packs (`henry.js` is the full pirate pack; `bare.js` for everyone else)
 - `data/` synced D&D Beyond data for the claude.ai sheets, and `items.json` (SRD 5.2 items for ➕ Add item, built by `tools/items.py`)
@@ -14,7 +15,7 @@ One engine, two ways to run it:
   `sw.template.js` + `sw-register.js` (offline), `three.min.js` (r128) and `fonts/` (self-hosted: the app loads nothing from other sites, see Privacy & terms)
 - `server/` PocketBase: `pb_migrations/` (`1761000000_schema.js`: the whole schema, access rules and settings; later changes go in new files), `pb_hooks/` (security headers, D&D Beyond proxy with a 60 s cache, campaign + pack from the server, no-markup check on stored data, verify, email codes), `pocketbase-main.go` (PocketBase with JS hooks, and the sheet-link route: `/<username>/<id>` and `/<id>` get `sheet.html`; build with `go build`)
 - `Dockerfile`: the app image (see Deploy)
-- `tools/` `build.js`, `test.sh` (runs everything), `refresh.js` (fresh D&D Beyond data without resetting a tracker), `devserver.sh`, `apitest.py`, browser tests (`*.js`)
+- `tools/` `build.js`, `looks.js` (checks the looks, builds skins.css, the picker list, words and dice from them), `test.sh` (runs everything), `refresh.js` (fresh D&D Beyond data without resetting a tracker), `devserver.sh`, `apitest.py`, browser tests (`*.js`)
 
 ## Build and test
     node tools/build.js
@@ -23,6 +24,16 @@ One engine, two ways to run it:
     bash tools/test.sh web               # fresh local server: rules, web e2e (incl. CSP watch), move, headers + rate limits
     node tools/refresh.js henry henry.html 170557047   # pull fresh D&D Beyond data into data/henry.json
     bash tools/devserver.sh reset        # needs the pocketbase binary at /home/claude/pbbin/pocketbase
+
+## How to add a look (☰ → Theme)
+1. Copy a file in `src/looks/` to the next number with the new key (`08-<key>.js`; the key becomes `<html data-skin>`) and
+   change everything in it: label, emoji, swatch, light and dark colours, fonts, header line, texture, words, dice sets.
+   The fields are explained at the top of `tools/looks.js`.
+2. Draw its four floating symbols in `src/landing.html` (`<symbol id="g-<key>-0">` … `-3`) and give them slots in
+   `src/bgdice.html` (`class="bd bdg bdg-<key>"`; copy another look's six).
+3. New fonts: the files in `web/fonts/`, their `@font-face` in `web/fonts/fonts.css`, and the look's `fontFiles`.
+4. `node tools/build.js` (or `node tools/looks.js` for just the check): the build stops and lists anything still missing
+   (colour tokens, words, fonts, symbols, dice groups and sets).
 
 ## Deploy (shared server via AppInfra)
 The live app runs at **dungeontracker.com** (www.dungeontracker.com and dnd.menno.vg redirect there) on the shared Hetzner server, managed by **github.com/zkMenno/AppInfra** (one Docker

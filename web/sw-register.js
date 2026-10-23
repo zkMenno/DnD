@@ -6,15 +6,14 @@
 // A file of its own because the Content-Security-Policy allows no inline scripts.
 
 // ── Theme ──────────────────────────────────────────────────────────────────────────────────────────────────
-// Which look (data-skin: fantasy, space, woodland, gothic, underdark, icewind, avernus; none = pirate) and light/dark
-// (data-theme; none = follow the device). Stored in localStorage as dt-skin and dt-mode.
+// Which look (data-skin: a key from src/looks/, none = pirate) and light/dark (data-theme; none = follow the device).
+// Stored in localStorage as dt-skin and dt-mode.
 (function () {
   // get: localStorage read that returns null when storage is blocked
   const d = document.documentElement, get = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
-  // [key, name, emoji, swatch: dark background, accent, light background]
-  const SKINS = [['pirate', 'Pirate', '🏴‍☠️', '#0C141C', '#E2B04A', '#ECE2CC'], ['fantasy', 'Dragon Keep', '🏰', '#171B36', '#E9C766', '#F1EBDD'],
-    ['space', 'Starfarer', '🚀', '#0D1424', '#4FE0EE', '#E9EEF5'], ['woodland', 'Feywild', '🍃', '#132119', '#DCB867', '#E6ECD8'], ['gothic', 'Ravenloft', '🦇', '#161118', '#D9B26A', '#E9E4E2'],
-    ['underdark', 'Underdark', '🍄', '#0A0710', '#5EF0D2', '#E8E3EE'], ['icewind', 'Icewind', '❄️', '#08111A', '#9EDBFF', '#E8EFF3'], ['avernus', 'Avernus', '🔥', '#120806', '#FFB347', '#F0E4DA']];
+  // [key, name, emoji, swatch: dark background, accent, light background] per look, pirate first: filled in by
+  // tools/build.js from src/looks/*.js (tools/looks.js)
+  const SKINS = /*__LOOKS__*/[];
   // The front page (the one visitors see first) always wears the pirate look; only light/dark follows the choice.
   // index.js calls Skin.front(true/false) when it shows or leaves it; here we guess for the first paint.
   let front = location.pathname === '/' && (location.hash === '#front' || !get('pocketbase_auth'));

@@ -1,6 +1,6 @@
 /* ============================================================================
    ENGINE STYLES (src/app.css): every sheet's layout and components, theme-agnostic.
-   Colours, fonts and textures come from the tokens in src/theme.css (and src/skins.css in the web app). Inlined as
+   Colours, fonts and textures come from the tokens in src/theme.css (and the looks' skins.css in the web app, built from src/looks/). Inlined as
    <style id="css"> in the claude.ai sheets, served as /engine/app.css in the web app (web/sheet.css adds a little).
    Layout: sticky header (name, vitals tiles, tab strip) over the panels. Desktop (1040px+) mirrors D&D Beyond:
    abilities and saves | skills | the tabbed panel. Phones show one panel at a time.

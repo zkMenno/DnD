@@ -1,6 +1,6 @@
 /* ── Feedback dialog (web/feedback.js) ─────────────────────────────────────────────────────────────────── */
 /* The 🐞 Bug · 💡 Idea · 💬 Other dialog. Loaded by feedback.js the first time the dialog opens, on the home pages
-   and the sheet pages alike, so it only uses the theme tokens (src/theme.css, src/skins.css) and its own .fb* classes.
+   and the sheet pages alike, so it only uses the theme tokens (src/theme.css, and skins.css built from src/looks/) and its own .fb* classes.
    .show on .fbpop fades the backdrop in and lifts the card; the thank-you card reuses .fbcard with .fbtick-big. */
 
 /* ── Backdrop and card ─────────────────────────────────────────────────────────────────────────────────── */

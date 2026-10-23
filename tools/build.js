@@ -4,7 +4,8 @@
 //                 sheet.html, try.html, legal.html, home-dice.js and sw.js (everything else is copied from web/)
 // usage: node tools/build.js   (also run by tools/test.sh, the Dockerfile and tools/refresh.js)
 // Order matters at the end: cache-busting tags are added once every file is written, and sw.js comes last
-// because its version hash covers the finished pages. Run python3 tools/gen-skins.py first after changing a skin.
+// because its version hash covers the finished pages. The looks (☰ → Theme) come from src/looks/ via tools/looks.js,
+// which checks them first: the build stops if one is incomplete.
 const fs = require('fs'), path = require('path');
 // Reads a repo file (path relative to the repo root) as text.
 const R = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
@@ -38,17 +39,24 @@ function claudeDoc(s){
     + '<script id="themes">'+R('src/themes.js')+'</script>\n<script id="classes">'+R('src/classes.js')+'</script>\n'
     + '<script id="pack">'+pack+'</script>\n<script id="main">'+engine()+'</script>\n</body></html>';
 }
+// The looks, checked (throws with a list of what's missing): skins.css, the picker list, words and dice for the web app.
+const { build: buildLooks, inject } = require('./looks.js');
+const LOOKS = (() => { try { return buildLooks(path.join(__dirname, '..')); } catch (e) { console.error('❌ ' + e.message); process.exit(1); } })();
 const out = path.join(__dirname, '..', 'dist');
 fs.mkdirSync(out+'/claude', {recursive:true});
 for (const s of SHEETS) fs.writeFileSync(out+'/claude/'+s.out, claudeDoc(s));
 // ── Web app: engine, packs and static files ────────────────────────────────────────────────────────────────
 // Engine parts as files, plus packs; the shell pages live in web/ (sw.template.js is only the source of sw.js).
+// The web engine gets the looks filled in: skins.css (built), each look's dice (themes.js) and words (main.js).
 fs.mkdirSync(out+'/web/engine', {recursive:true}); fs.mkdirSync(out+'/web/packs', {recursive:true});
-for (const f of ['theme.css','skins.css','app.css','themes.js','classes.js']) fs.copyFileSync(path.join(__dirname,'..','src',f), out+'/web/engine/'+f);
-fs.writeFileSync(out+'/web/engine/main.js', engine());
+for (const f of ['theme.css','app.css','classes.js']) fs.copyFileSync(path.join(__dirname,'..','src',f), out+'/web/engine/'+f);
+fs.writeFileSync(out+'/web/engine/skins.css', LOOKS.css);
+fs.writeFileSync(out+'/web/engine/themes.js', inject(R('src/themes.js'), 'SKIN_DICE', LOOKS.dice, 'src/themes.js'));
+fs.writeFileSync(out+'/web/engine/main.js', inject(engine(), 'SKIN_WORDS', LOOKS.words, 'src/engine/02-boot.js'));
 fs.copyFileSync(path.join(__dirname,'..','data','items.json'), out+'/web/items.json');   // ➕ Add item list, fetched when opened
 for (const f of fs.readdirSync(path.join(__dirname,'..','packs'))) fs.copyFileSync(path.join(__dirname,'..','packs',f), out+'/web/packs/'+f);
 fs.cpSync(path.join(__dirname,'..','web'), out+'/web', { recursive: true, filter: f => !f.endsWith('sw.template.js') });   // incl. fonts/
+fs.writeFileSync(out+'/web/sw-register.js', inject(R('web/sw-register.js'), 'LOOKS', LOOKS.list, 'web/sw-register.js'));   // the theme picker's looks
 // ── Web app: pages ─────────────────────────────────────────────────────────────────────────────────────────
 // A web page's <head>: the same as the claude.ai sheets (reset, fonts), then engine CSS by link. Every path is
 // absolute: sheet.html is also served at /<username>/<D&D Beyond id> (server/pocketbase-main.go), where relative

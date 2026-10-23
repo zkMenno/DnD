@@ -31,7 +31,7 @@ COPY src ./src
 COPY packs ./packs
 COPY data ./data
 COPY web ./web
-COPY tools/build.js ./tools/build.js
+COPY tools/build.js tools/looks.js ./tools/
 RUN node tools/build.js
 
 # 3. runtime
