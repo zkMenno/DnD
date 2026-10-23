@@ -56,3 +56,5 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
   .trialin{flex-wrap:nowrap;padding:6px 6px 6px 12px}
   .trialin .btn{padding:6px 10px;font-size:.8rem}
 }
+/* try-out bar contrast: the gold leans towards the text's opposite (darker in light themes, lighter in dark ones) */
+.trialin{background:color-mix(in srgb,var(--brass) 80%,var(--ink))!important}

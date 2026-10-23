@@ -11,7 +11,7 @@
    ============================================================================ */
 /* ── Light (default) ───────────────────────────────────────────────────────────────────────────────────── */
 :root{
-  --bg:#ECE2CC; --surface:#F6EFDD; --raised:#FBF7EC; --ink:#2A2119; --muted:#6E5D47; --line:#D6C6A5;
+  --bg:#ECE2CC; --surface:#F6EFDD; --raised:#FBF7EC; --ink:#2A2119; --muted:#625140; --line:#D6C6A5;
   --rope:#B08F5E; --chart:#E4D7BA;
   --sea:#1E4E68; --sea-ink:#FBF7EC; --sea-soft:#D3E0E3; --brass:#94650F; --brass-soft:#F0DFB4;
   --hp:#8E2A22; --good:#2E6B3F; --aye:#2A6239; --warn:#9A5B00; --shadow:0 1px 2px rgba(60,40,15,.08),0 6px 18px rgba(60,40,15,.08);

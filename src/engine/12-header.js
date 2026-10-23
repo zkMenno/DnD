@@ -9,13 +9,13 @@
 
 // ── Vitals tiles ───────────────────────────────────────────────────────────────────────────────────────────
 // HP colour in 10% steps: deep red → red → orange → yellow → green
-const HP_STEPS = ['#4A0B0E','#6E1216','#961B1B','#B8301C','#D2521B','#E0761A','#E39A1F','#D9BC2A','#9DBB3A','#3F9446'];
+const HP_STEPS = ['#4A0B0E','#6E1216','#961B1B','#B8301C','#D2521B','#E0761A','#E39A1F','#D9BC2A','#9DBB3A','#2F7D3A'];
 // HP tile colours for the current HP percentage: {bg, fg}; near-black red at 0 HP, light text on the dark steps
 function hpColour(){
   const pct = D.hpMax ? S.hp / D.hpMax : 0;
   const i = Math.min(9, Math.max(0, Math.ceil(pct * 10) - 1));
   const bg = S.hp <= 0 ? '#2B0608' : HP_STEPS[i];
-  const dark = i <= 5 || S.hp <= 0 || i === 9;
+  const dark = i <= 3 || S.hp <= 0 || i === 9;   // light text on the dark steps; dark text on orange/yellow (contrast ≥ 4.5)
   return {bg, fg: dark ? '#FFF6E6' : '#2A1E0E'};
 }
 // small stroke icons for the stat tiles (insp is not used by a tile at the moment)

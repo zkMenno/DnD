@@ -1676,3 +1676,41 @@ a.menulink.homelink:hover{background:var(--brass);color:var(--bg)} a.menulink.ho
 .syncpart + .syncpart{border-top:1px solid var(--line);margin-top:10px}
 .syncpart .synch{margin:0 0 10px;font-size:1.1rem}
 .syncpart .synctab{margin-bottom:6px}
+
+/* ── Roll sheet: the Advantage / Normal / Disadvantage (and spell slot) choices ─────────────────────────────────
+   Filled buttons in the card's opposite colour (the card is var(--ink) with var(--bg) text, so these are var(--bg)
+   with var(--ink) text): readable on every theme's card, dark or parchment. The coloured words lean towards the
+   button's text colour so they keep contrast too; a coloured edge on the left says which is which. Overrides the
+   translucent options above. */
+.roll .atkopt{background:color-mix(in srgb,var(--bg) 90%,var(--ink));color:var(--ink);border:1.5px solid color-mix(in srgb,var(--ink) 22%,transparent);
+  border-left-width:5px;box-shadow:0 2px 0 rgba(0,0,0,.18)}
+.roll .atkopt span{opacity:.85}
+.roll .atkopt.adv{border-color:color-mix(in srgb,var(--roll-heal) 70%,var(--ink));background:color-mix(in srgb,var(--bg) 88%,var(--roll-heal))}
+.roll .atkopt.adv b{color:color-mix(in srgb,var(--roll-heal) 55%,var(--ink))}
+.roll .atkopt.dis{border-color:color-mix(in srgb,var(--roll-accent) 70%,var(--ink));background:color-mix(in srgb,var(--bg) 88%,var(--roll-accent))}
+.roll .atkopt.dis b{color:color-mix(in srgb,var(--roll-accent-ink) 55%,var(--ink))}
+.roll .atkopt.norm,.roll .atkopt.slotopt{border-color:color-mix(in srgb,var(--ink) 30%,transparent)}
+.roll .atkopt.last,.roll .atkopt.norm.last{background:color-mix(in srgb,var(--bg) 92%,var(--ink));border-color:var(--brass);border-width:2.5px;border-left-width:5px;box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 30%,transparent)}
+@media (hover:hover) and (pointer:fine){ .roll .atkopt:hover{filter:brightness(1.06)} }
+
+/* ── The ☰ menu and the rest box go above an open roll sheet ───────────────────────────────────────────────────
+   On phones they sit in the page under the header, where the fixed roll sheet (#dock, z-index 30) would cover them:
+   while one is open the roll sheet steps out of the way (it's still there, unchanged, when the menu closes). On
+   desktop they're fixed windows: lift them over the dock. */
+body:has(#menubox:not([hidden])) #dock,body:has(#restbox:not([hidden])) #dock{visibility:hidden}
+#restbox:not([hidden]),#menubox:not([hidden]){z-index:40}
+
+/* ── Contrast fixes (23 Oct audit, all 8 looks × light/dark) ────────────────────────────────────────────────────
+   The selected tab's text is the page colour, so it stays dark on the light pink tabs of the dark themes and light on
+   the dark red of the light ones. The ability score's little "score" label no longer fades. */
+.tab[aria-selected="true"]{color:var(--bg)}
+.ab .s small{opacity:1}
+.hptile .k,.hptile small{opacity:1}
+.hptile .v small{opacity:1}
+/* ☰ menu on phones: the confirm button stays in view at the bottom of the screen while you scroll the (long) dice
+   list; desktop already has its sticky footer inside the menu window (above) */
+@media not all and (min-width:1040px) and (pointer:fine){
+  #menubox .menufoot{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:3;margin:10px -6px 0!important;padding:10px 8px;
+    border-radius:14px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    box-shadow:0 -6px 18px -10px rgba(0,0,0,.45)}
+}
