@@ -82,7 +82,9 @@ let otpId = null, otpEmail = '', providers = null;
 // Draws the sign-in card. mode: 'signin', 'signup' (the password box offers "new account") or 'signup-pw' (opens
 // the password box). Redraws itself after a code is sent, to show the code box. Binds every button on the card.
 async function renderLogin(mode) {
-  $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(false); $('#who').innerHTML = '';
+  // signed out, the sign-in card wears the front page's (pirate) look like the landing page; your own look comes
+  // back once you're in (header() switches it)
+  $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(true); $('#who').innerHTML = '';
   if (location.hash !== '#signin') history.replaceState(null, '', '/#signin');
   if (providers === null) { try { const m = await pb.collection('users').listAuthMethods(); providers = (m.oauth2 && m.oauth2.enabled && m.oauth2.providers) || []; } catch (_) { providers = []; } }
   const pend = ss.get(PENDING);
