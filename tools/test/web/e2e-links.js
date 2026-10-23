@@ -25,30 +25,30 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const p = await page(); await signUp(p, 'linker');
   ok('a new account starts at step 1: add your character, with how to make it public', /Step 1 of 2/.test(await p.textContent('#add')) && /Character Privacy/.test(await p.textContent('#add')) && /Read-only/.test(await p.textContent('#add')));
   ok('…with a player-xxxxx name for now', /^@player-/.test(await p.textContent('#who span')));
-  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await p.waitForSelector('#ustep');
-  ok('step 2 asks for a username and previews the link', /\/165157421/.test(await p.textContent('#ustep .linkpreview')));
+  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/900000002'); await p.click('#add button'); await p.waitForSelector('#ustep');
+  ok('step 2 asks for a username and previews the link', /\/900000002/.test(await p.textContent('#ustep .linkpreview')));
   await p.fill('#ustep input[name=u]', 'admin'); await p.click('#ustep button[value=go]'); await p.waitForTimeout(800);
   ok('a reserved name is refused, in words', /taken/.test(await p.textContent('#msg')));
   await p.fill('#ustep input[name=u]', 'Menno-Test'); await p.click('#ustep button[value=go]');
-  ok('then the sheet opens at /<username>/<D&D Beyond id> (lowercased)', (await sheet(p)) === '/menno-test/165157421');
-  await p.goto(B + '/170557047'); ok('/<D&D Beyond id> adds and opens your own copy', (await sheet(p)) === '/menno-test/170557047' && (await p.title()) === 'Henry Gibbs');
+  ok('then the sheet opens at /<username>/<D&D Beyond id> (lowercased)', (await sheet(p)) === '/menno-test/900000002');
+  await p.goto(B + '/900000001'); ok('/<D&D Beyond id> adds and opens your own copy', (await sheet(p)) === '/menno-test/900000001' && (await p.title()) === 'Corwin Tidewell');
 
   // A new username: the character links follow it, the old address says the sheet isn't here.
   await p.goto(B + '/'); await p.waitForSelector('#mine .ch'); await rename(p, 'menno-two'); await p.click('[data-hometab=chars]'); await p.waitForSelector('#mine .ch');
-  ok('your characters follow a new username', await p.evaluate(() => [...document.querySelectorAll('#mine a.open')].map(a => a.getAttribute('href')).sort().join() === '/menno-two/165157421,/menno-two/170557047'));
-  await p.goto(B + '/menno-two/165157421'); ok('the new address opens the sheet', (await sheet(p)) === '/menno-two/165157421');
-  await p.goto(B + '/menno-test/165157421'); await p.waitForFunction(() => /isn’t here/.test((document.querySelector('.boot') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
+  ok('your characters follow a new username', await p.evaluate(() => [...document.querySelectorAll('#mine a.open')].map(a => a.getAttribute('href')).sort().join() === '/menno-two/900000001,/menno-two/900000002'));
+  await p.goto(B + '/menno-two/900000002'); ok('the new address opens the sheet', (await sheet(p)) === '/menno-two/900000002');
+  await p.goto(B + '/menno-test/900000002'); await p.waitForFunction(() => /isn’t here/.test((document.querySelector('.boot') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
   ok('the old address shows "not here"', /isn’t here/.test(await p.textContent('.boot')));
 
   // front page → paste a link → sign up → the character is added straight away
-  const r = await page(); await r.goto(B + '/'); await r.fill('#ql-url', 'https://www.dndbeyond.com/characters/170557047/abc'); await r.click('#quicklink button');
+  const r = await page(); await r.goto(B + '/'); await r.fill('#ql-url', 'https://www.dndbeyond.com/characters/900000001/abc'); await r.click('#quicklink button');
   await r.waitForSelector('#login'); ok('a pasted link carries over to sign-in', /add your character straight away/.test(await r.textContent('#login')));
   await r.evaluate(() => { document.querySelector('.pwbox').open = true; }); await r.fill('input[name=email]', 'pender@example.test'); await r.fill('input[name=password]', 'Passw0rd-pender'); await r.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await r.click('#pwgo');
   await r.waitForSelector('#ustep'); await r.click('#ustep button[value=go]');
-  ok('…and the character is there after signing up', /^\/player-[a-z0-9]{5}\/170557047$/.test(await sheet(r)));
+  ok('…and the character is there after signing up', /^\/player-[a-z0-9]{5}\/900000001$/.test(await sheet(r)));
   // someone else opening a private sheet's link gets "isn't here"
   const q = await page(); await signUp(q, 'stranger');
-  await q.goto(B + '/menno-two/165157421'); await q.waitForSelector('.boot');
+  await q.goto(B + '/menno-two/900000002'); await q.waitForSelector('.boot');
   ok('someone else gets nothing from a private sheet\'s link', /isn’t here/.test(await q.textContent('.boot')));
   { const bad = errs.filter(e => !/404|Failed to load resource/.test(e)); ok('no page errors or CSP blocks' + (bad.length ? ': ' + JSON.stringify(bad) : ''), !bad.length); }
   await b.close();

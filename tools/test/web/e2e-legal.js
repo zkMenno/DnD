@@ -22,11 +22,11 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   ok('it names the EU hosting and the SRD 5.2 licence', /Falkenstein, Germany/.test(await p.textContent('.legal')) && /Creative\s+Commons Attribution 4\.0/.test(await p.textContent('.legal')));
   ok('every {{placeholder}} is filled in', !/\{\{/.test(await p.content()));
 
-  // Sign up, add Wick, write a note; the sheet menu links home, and nothing was loaded from another site.
+  // Sign up, add Pip, write a note; the sheet menu links home, and nothing was loaded from another site.
   await p.goto(B + '/'); ok('the home page links to it', !!(await p.$('footer a[href="/legal.html"]')));
   await p.click('.hero .btn.cta'); await p.fill('input[name=email]', 'leaver@example.test'); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'Passw0rd-leaver');
   await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await p.click('#pwgo'); await p.waitForSelector('#add');
-  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await watch.onboard(p);
+  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/900000002'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved);
   await p.evaluate(() => notesStore.add({ text: 'A note to take home', kind: 'story', done: false, at: Date.now(), session: 1 })); await p.waitForTimeout(1200);
   await p.evaluate(() => { menuOpen = true; paintMenu(); });

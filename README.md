@@ -28,8 +28,11 @@ One engine, two ways to run it:
     DDB_FIXTURES=tools/test/fixtures/ddb PB_BIN=/path/to/pocketbase bash tools/test.sh web   # what CI runs
 Paths and ports are environment variables with this machine's values as defaults (PB_BIN, APP_DIR, PB_WORK, PB_PORT,
 CHROMIUM, OUT, MAILSINK, MAILSINK_PORT: see the top of `tools/devserver.sh` and `tools/test.sh`). The fixtures are raw
-D&D Beyond answers for the characters the tests use (170557047, 165157421, 172559988); to refresh one:
-`curl -s "https://character-service.dndbeyond.com/character/v5/character/<id>?includeCustomItems=true" > tools/test/fixtures/ddb/<id>.json`.
+D&D Beyond answers for the characters the tests use: AppTester-01 (172559988), refreshed with
+`curl -s "https://character-service.dndbeyond.com/character/v5/character/<id>?includeCustomItems=true" > tools/test/fixtures/ddb/<id>.json`;
+the invented Corwin Tidewell (900000001) and Pip Mossbottom (900000002) in the invented campaign Saltreach Crossing
+(hand-made from real answers' structure, every name, id and player text made up: edit them, don't refresh them); and
+170557047, a name-only stub so the server rules test can check that id gets its own pack.
 
 ## How to add a look (☰ → Theme)
 1. Copy a file in `src/looks/` to the next number with the new key (`08-<key>.js`; the key becomes `<html data-skin>`) and

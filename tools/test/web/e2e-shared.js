@@ -22,17 +22,17 @@ const api = async (path, opt={}) => (await fetch(B+path, {...opt, headers:{'cont
     await p.fill('#add input[name=url]', link); await p.click('#add button'); await watch.onboard(p); await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals'); await p.waitForTimeout(800);
     p.cid = await p.evaluate(() => window.SHEET.character.id); p.path = new URL(p.url()).pathname; return p;
   };
-  const a = await player('viewer'+t+'@example.test', 'https://www.dndbeyond.com/characters/165157421');   // Wick
-  const h = await player('owner'+t+'@example.test', 'https://www.dndbeyond.com/characters/170557047');    // Henry
-  // both verified by the superuser; Henry's owner shares him with the party and sets HP 30
+  const a = await player('viewer'+t+'@example.test', 'https://www.dndbeyond.com/characters/900000002');   // Pip
+  const h = await player('owner'+t+'@example.test', 'https://www.dndbeyond.com/characters/900000001');    // Corwin
+  // both verified by the superuser; Corwin's owner shares him with the party and sets HP 30
   for (const p of [a, h]) await api('/api/collections/characters/records/'+p.cid, {method:'PATCH', headers:{Authorization: su}, body: JSON.stringify({verified:true})});
   const htok = await h.evaluate(() => window.SHEET.pb.authStore.token);
   await api('/api/collections/characters/records/'+h.cid, {method:'PATCH', headers:{Authorization: htok}, body: JSON.stringify({visibility:'party'})});
   await h.evaluate(() => { S.hp = 30; save(); }); await h.waitForTimeout(1500);   // the owner's tracker, saved to the server
 
-  // the viewer finds Henry under "Shared with you" and opens it
+  // the viewer finds Corwin under "Shared with you" and opens it
   await a.goto(B+'/'); await a.click('[data-hometab=party]'); await a.waitForSelector('#shared .ch a.open');
-  ok('Henry is listed under Shared with you', !!(await a.$('#shared a.open[href="'+h.path+'"]')));
+  ok('Corwin is listed under Shared with you', !!(await a.$('#shared a.open[href="'+h.path+'"]')));
   await a.click('#shared a.open[href="'+h.path+'"]'); await a.waitForSelector('#vitals'); await a.waitForTimeout(1500);
   ok('opens read-only with a banner', await a.evaluate(() => VIEW && !!document.querySelector('.viewbar') && document.body.classList.contains('viewonly')));
   ok('shows the owner\'s live HP (30)', await a.evaluate(() => S.hp) === 30, await a.evaluate(() => S.hp));
@@ -43,7 +43,7 @@ const api = async (path, opt={}) => (await fetch(B+path, {...opt, headers:{'cont
   const pip = await a.$('#res .pip'); if (pip) await pip.click();
   await a.waitForTimeout(300);
   ok('tapping a tracker changes nothing and says why', await a.evaluate(b => JSON.stringify(S) === b && !document.querySelector('#viewnote').hidden, before));
-  ok('nothing of it is kept on the viewer\'s device', await a.evaluate(() => !Object.keys(localStorage).some(k => /-play-170557047$/.test(k))));
+  ok('nothing of it is kept on the viewer\'s device', await a.evaluate(() => !Object.keys(localStorage).some(k => /-play-900000001$/.test(k))));
   // the owner changes HP: the viewer sees it without reloading
   await h.evaluate(() => { S.hp = 12; save(); }); await h.waitForTimeout(2500);
   ok('owner\'s change shows up live (12)', await a.evaluate(() => S.hp) === 12, await a.evaluate(() => S.hp));

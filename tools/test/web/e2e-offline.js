@@ -11,9 +11,9 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const b = await chromium.launch({ executablePath: watch.CHROMIUM });
   const ctx = await b.newContext({ viewport:{width:390, height:844} }); const p = await ctx.newPage(); p.setDefaultTimeout(30000);
   p.errs = []; watch(p, p.errs);
-  // Online first: sign up, add Wick, open the home list and the sheet so the service worker saves both.
+  // Online first: sign up, add Pip, open the home list and the sheet so the service worker saves both.
   await p.goto(B+'/#signin'); await p.fill('input[name=email]', 'off'+Date.now()+'@example.test'); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'Passw0rd-x1'); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await p.click('#pwgo'); await p.waitForSelector('#add');
-  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await watch.onboard(p); await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals');
+  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/900000002'); await p.click('#add button'); await watch.onboard(p); await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals');
   const url = p.url(), cid = await p.evaluate(() => window.SHEET.character.id), path = new URL(url).pathname;
   await p.goto(B+'/'); await p.waitForSelector('#mine .ch a.open');   // the home list, seen once online
   await p.goto(url); await p.waitForSelector('#vitals');   // opened twice online: the saved copy has the synced data

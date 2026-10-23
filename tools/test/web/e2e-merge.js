@@ -1,4 +1,4 @@
-// Two devices, one tracker: the same player has Wick open on two phones and each changes something different. Both
+// Two devices, one tracker: the same player has Pip open on two phones and each changes something different. Both
 // changes must survive, on both phones and on the server, instead of the later save wiping the other (the tracker
 // is merged field by field: src/engine/03-play-state.js mergeState, 17-dialog-and-notes.js takeRemote).
 // Checks: two different trackers changed at the same moment (both saves race), two entries in one counter map
@@ -12,11 +12,11 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   // Prints PASS/FAIL for one check (with the detail on a failure) and marks the run failed if it didn't pass.
   const ok = (n, c, d) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n + (c || d === undefined ? '' : '  → '+JSON.stringify(d))); };
   const b = await chromium.launch({ executablePath: watch.CHROMIUM });
-  // Phone A: sign up, add Wick, open the sheet.
+  // Phone A: sign up, add Pip, open the sheet.
   const ctxA = await b.newContext({ viewport:{width:390, height:844} }); const a = await ctxA.newPage(); a.setDefaultTimeout(30000);
   a.errs = []; watch(a, a.errs);
   await a.goto(B+'/#signin'); await a.fill('input[name=email]', 'merge'+Date.now()+'@example.test'); await a.evaluate(() => { document.querySelector('.pwbox').open = true; }); await a.fill('input[name=password]', 'Passw0rd-x1'); await a.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await a.click('#pwgo'); await a.waitForSelector('#add');
-  await a.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await a.click('#add button'); await watch.onboard(a); await a.waitForURL(/\/[a-z0-9-]+\/\d+$/); await a.waitForSelector('#vitals');
+  await a.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/900000002'); await a.click('#add button'); await watch.onboard(a); await a.waitForURL(/\/[a-z0-9-]+\/\d+$/); await a.waitForSelector('#vitals');
   await a.evaluate(() => window.SHEET.saved); await a.waitForTimeout(1500);   // the first tracker is stored
   const url = a.url(), cid = await a.evaluate(() => window.SHEET.character.id);
   // Phone B: the same account (only the saved login is copied: B has no tracker of its own yet), same sheet.
@@ -27,7 +27,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   await p.goto(url); await p.waitForSelector('#vitals'); await p.waitForTimeout(1500);   // B has the stored tracker and its live updates
   // two trackers: a resource with room to spend twice (k1) and temporary HP (k2); two items for the spent map
   const pick = await a.evaluate(() => ({ res: RES.filter(r => r.max > 1 && typeof S[r.key] === 'number').map(r => r.key), hp: S.hp, items: [ARROW_N, 'Potion of Healing'] }));
-  ok('Wick has a tracker to change', pick.res.length >= 1, pick.res);
+  ok('Pip has a tracker to change', pick.res.length >= 1, pick.res);
   const [k1] = pick.res, k2 = 'temp', [i1, i2] = pick.items;
   const tok = await a.evaluate(() => window.SHEET.pb.authStore.token);
   // the tracker as the server has it now

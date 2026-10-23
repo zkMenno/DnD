@@ -20,9 +20,9 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = watch.MAIL;
   const p = await (await b.newContext({ viewport:{width:390, height:844} })).newPage(); p.setDefaultTimeout(15000);
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const email = 'acct'+Date.now()+'@example.test', email2 = 'new'+Date.now()+'@example.test';
-  // Sign up with a password and add Henry, then open Account on the home page.
+  // Sign up with a password and add Corwin, then open Account on the home page.
   await p.goto(B + '/#signin'); await p.fill('input[name=email]', email); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'First-pass-123'); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await p.click('#pwgo');
-  await p.waitForSelector('#add'); await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/170557047'); await p.click('#add button'); await watch.onboard(p);
+  await p.waitForSelector('#add'); await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/900000001'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForSelector('#vitals'); await p.goto(B + '/'); await p.click('[data-hometab=account]'); await p.waitForSelector('#secem');
   // change email: wrong code refused, right code changes it
   await p.click('#secem'); await p.fill('#newemail', email2); await p.click('#emsend'); await p.waitForSelector('#emcode');
@@ -50,7 +50,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = watch.MAIL;
   await q.fill('input[name=code]', c3); await q.click('button[value=otp]'); await q.waitForSelector('#add');
   const u3 = await (await fetch(B+'/api/collections/users/records?filter='+encodeURIComponent('email="'+email3+'"'), { headers:{ Authorization: su.token } })).json();
   ok('the code sign-in time is kept in the database (survives a restart)', !!(u3.items[0] && u3.items[0].otp_at));
-  await q.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/170557047'); await q.click('#add button'); await watch.onboard(q); await q.waitForSelector('#vitals');
+  await q.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/900000001'); await q.click('#add button'); await watch.onboard(q); await q.waitForSelector('#vitals');
   await q.goto(B + '/'); await q.waitForSelector('#firstpw');
   await q.fill('#firstpw', 'Third-pass-789'); await q.fill('#firstpw2', 'Third-pass-789'); await q.click('#firstpwok'); await q.waitForSelector('#donepop.show');
   ok('a ✓ pop-up confirms the saved password', /Password saved/.test(await q.textContent('#donepop')));

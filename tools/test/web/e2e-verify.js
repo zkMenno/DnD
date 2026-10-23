@@ -11,10 +11,10 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   const b = await chromium.launch({ executablePath: watch.CHROMIUM }), errs = [];
   const p = await (await b.newContext({ viewport: { width: 390, height: 900 }, colorScheme: 'dark' })).newPage(); watch(p, errs); p.setDefaultTimeout(30000);
-  // sign up and add Henry
+  // sign up and add Corwin
   await p.goto(B + '/#signin'); await p.fill('input[name=email]', 'verifier@example.test'); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'Passw0rd-verifier');
   await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await p.click('#pwgo'); await p.waitForSelector('#add');
-  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/170557047'); await p.click('#add button'); await watch.onboard(p);
+  await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/900000001'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved);
   const cid = await p.evaluate(() => window.SHEET.character.id);
   await p.goto(B + '/'); await p.waitForSelector('[data-claim]');

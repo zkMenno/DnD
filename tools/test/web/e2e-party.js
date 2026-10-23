@@ -1,4 +1,4 @@
-// Party log end to end: two players in The Bluff, both verified (superuser stands in for the D&D Beyond code check).
+// Party log end to end: two players in Saltreach Crossing, both verified (superuser stands in for the D&D Beyond code check).
 // A party note is seen, signed, by the other player, a private note isn't, others' party notes can't be edited,
 // and replies show up live.
 // Run: node tools/test/web/e2e-party.js [server URL], or as part of bash tools/test.sh web. Default server:
@@ -23,8 +23,8 @@ const api = async (path, opt={}) => { const r = await fetch(B+path, {...opt, hea
     await p.evaluate(() => window.SHEET.saved);   // the first save must land before the admin verifies (no lost update)
     p.cid = await p.evaluate(() => window.SHEET.character.id); return p;
   };
-  const a = await player('ann@example.test', 'https://www.dndbeyond.com/characters/165157421');   // Wick
-  const h = await player('hal@example.test', 'https://www.dndbeyond.com/characters/170557047');   // Henry
+  const a = await player('ann@example.test', 'https://www.dndbeyond.com/characters/900000002');   // Pip
+  const h = await player('hal@example.test', 'https://www.dndbeyond.com/characters/900000001');   // Corwin
   // the superuser marks both verified; both reload and open Notes
   for (const p of [a, h]) await api('/api/collections/characters/records/'+p.cid, {method:'PATCH', headers:{Authorization: su}, body: JSON.stringify({verified:true})});
   for (const p of [a, h]) { await p.reload(); await p.waitForSelector('#vitals'); await p.waitForTimeout(800); await p.evaluate(() => showTab('notes')); await p.waitForTimeout(400); }
@@ -32,15 +32,15 @@ const api = async (path, opt={}) => { const r = await fetch(B+path, {...opt, hea
   await a.click('[data-act="notescope"][data-k="party"]'); await a.waitForTimeout(800);
   await a.fill('#note-text', 'Party: the harbourmaster owes us 20 gp'); await a.click('[data-act="addnote"]'); await a.waitForTimeout(1500);
   await a.click('[data-act="notescope"][data-k="own"]'); await a.waitForTimeout(800);
-  await a.fill('#note-text', 'Private: I don\'t trust Henry'); await a.click('[data-act="addnote"]'); await a.waitForTimeout(1500);
+  await a.fill('#note-text', 'Private: I don\'t trust Corwin'); await a.click('[data-act="addnote"]'); await a.waitForTimeout(1500);
   await h.click('[data-act="notescope"][data-k="party"]'); await h.waitForTimeout(2000);
   const hp = await h.textContent('#notelist');
-  ok('Henry\'s player sees the party note, signed by Wick', /harbourmaster owes us/.test(hp) && /Wick Softtoppoms/.test(hp));
-  ok('…but not Wick\'s private note', !/trust Henry/.test(hp));
-  ok('…and can\'t edit or delete Wick\'s party note', !(await h.$('#notelist [data-act="noteedit"]')));
-  await h.fill('#note-text', 'Henry: bought rope'); await h.click('[data-act="addnote"]'); await h.waitForTimeout(2500);
+  ok('Corwin\'s player sees the party note, signed by Pip', /harbourmaster owes us/.test(hp) && /Pip Mossbottom/.test(hp));
+  ok('…but not Pip\'s private note', !/trust Corwin/.test(hp));
+  ok('…and can\'t edit or delete Pip\'s party note', !(await h.$('#notelist [data-act="noteedit"]')));
+  await h.fill('#note-text', 'Corwin: bought rope'); await h.click('[data-act="addnote"]'); await h.waitForTimeout(2500);
   await a.click('[data-act="notescope"][data-k="party"]'); await a.waitForTimeout(1500);
-  ok('Wick\'s player sees Henry\'s reply live', /bought rope/.test(await a.textContent('#notelist')));
+  ok('Pip\'s player sees Corwin\'s reply live', /bought rope/.test(await a.textContent('#notelist')));
   await a.screenshot({path: watch.shot('partylog.png')});
   { const bad = [a.errs, h.errs].flat(); ok('no page errors or CSP blocks' + (bad.length ? ': ' + JSON.stringify(bad) : ''), !bad.length); } await b.close();
 })();
