@@ -85,19 +85,13 @@ jobs:
           fi
       # ── dnd web tests (WEB_TESTS): PocketBase from source, Chromium, the fake mail server, then tools/test.sh web ──
       # Go version from server/go.mod (as the Dockerfile's golang image); module + build cache keyed on go.sum.
-      - if: env.WEB_TESTS == 'true'
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with: { go-version-file: server/go.mod, cache-dependency-path: server/go.sum }
       - name: PocketBase (from server/, like the Dockerfile)
         if: env.WEB_TESTS == 'true'
         working-directory: server
-        run: CGO_ENABLED=0 go build -trimpath -o "$RUNNER_TEMP/pocketbase" . && "$RUNNER_TEMP/pocketbase" --version
-      # Playwright's Chromium, cached per Playwright version (package-lock.json); --with-deps adds its system libraries.
-      - if: env.WEB_TESTS == 'true'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+        # the runner's own Go (only actions from the AppInfra template are allowed); GOTOOLCHAIN=auto fetches the
+        # version server/go.mod asks for if the runner's is older
+        run: GOTOOLCHAIN=auto CGO_ENABLED=0 GOFLAGS=-mod=mod go build -trimpath -o "$RUNNER_TEMP/pocketbase" . && "$RUNNER_TEMP/pocketbase" --version
+      # Playwright's Chromium; --with-deps adds its system libraries.
       - name: Chromium for Playwright
         if: env.WEB_TESTS == 'true'
         run: |
@@ -124,15 +118,9 @@ jobs:
           HTTPS_PROXY: http://127.0.0.1:9
           https_proxy: http://127.0.0.1:9
         run: bash tools/test.sh web
-      - name: Screenshots and server log (on failure)
+      - name: Server log (on failure)
         if: failure() && env.WEB_TESTS == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: web-tests
-          path: |
-            ${{ runner.temp }}/sheet-tests
-            ${{ runner.temp }}/pb.log
-          retention-days: 7
+        run: tail -n 200 "$RUNNER_TEMP/pb.log" || true
       # the worker's queue and job tests against the same PostGIS (WhiteboxTools tests run in the image's test stage)
       - if: env.WORKER_CONTEXT != ''
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0

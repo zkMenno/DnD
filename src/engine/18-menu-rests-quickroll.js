@@ -477,7 +477,8 @@ function rollHitDie(cls){
     + (veil ? '' : '<div class="ln"><span class="lb">Hit points</span>'+from+' → <b>'+S.hp+'</b> / '+D.hpMax+'</div>') + '</div>'
     + (veil ? '' : '<div class="nextrow">'+(hdLeft(h) ? '<button class="btn" data-act="hdroll" data-cls="'+esc(cls)+'">🎲 Roll another</button>' : '')+'<button class="btn done" data-act="close">'+WORD.ok+'</button></div>');
   showRoll(card(true), false, 'next');
-  afterSheet(() => fx('rest', () => {
+  // the same healing animation as potions and healing spells (the tent one if the die heals nothing)
+  afterSheet(() => fx(heal > 0 ? 'heal' : 'rest', () => {
     hdBusy = false;
     S.hd[cls] = (S.hd[cls]||0) + 1; restSpent[cls] = (restSpent[cls]||0) + 1; S.hp = Math.min(D.hpMax, S.hp + heal);
     restLog.push(cls+' '+h.die+': rolled '+v+' '+sgn(con)+' → +'+heal+' HP');
