@@ -155,7 +155,7 @@ function previewDiceSet(k){
 // After a new player's first 3D throw (with the random set they were given): a small note offering the dice picker,
 // once per device. It goes away by itself after 15 s.
 function dicePromptMaybe(){
-  if (!ui.diceAuto || ui.dicePrompted || VIEW) return;
+  if (!ui.diceAuto || ui.dicePrompted || VIEW || (window.SHEET && window.SHEET.rec)) return;   // not while recording (try.html?rec=1)
   ui.dicePrompted = true; saveUi();
   const s = DICE_SETS[ui.dice] || {}, el = document.createElement('div'); el.className = 'diceask'; el.setAttribute('role', 'status');
   el.innerHTML = '<span>🎲 You just rolled the <b>'+esc(s.name||'')+'</b> dice. Fancy a different set?</span>'

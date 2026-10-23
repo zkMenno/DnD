@@ -152,9 +152,9 @@ function stamp(W) {
     if (fs.statSync(path.join(W, rel)).isDirectory()) walk(rel); else files.push(rel); });
   walk(''); files.sort();
   // 1. the map of script-loaded files
-  const DYNAMIC = /^(?:engine\/[^/]+\.js|packs\/[^/]+\.js|trial\/[^/]+\.json|items\.json|feedback\.css|icons\.svg)$/, MARK = /\/\*__ASSET_V__\*\/\{[^}]*\}/;
+  const DYNAMIC = /^(?:engine\/[^/]+\.js|packs\/[^/]+\.js|trial\/[^/]+\.json|items\.json|feedback\.css|icons\.svg|admin\.(?:js|css))$/, MARK = /\/\*__ASSET_V__\*\/\{[^}]*\}/;
   const map = {}; files.filter(f => DYNAMIC.test(f)).forEach(f => { map['/' + f] = hashOf(f); });
-  for (const f of ['sheet-boot.js', 'try-boot.js', 'feedback.js', 'icons.js']) { const src = fs.readFileSync(path.join(W, f), 'utf8');
+  for (const f of ['sheet-boot.js', 'try-boot.js', 'feedback.js', 'icons.js', 'index.js']) { const src = fs.readFileSync(path.join(W, f), 'utf8');
     if (!MARK.test(src)) throw new Error(f + ': the ASSET_V marker is missing (tools/build.js fills in the map after it)');
     fs.writeFileSync(path.join(W, f), src.replace(MARK, '/*__ASSET_V__*/' + JSON.stringify(map))); }
   // 2. the pages' tags (a file that isn't there stops the build)

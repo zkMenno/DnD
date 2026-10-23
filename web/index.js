@@ -300,11 +300,33 @@ async function renderHome() {
   document.querySelectorAll('[data-hometab]').forEach(b => b.onclick = () => showTab(b.dataset.hometab));
   let last = 'chars'; try { last = localStorage.getItem('home-tab') || 'chars'; } catch (_) {}
   showTab(TABS.some(t => t[0] === last) ? last : 'chars');
+  adminTab(showTab, last);
   pwPrompt(me);
   $('#add').addEventListener('submit', addCharacter); $('#uname').addEventListener('submit', saveName);
   { const u = $('#uname [name=u]'); u.addEventListener('input', () => { $('#unpv').textContent = u.value.trim().toLowerCase() || 'name'; }); }   // the example link follows what you type
   bindSec(); bindLooks(); $('#export').onclick = exportData; $('#delacct').onclick = askDelete; bindInvite();
   await loadLists();
+}
+
+// ── Site admin tab (the owner only) ────────────────────────────────────────────────────────────────────────
+// Asks the server whether this account is an admin (users.admin, ticked in the PocketBase dashboard); if so, adds a
+// 🛡️ Site admin tab and loads web/admin.js into it. Everything in that tab stays locked until an emailed code
+// (server/pb_hooks/admin.pb.js). For everyone else this is one quiet request and nothing shows.
+const ASSET_V = /*__ASSET_V__*/{};
+const withV = p => ASSET_V[p] ? p + '?v=' + ASSET_V[p] : p;
+async function adminTab(showTab, last){
+  let ok = false; try { ok = (await pb.send('/api/admin/me', {})).admin === true; } catch (_) {}
+  if (!ok || document.querySelector('[data-hometab=admin]')) return;
+  const nav = document.querySelector('.hometabs'), main = $('#main'); if (!nav || !main) return;
+  const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.hometab = 'admin';
+  b.innerHTML = '<span aria-hidden="true">🛡️</span> Site admin'; b.onclick = () => showTab('admin'); nav.appendChild(b);
+  const t = document.createElement('div'); t.className = 'htab'; t.dataset.tab = 'admin'; t.hidden = true; t.innerHTML = '<section class="card"><p class="muted">Loading…</p></section>'; main.appendChild(t);
+  if (last === 'admin') showTab('admin');
+  try {
+    if (!document.querySelector('link[data-admin-css]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = withV('/admin.css'); l.dataset.adminCss = ''; document.head.appendChild(l); }
+    await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = withV('/admin.js'); sc.onload = res; sc.onerror = rej; document.body.appendChild(sc); });
+    window.SiteAdmin.mount(t, pb);
+  } catch (_) { t.innerHTML = '<section class="card"><p>Couldn’t load Site admin. Reload to try again.</p></section>'; }
 }
 
 // ── Characters tab: invite, last sheet, username ───────────────────────────────────────────────────────────

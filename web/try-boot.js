@@ -15,8 +15,14 @@ window.withV = withV;
 (async () => {
   const app = document.getElementById('app');
   const TRIALS = { brute: 'trial-brute', mage: 'trial-mage' };
-  const key = new URLSearchParams(location.search).get('c'), T = TRIALS[key];
+  const q = new URLSearchParams(location.search), key = q.get('c'), T = TRIALS[key];
   if (!T) { location.replace('/'); return; }
+  // Recording mode (Site admin → Record, web/admin.js): ?rec=1 leaves out the try-out bar, the feedback buttons, the
+  // ↕ Sections button and the dice-set offer; &fresh=1 also forgets this character's tracker, notes and screen
+  // state on this device first, so every take starts the same.
+  const rec = q.get('rec') === '1';
+  if (rec && q.get('fresh') === '1') { try { Object.keys(localStorage).filter(k => k.indexOf(T) >= 0).forEach(k => localStorage.removeItem(k)); } catch (_) {} }
+  if (rec) document.documentElement.classList.add('rec');
   // replace the loading card with a message (HTML) and a way back
   const tfail = m => { app.innerHTML = '<div class="boot"><p>' + m + '</p><p><a href="/">← Dungeon Tracker</a></p></div>'; };
   let data;
@@ -28,13 +34,13 @@ window.withV = withV;
   document.title = data.name + ' · Try Dungeon Tracker';
   // the engine reads this like the real web app's window.SHEET; pull explains there's nothing to sync
   window.SHEET = {
-    trial: true, mine: true, partyLog: false, character: { id: T },
+    trial: true, rec, mine: true, partyLog: false, character: { id: T },
     async pull() { throw new Error('This is a try-out character. Import your own from D&amp;D Beyond to sync it.'); },
   };
-  const bar = document.createElement('div'); bar.className = 'trialbar wrap';
+  if (!rec) { const bar = document.createElement('div'); bar.className = 'trialbar wrap';
   bar.innerHTML = '<div class="trialin"><span class="trialtxt">🎲 <b>Try-out character sheet.</b> Tap around: your changes stay on this device.</span>'
     + '<span class="trialshort" title="Your changes stay on this device">🎲 <b>Try-out sheet</b></span><a class="btn" href="/#signin">Use my own character →</a></div>';
-  document.body.insertBefore(bar, app);
+  document.body.insertBefore(bar, app); }
   // a script that doesn't load (bad connection, a deploy mid-way) or an engine that stops before drawing the sheet:
   // say so with a way out, instead of leaving "Opening your sheet…" up forever
   const stuck = () => { if (app.querySelector('.boot')) tfail('Couldn’t open the sheet. <a href="">Try again</a>'); };

@@ -1,0 +1,28 @@
+/* Site admin tab (web/admin.js), loaded only for the site owner. Uses the home page's cards, buttons and tokens
+   (web/home.css, src/theme.css); this adds the code box, number tiles, feedback inbox and link tiles. */
+.admlock .row,.admcode .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.admcode input{width:10ch;font-size:1.3rem;letter-spacing:.3em;text-align:center}
+.admerr{color:var(--hp);min-height:1.2em;margin:8px 0 0}
+.admhead .cardhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+/* numbers: a grid of tiles */
+.admnums{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.admnum{display:grid;gap:2px;padding:10px 12px;border-radius:12px;background:var(--raised);border:1px solid var(--line)}
+.admnum b{font-size:1.5rem;line-height:1.1}
+.admnum span{font-size:.85rem;color:var(--muted)}
+/* recording: one row per try-out character */
+.admrec{display:grid;gap:10px;margin:10px 0}
+.admrecr{display:grid;gap:10px;padding:10px 12px;border-radius:12px;background:var(--raised);border:1px solid var(--line)}
+.admrecr > div:first-child{display:grid;gap:2px}
+.admrecr .row{display:flex;gap:8px;flex-wrap:wrap}
+.admtips{margin:8px 0 0;padding-left:18px;display:grid;gap:4px}
+/* feedback inbox */
+.admfbi{padding:10px 0;border-top:1px solid var(--line)}
+.admfbi:first-child{border-top:0;padding-top:0}
+.admfbh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.admfbh .btn{margin-left:auto}
+.admfbt{margin:6px 0 2px;white-space:pre-wrap;overflow-wrap:anywhere}
+/* tool links */
+.admlinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.admlink{display:grid;gap:2px;padding:10px 12px;border-radius:12px;background:var(--raised);border:1px solid color-mix(in srgb,var(--brass) 40%,var(--line));color:var(--ink);text-decoration:none}
+.admlink:hover{border-color:var(--brass)}
+.admrec a.btn,.admlinks a{text-decoration:none}
