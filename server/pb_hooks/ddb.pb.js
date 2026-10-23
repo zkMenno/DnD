@@ -19,6 +19,23 @@ onBootstrap((e) => {
   if (url && s.meta.appURL !== url) { s.meta.appURL = url; e.app.save(s); }
 });
 
+// ── Email templates ─────────────────────────────────────────────────────────────────────────────────────────
+// PocketBase's own mails for the users collection (the sign-in code above all) get the site's email layout from
+// mail_utils.js at boot, so that file is the one place emails are designed. Saves only when something changed.
+onBootstrap((e) => {
+  e.next();
+  try {
+    const t = require(`${__hooks}/mail_utils.js`).pbTemplates(), users = e.app.findCollectionByNameOrId("users");
+    let changed = false;
+    for (const [k, v] of Object.entries(t)) {
+      const cur = k === "otp" ? users.otp.emailTemplate : users[k + "Template"];
+      if (!cur) continue;
+      if (cur.subject !== v.subject || cur.body !== v.body) { cur.subject = v.subject; cur.body = v.body; changed = true; }
+    }
+    if (changed) e.app.save(users);
+  } catch (err) { console.log("email templates: " + err); }
+});
+
 // GET /health: 200 while the server runs (the shared Caddy and Docker check it)
 routerAdd("GET", "/health", (e) => e.string(200, "ok"));
 

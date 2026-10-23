@@ -39,13 +39,8 @@ routerAdd("POST", "/api/account/code", (e) => {
   $app.store().set(key, JSON.stringify({ purpose, to, code, code2, at: Date.now(), tries: 0 }));
   const s = $app.settings().meta;
   // sends one code mail; `what` completes "Your code to …"
-  const mail = (addr, c, what) => $app.newMailClient().send(new MailerMessage({
-    from: { address: s.senderAddress, name: s.senderName },
-    to: [{ address: addr }],
-    subject: "Your Dungeon Tracker code: " + c,
-    html: "<p>Your code to " + what + " on Dungeon Tracker:</p><p style=\"font-size:28px;font-weight:700;letter-spacing:4px\">" + c + "</p>"
-      + "<p>It works for 10 minutes. Didn’t ask for this? Ignore this email: nothing changes without the code.</p>",
-  }));
+  const mail = (addr, c, what) => { const m = require(`${__hooks}/mail_utils.js`).codeMail(c, what);
+    $app.newMailClient().send(new MailerMessage({ from: { address: s.senderAddress, name: s.senderName }, to: [{ address: addr }], subject: m.subject, html: m.html })); };
   // email change: code → new address, code2 → current address (the new address is stripped of markup characters)
   if (purpose === "email") { mail(to, code, "change your email to this address"); mail(me.email(), code2, "move your account to a new email address (" + to.replace(/[<>&"]/g, "") + ")"); }
   else mail(to, code, "set a new password");
@@ -80,7 +75,8 @@ routerAdd("POST", "/api/account/confirm", (e) => {
     const s = $app.settings().meta;
     try { $app.newMailClient().send(new MailerMessage({ from: { address: s.senderAddress, name: s.senderName }, to: [{ address: old }],
       subject: "Your Dungeon Tracker account moved to a new email",
-      html: "<p>Your Dungeon Tracker account now signs in with <b>" + st.to.replace(/[<>&"]/g, "") + "</b> instead of this address.</p><p>If that wasn’t you, reply to this email straight away.</p>" })); } catch (_) {}
+      html: (u => u.layout({ title: "Your email was changed", lead: "Your Dungeon Tracker account now signs in with <b>" + u.esc(st.to) + "</b> instead of this address.",
+        note: "Wasn’t you? Sign in with this address’s password if you have one, or write to the contact address on dungeontracker.com/legal.html straight away." }))(require(`${__hooks}/mail_utils.js`)) })); } catch (_) {}
   }
   // a new email or password signs out old sessions (PocketBase rotates the token key): hand this one a fresh token
   return e.json(200, { ok: true, purpose: st.purpose, email: rec.email(), token: rec.newAuthToken(), record: rec });

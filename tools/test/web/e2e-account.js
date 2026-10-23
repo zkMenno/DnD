@@ -46,7 +46,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = watch.MAIL;
   const email3 = 'otp'+Date.now()+'@example.test';
   await q.goto(B + '/#signin'); await q.fill('input[name=email]', email3); await q.click('button[value=code]'); await q.waitForSelector('input[name=code]');
   // the sign-in code is in the HTML body (<strong>123456</strong>), quoted-printable: soft line breaks removed first
-  const c3 = await (async () => { for (let i = 0; i < 40; i++) { const t = fs.existsSync(MAIL) ? fs.readFileSync(MAIL, 'utf8') : ''; const parts = t.split('=== TO ').filter(x => x.startsWith(email3)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/<strong>(\d{6})<\/strong>/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; })(); ok('the sign-in code arrives', !!c3);
+  const c3 = await (async () => { for (let i = 0; i < 40; i++) { const t = fs.existsSync(MAIL) ? fs.readFileSync(MAIL, 'utf8') : ''; const parts = t.split('=== TO ').filter(x => x.startsWith(email3)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/Subject: (\d{6}) is your/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; })(); ok('the sign-in code arrives', !!c3);
   await q.fill('input[name=code]', c3); await q.click('button[value=otp]'); await q.waitForSelector('#add');
   const u3 = await (await fetch(B+'/api/collections/users/records?filter='+encodeURIComponent('email="'+email3+'"'), { headers:{ Authorization: su.token } })).json();
   ok('the code sign-in time is kept in the database (survives a restart)', !!(u3.items[0] && u3.items[0].otp_at));
@@ -70,14 +70,14 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = watch.MAIL;
   await fetch(B + '/api/collections/users/records', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ email: email4, password:'Squatter-123', passwordConfirm:'Squatter-123' }) });
   const z = await (await b.newContext()).newPage(); z.on('pageerror', e => errs.push(e.message));
   await z.goto(B + '/#signin'); await z.fill('input[name=email]', email4); await z.click('button[value=code]'); await z.waitForSelector('input[name=code]');
-  const c4 = await (async () => { for (let i = 0; i < 40; i++) { const t = fs.readFileSync(MAIL, 'utf8'); const parts = t.split('=== TO ').filter(x => x.startsWith(email4)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/<strong>(\d{6})<\/strong>/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; })();
+  const c4 = await (async () => { for (let i = 0; i < 40; i++) { const t = fs.readFileSync(MAIL, 'utf8'); const parts = t.split('=== TO ').filter(x => x.startsWith(email4)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/Subject: (\d{6}) is your/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; })();
   await z.fill('input[name=code]', c4); await z.click('button[value=otp]'); await z.waitForSelector('#add');
   const r4 = await fetch(B + '/api/collections/users/auth-with-password', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ identity: email4, password: 'Squatter-123' }) });
   ok('a password set before the owner proved the email stops working', !r4.ok);
   // Forgot your password? on the sign-in page: a code, then "Choose a new password" on the home page
   const f = await (await b.newContext({ viewport:{width:390, height:844} })).newPage(); f.setDefaultTimeout(15000); f.on('pageerror', e => errs.push(e.message));
   // the newest sign-in code mailed to an address (same format as above)
-  const otp = async to => { for (let i = 0; i < 40; i++) { const t = fs.readFileSync(MAIL, 'utf8'); const parts = t.split('=== TO ').filter(x => x.startsWith(to)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/<strong>(\d{6})<\/strong>/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; };
+  const otp = async to => { for (let i = 0; i < 40; i++) { const t = fs.readFileSync(MAIL, 'utf8'); const parts = t.split('=== TO ').filter(x => x.startsWith(to)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/Subject: (\d{6}) is your/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; };
   fs.writeFileSync(MAIL, '');
   await f.goto(B + '/#signin'); await f.fill('input[name=email]', email3); await f.evaluate(() => { document.querySelector('.pwbox').open = true; });
   await f.click('#pwforgot'); await f.waitForSelector('input[name=code]');

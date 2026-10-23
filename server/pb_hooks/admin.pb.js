@@ -19,12 +19,9 @@ routerAdd("POST", "/api/admin/code", (e) => {
   const code = $security.randomStringWithAlphabet(6, "0123456789");
   $app.store().set(key, JSON.stringify({ code, at: Date.now(), tries: 0 }));
   const s = $app.settings().meta;
-  $app.newMailClient().send(new MailerMessage({
-    from: { address: s.senderAddress, name: s.senderName }, to: [{ address: e.auth.email() }],
-    subject: "Your Dungeon Tracker admin code: " + code,
-    html: "<p>Your code to open Site admin on Dungeon Tracker:</p><p style=\"font-size:28px;font-weight:700;letter-spacing:4px\">" + code + "</p>"
-      + "<p>It works for 10 minutes. Didn’t ask for this? Someone may be signed in to your account: sign out everywhere and change your password.</p>",
-  }));
+  const m = require(`${__hooks}/mail_utils.js`).codeMail(code, "open Site admin", "Didn’t ask for this? Someone may be signed in to your account: sign out everywhere and change your password.");
+  $app.newMailClient().send(new MailerMessage({ from: { address: s.senderAddress, name: s.senderName }, to: [{ address: e.auth.email() }],
+    subject: m.subject.replace("code", "admin code"), html: m.html }));
   return e.json(200, { sent: e.auth.email() });
 }, $apis.requireAuth("users"));
 
