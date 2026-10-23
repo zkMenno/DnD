@@ -120,7 +120,7 @@ function loadScript(src) {
 
 // ── The db stand-in ────────────────────────────────────────────────────────────────────────────────────────
 // The subset of claude.ai's db the engine uses, on PocketBase:
-//   doc('play/<pack>') .set(state) .onSnapshot(cb)          → collection "play" (one record per character)
+//   doc('play/<pack>') .set(state) .get() .onSnapshot(cb)   → collection "play" (one record per character)
 //   collection('notes') .doc() .onSnapshot(cb)               → collection "notes", scope "own"
 //   collection('partynotes') .doc() .onSnapshot(cb)          → collection "notes", scope "party", this campaign
 //   doc('notes/<id>') / doc('partynotes/<id>') .update(patch) .delete()
@@ -135,19 +135,29 @@ function sheetDb(pb, ch, me, mine) {
   // only the note fields a player writes; the server sets the rest
   const noteFields = n => { const o = {}; ['text', 'kind', 'done', 'at', 'session'].forEach(k => { if (k in n) o[k] = n[k]; }); return o; };
 
-  // The tracker: one "play" record per character. playId is found on first use; writing / lastSent let onSnapshot
-  // ignore the realtime echo of our own saves.
-  let playId = null, writing = 0, lastSent = '';
+  // The tracker: one "play" record per character. playId is found on first use. sent holds the last few trackers this
+  // page saved, so onSnapshot can skip the realtime echo of our own saves: an old echo that arrives after a newer save
+  // would otherwise look like another device going back in time. Other devices' saves always come through, even
+  // while one of ours is on its way (the engine merges them field by field, see save() and takeRemote()).
+  let playId = null;
+  const sent = [];
   const play = {
     // save the tracker (creates the record the first time); does nothing on someone else's sheet
     async set(state) {
       if (!mine) return;                                    // shared sheets are read-only
-      writing++; lastSent = JSON.stringify(state);
-      try {
-        if (!playId) { try { playId = (await pb.collection('play').getFirstListItem(byChar)).id; } catch (_) {} }
-        if (playId) await pb.collection('play').update(playId, { state }, { requestKey: null });
-        else playId = (await pb.collection('play').create({ character: ch.id, state }, { requestKey: null })).id;
-      } finally { writing--; }
+      sent.push(JSON.stringify(state)); if (sent.length > 5) sent.shift();
+      if (!playId) { try { playId = (await pb.collection('play').getFirstListItem(byChar, { requestKey: null })).id; } catch (_) {} }
+      if (playId) await pb.collection('play').update(playId, { state }, { requestKey: null });
+      else playId = (await pb.collection('play').create({ character: ch.id, state }, { requestKey: null })).id;
+    },
+    // the stored tracker right now, as a snapshot (exists: false when there is none). The engine reads it just before
+    // each save, to merge in what other devices saved since. A network error is thrown.
+    async get() {
+      let r = null;
+      try { r = playId ? await pb.collection('play').getOne(playId, { requestKey: null }) : await pb.collection('play').getFirstListItem(byChar, { requestKey: null }); }
+      catch (e) { if (!e || e.status !== 404) throw e; }
+      if (r) playId = r.id;
+      return { exists: !!r, data: () => (r ? r.state : null), metadata: { hasPendingWrites: false } };
     },
     // send the stored tracker now (exists: false when there is none) and again whenever another device saves one;
     // returns an unsubscribe function
@@ -158,7 +168,7 @@ function sheetDb(pb, ch, me, mine) {
       let unsub = null;
       pb.collection('play').subscribe('*', ev => {
         if (ev.record.character !== ch.id || ev.action === 'delete') return;
-        if (writing || JSON.stringify(ev.record.state) === lastSent) return;   // our own echo
+        if (sent.includes(JSON.stringify(ev.record.state))) return;   // our own echo
         playId = ev.record.id; emit(ev.record);
       }, { filter: byChar }).then(u => (unsub = u)).catch(() => {});
       return () => unsub && unsub();
