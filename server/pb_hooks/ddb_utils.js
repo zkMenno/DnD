@@ -1,5 +1,6 @@
-// Shared helpers for the server hooks: usernames, character packs, the D&D Beyond fetch (with a 60 s cache), the
-// player's own text for verify codes, and the no-markup check on stored JSON.
+// Shared helpers for the server hooks: usernames, character packs, the D&D Beyond fetch (with a 60 s cache, and saved
+// answers instead of the network when DDB_FIXTURES is set, for tests), the player's own text for verify codes, and
+// the no-markup check on stored JSON.
 // Not a hook file itself (no .pb.js), so PocketBase doesn't load it on its own. Each hook handler runs in its own
 // JS VM and can't see the hook file's top-level constants, so handlers in ddb.pb.js call
 // require(`${__hooks}/ddb_utils.js`) inside the handler. Constants in this file are fine: they belong to the module.
@@ -50,6 +51,14 @@ module.exports.packFor = id => PACKS[id] || "bare";
 
 // ── D&D Beyond ─────────────────────────────────────────────────────────────────────────────────────────────
 const TTL_MS = 60000, MAX_BYTES = 3000000;
+// Test mode: with DDB_FIXTURES=<dir> set on the PocketBase process (tools/devserver.sh fixtures, CI), D&D Beyond is
+// never asked; <dir>/<id>.json (a saved raw API answer, tools/test/fixtures/ddb/) stands in for it. Returns what
+// $http.send would: { statusCode, raw }, 404 for an id without a file, so the checks below run unchanged.
+// Never set in production (the Dockerfile and AppInfra don't set it). id is digits only (checked by ddbGet).
+function ddbFixture(dir, id) {
+  try { return { statusCode: 200, raw: toString($os.readFile(dir + "/" + id + ".json")) }; }
+  catch (_) { return { statusCode: 404, raw: "" }; }
+}
 // One public character as D&D Beyond's JSON: { raw, json }. Answers are kept for 60 s in the app store, so a sync
 // (proxy fetch + record update) or a burst of opens costs D&D Beyond one request, not several.
 // Private, missing or failing sheets, and answers over 3 MB, become a BadRequestError the player can act on.
@@ -58,7 +67,8 @@ module.exports.ddbGet = function ddbGet(id) {
   if (!/^\d{4,12}$/.test(id)) throw new BadRequestError("Bad character id.");
   const key = "ddb:" + id, hit = String($app.store().get(key) || ""), cut = hit.indexOf("|");   // "<time>|<json>"
   if (cut > 0 && Date.now() - Number(hit.slice(0, cut)) < TTL_MS) { const raw = hit.slice(cut + 1); return { raw, json: JSON.parse(raw) }; }
-  const res = $http.send({
+  const fixtures = $os.getenv("DDB_FIXTURES");   // tests only (read here: each hook VM has its own globals)
+  const res = fixtures ? ddbFixture(fixtures, id) : $http.send({
     url: "https://character-service.dndbeyond.com/character/v5/character/" + id + "?includeCustomItems=true",
     method: "GET", timeout: 20,
     headers: { "accept": "application/json", "user-agent": "sheet-app/1.0" },

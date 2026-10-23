@@ -9,7 +9,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
 (async () => {
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }), errs = [];
+  const b = await chromium.launch({ executablePath: watch.CHROMIUM }), errs = [];
   const p = await (await b.newContext({ viewport: { width: 390, height: 900 }, colorScheme: 'dark' })).newPage(); watch(p, errs); p.setDefaultTimeout(30000);
   // sign up and add Henry
   await p.goto(B + '/#signin'); await p.fill('input[name=email]', 'verifier@example.test'); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'Passw0rd-verifier');
@@ -28,7 +28,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   await fetch(B + '/api/collections/characters/records/' + cid, { method: 'PATCH', headers: { 'content-type': 'application/json', Authorization: su }, body: JSON.stringify({ verified: true }) });
   await p.reload(); await p.waitForSelector('.vtick');
   ok('verified: ✓ badge, and party sharing can be chosen', !(await p.$eval('[data-vis] option[value=party]', o => o.disabled)));
-  await p.screenshot({ path: '/tmp/sheet-tests/verify.png', fullPage: true });
+  await p.screenshot({ path: watch.shot('verify.png'), fullPage: true });
   { const bad = errs; ok('no page errors or CSP blocks' + (bad.length ? ': ' + JSON.stringify(bad) : ''), !bad.length); }
   await b.close();
 })();

@@ -2,7 +2,14 @@
 # Builds, lints and runs the tests. Browser tests use the built sheets in dist/claude; the web tests run only when
 # a PocketBase binary is there (they start a fresh local server via tools/devserver.sh and the fake mail server
 # tools/mailsink.py). Screenshots go to $OUT (default /tmp/sheet-tests). Exits non-zero if anything failed.
-# Needs node, playwright + Chromium (/opt/pw-browsers/chromium) and, for lint, npm install once (eslint).
+# Needs node, playwright + Chromium ($CHROMIUM, default /opt/pw-browsers/chromium), python3 with aiosmtpd for the
+# mail server, and, for lint, npm install once (eslint).
+# Web tests, from the environment (CI sets these; the defaults are this machine's):
+#   PB_BIN        the PocketBase binary (default /home/claude/pbbin/pocketbase)
+#   PB_PORT       its port on 127.0.0.1 (default 8090); PB_WORK, PB_PID, PB_LOG: see tools/devserver.sh
+#   DDB_FIXTURES  a folder of saved D&D Beyond answers (tools/test/fixtures/ddb): the server never calls dndbeyond.com
+#   MAILSINK, MAILSINK_PORT  the fake mail server's file and port (default /tmp/mailsink.txt, 2525)
+# The server always serves this checkout (APP_DIR, default: the folder this script is in).
 #   bash tools/test.sh          everything (about 10 minutes)
 #   bash tools/test.sh sheets   build, lint, the claude.ai sheet tests (about 5 minutes)
 #   bash tools/test.sh web      build, lint, server rules, web e2e, limits (about 2 minutes)
@@ -32,15 +39,24 @@ else echo "(skipped: run npm install once to get eslint)"; fi
 [ "$part" = web ] || for t in smoke combat items spells; do step "$t"; node tools/test/$t.js | grep -v '^PASS' ; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
 
 # ── Web app tests ───────────────────────────────────────────────────────────────────────────────────────────
-# A fresh local PocketBase (tools/devserver.sh needs the binary at /home/claude/pbbin/pocketbase). Several web
-# tests use fixed accounts, so they need this fresh database; e2e runs before e2e-items, which uses its account.
+# A fresh local PocketBase (tools/devserver.sh, binary $PB_BIN) serving this checkout. Several web tests use fixed
+# accounts, so they need this fresh database; e2e runs before e2e-items, which uses its account.
+PB_BIN=${PB_BIN:-/home/claude/pbbin/pocketbase}; export PB_BIN APP_DIR=${APP_DIR:-$PWD}
+B=http://127.0.0.1:${PB_PORT:-8090}   # every web test takes the server URL as its first argument
+# True once something accepts connections on 127.0.0.1:<port>.
+listening(){ (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 if [ "$part" = sheets ]; then :
-elif [ -x /home/claude/pbbin/pocketbase ]; then
-  step "server (fresh database)"; bash tools/devserver.sh reset >/dev/null && echo started
-  step "server rules"; python3 tools/test/web/apitest.py | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1
-  pgrep -f tools/mailsink.py >/dev/null || (python3 tools/mailsink.py >/dev/null 2>&1 &); sleep 1   # fake mail server for the login codes
-  for t in e2e e2e-items e2e-party e2e-codes e2e-shared e2e-offline e2e-move e2e-verify e2e-links e2e-account e2e-feedback e2e-legal; do step "web $t"; node tools/test/web/$t.js | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
-  step "headers and rate limits (last: uses up this IP's sign-in allowance)"; python3 tools/test/web/limits.py | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1
+elif [ -x "$PB_BIN" ]; then
+  step "server (fresh database${DDB_FIXTURES:+, saved D&D Beyond answers})"; bash tools/devserver.sh reset >/dev/null && echo started || { echo "SOMETHING FAILED (server)"; exit 1; }
+  step "server rules"; python3 tools/test/web/apitest.py "$B" | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1
+  # fake mail server for the login codes (the tests give PocketBase its port as the SMTP server). One already
+  # listening there is reused: it must write to the same $MAILSINK file.
+  mp=${MAILSINK_PORT:-2525}
+  listening "$mp" || { python3 tools/mailsink.py "${MAILSINK:-/tmp/mailsink.txt}" >/dev/null 2>&1 & }
+  for _ in $(seq 1 20); do listening "$mp" && break; sleep 0.5; done
+  listening "$mp" || { echo "FAIL mail server didn't start (pip install aiosmtpd)"; fail=1; }
+  for t in e2e e2e-items e2e-party e2e-codes e2e-shared e2e-offline e2e-move e2e-verify e2e-links e2e-account e2e-feedback e2e-legal; do step "web $t"; node tools/test/web/$t.js "$B" | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
+  step "headers and rate limits (last: uses up this IP's sign-in allowance)"; python3 tools/test/web/limits.py "$B" | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1
 else echo; echo "(web tests skipped: no PocketBase binary)"; fi
 
 echo; [ $fail = 0 ] && echo "ALL GREEN" || echo "SOMETHING FAILED"

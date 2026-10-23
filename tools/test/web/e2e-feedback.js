@@ -1,10 +1,10 @@
 // The 🐞 feedback box (web/feedback.js): send a bug report from the front page footer while signed out, check it is
 // stored for the superuser only, and that a signed-out sender can't read feedback or pose as someone else.
-const { chromium } = require('playwright');
+const { chromium } = require('playwright'), watch = require('./watch');
 const B = process.argv[2] || 'http://127.0.0.1:8090';
 (async () => {
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: watch.CHROMIUM });
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage(); p.setDefaultTimeout(15000);
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto(B + '/'); await p.click('.foot [data-feedback]'); await p.waitForSelector('#fbpop.show');

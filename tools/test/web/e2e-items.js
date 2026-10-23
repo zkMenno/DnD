@@ -6,7 +6,7 @@
 const {chromium} = require('playwright'), watch = require('./watch');
 const B = process.argv[2] || 'http://127.0.0.1:8090';
 (async () => {
-  const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+  const b = await chromium.launch({executablePath: watch.CHROMIUM});
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   // A new "device" (browser context): signs in and opens the first character. p.errs collects errors and CSP blocks.

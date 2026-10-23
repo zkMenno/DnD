@@ -13,3 +13,17 @@ module.exports.onboard = async p => {
   await p.waitForFunction(() => document.querySelector('#ustep') || /^\/[a-z0-9-]+\/\d+$/.test(location.pathname), null, { timeout: 30000 });
   if (await p.$('#ustep')) await p.click('#ustep button[value=go]');
 };
+
+// Settings from the environment, shared by the e2e tests (tools/test.sh and CI set them; defaults: this machine).
+// Chromium for Playwright: $CHROMIUM, default /opt/pw-browsers/chromium (same as tools/test/lib.js).
+module.exports.CHROMIUM = process.env.CHROMIUM || '/opt/pw-browsers/chromium';
+// The fake mail server's file (tools/mailsink.py): $MAILSINK, default /tmp/mailsink.txt.
+module.exports.MAIL = process.env.MAILSINK || '/tmp/mailsink.txt';
+// Its port on 127.0.0.1, which the tests give PocketBase as its SMTP server: $MAILSINK_PORT, default 2525.
+module.exports.MAIL_PORT = Number(process.env.MAILSINK_PORT || 2525);
+// A screenshot path: $OUT/<name> (default <tmp>/sheet-tests, as in tools/test/lib.js), making the folder if needed.
+module.exports.shot = name => {
+  const path = require('path'), dir = process.env.OUT || path.join(require('os').tmpdir(), 'sheet-tests');
+  require('fs').mkdirSync(dir, { recursive: true });
+  return path.join(dir, name);
+};

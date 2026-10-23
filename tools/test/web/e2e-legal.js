@@ -8,7 +8,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
 (async () => {
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }), errs = [], outside = new Set();
+  const b = await chromium.launch({ executablePath: watch.CHROMIUM }), errs = [], outside = new Set();
   const ctx = await b.newContext({ viewport: { width: 390, height: 900 }, acceptDownloads: true });
   const p = await ctx.newPage(); watch(p, errs); p.setDefaultTimeout(30000);
   // every request to another site is noted (the page promises none)
