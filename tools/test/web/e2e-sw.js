@@ -46,7 +46,7 @@ const swOf = dir => { const s = fs.readFileSync(path.join(dir, 'sw.js'), 'utf8')
   // the paths saved in the service worker's caches, by cache name
   const cached = p => p.evaluate(async () => { const o = {}; for (const k of await caches.keys()) o[k] = (await (await caches.open(k)).keys()).map(r => new URL(r.url).pathname).sort(); return o; });
 
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: watch.CHROMIUM });
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } }); const p = await ctx.newPage(); p.setDefaultTimeout(30000);
   p.errs = []; watch(p, p.errs);
   try {

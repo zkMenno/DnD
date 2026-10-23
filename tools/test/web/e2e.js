@@ -9,6 +9,9 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const b = await chromium.launch({executablePath: watch.CHROMIUM});
   const ctx = await b.newContext({viewport:{width:390,height:844}, colorScheme:'dark'});
   const p = await ctx.newPage(); const errs = []; watch(p, errs); p.setDefaultTimeout(20000);
+  // D&D Beyond portraits: answer with a tiny local image, so the crest test doesn't need the network (CI has none)
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+  await ctx.route('https://www.dndbeyond.com/avatars/**', r => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   // Sign up, add Wick by link, change HP and write a note; both survive a reload.
