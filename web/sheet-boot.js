@@ -6,14 +6,15 @@
 // it yet, then shown as /<username>/<D&D Beyond id>).
 // Paths are absolute ("/engine/…"): the page is served at /<username>/<id> too, where relative paths would miss.
 // Offline: keeps going on the saved login and the last copy of the sheet saved on this device (localStorage).
-// Globals: BUILD_V, withV (also window.withV, for the engine), findSheet, offlineBadge, loadScript, sheetDb.
+// Globals: ASSET_V, withV (also window.withV, for the engine), findSheet, offlineBadge, loadScript, sheetDb.
 
-// ── Build tag ──────────────────────────────────────────────────────────────────────────────────────────────
-// The build tag from this script's own address (?v=…, set by tools/build.js): every file loaded below asks for the
-// same build, so a cached older engine can never run with a newer page.
-const BUILD_V = (() => { try { return new URL(document.currentScript.src).searchParams.get('v') || ''; } catch (_) { return ''; } })();
-// Add the build tag to a path (?v= or &v=); unchanged when there is no tag.
-const withV = p => BUILD_V ? p + (p.includes('?') ? '&' : '?') + 'v=' + BUILD_V : p;
+// ── Build tags ─────────────────────────────────────────────────────────────────────────────────────────────
+// ASSET_V: path → content hash (first 10 hex of its sha1) of each file loaded by script (engine, packs, item list),
+// filled in by tools/build.js. withV asks for exactly that content (?v=<hash>), so a cached older engine can never run
+// with a newer page, and a file that didn't change keeps its address across builds (the service worker's copy stays).
+const ASSET_V = /*__ASSET_V__*/{};
+// Add a file's content hash to its path (?v= or &v=); unchanged for a path the map doesn't know.
+const withV = p => ASSET_V[p] ? p + (p.includes('?') ? '&' : '?') + 'v=' + ASSET_V[p] : p;
 window.withV = withV;
 
 // ── Open the sheet ─────────────────────────────────────────────────────────────────────────────────────────

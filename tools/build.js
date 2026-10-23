@@ -3,11 +3,14 @@
 //   dist/web/     the web app PocketBase serves: engine files, packs, items.json, and the built pages index.html,
 //                 sheet.html, try.html, legal.html, home-dice.js and sw.js (everything else is copied from web/)
 // usage: node tools/build.js   (also run by tools/test.sh, the Dockerfile and tools/refresh.js)
-// Order matters at the end: cache-busting tags are added once every file is written, and sw.js comes last
-// because its version hash covers the finished pages. Run python3 tools/gen-skins.py first after changing a skin.
-const fs = require('fs'), path = require('path');
+//        node tools/build.js --stamp <dir>   only the last step (stamp(), below) on an already built web app in <dir>:
+//                                            tools/test/web/e2e-sw.js uses it to make "the next build" with one change
+// Order matters at the end: content-hash tags are added once every file is written, and sw.js comes last
+// because its file list covers the finished pages. Run python3 tools/gen-skins.py first after changing a skin.
+const fs = require('fs'), path = require('path'), { createHash } = require('crypto');
 // Reads a repo file (path relative to the repo root) as text.
 const R = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
+if (process.argv[2] === '--stamp') { stamp(path.resolve(process.argv[3])); process.exit(0); }
 // The claude.ai sheets (dist/claude). tools/test/lib.js knows four of them by name.
 const SHEETS = [   // pack file, data file, page title, output name
   { pack:'henry',  data:'henry',  title:'Henry Gibbs',      out:'henry.html' },
@@ -104,25 +107,55 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
     + R('src/legal.html').replace(/<!--[\s\S]*?-->\n?/, '').replace(/\{\{(\w+)\}\}/g, (m, k) => (k in site ? site[k] : m)) + '\n' + SITE_FOOT
     + DICE_DEFS   // the dice shapes (<symbol>s)
     + '<script src="/home-anim.js" defer></script>\n</body></html>'); }
-// ── Cache-busting ──────────────────────────────────────────────────────────────────────────────────────────
-// Each page asks for this build's copy of its scripts and stylesheets (?v=<hash of the build's files>).
-// The service worker serves files from its saved copy first, so without this a fresh page could run with the previous
-// build's CSS or engine for one visit after every deploy. sheet-boot.js passes the same tag to what it loads itself.
-{ const crypto = require('crypto'), h = crypto.createHash('sha1'), files = [];
-  const walk = d => fs.readdirSync(path.join(out, 'web', d)).forEach(f => { const rel = d ? d + '/' + f : f;
-    if (fs.statSync(path.join(out, 'web', rel)).isDirectory()) walk(rel); else if (!/\.html$|^sw\.js$|^media\//.test(rel)) files.push(rel); });
-  walk(''); files.sort().forEach(f => h.update(f).update(fs.readFileSync(path.join(out, 'web', f))));
-  const v = h.digest('hex').slice(0, 10);
-  for (const page of ['index.html', 'sheet.html', 'legal.html', 'try.html']) {
-    const f = path.join(out, 'web', page);
-    fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/(<(?:script|link)\b[^>]*?\b(?:src|href)=")(\/[^"?#]+\.(?:js|css))"/g, '$1$2?v=' + v + '"'));
-  } }
-// ── Offline: service worker ────────────────────────────────────────────────────────────────────────────────
-// The service worker gets this build's file list and a version hash (a new build = a fresh cache). Last, so the hash
-// covers the finished pages.
-{ const crypto = require('crypto'), files = [], walk = d => fs.readdirSync(path.join(out, 'web', d)).forEach(f => { const rel = d ? d+'/'+f : f;
-    if (fs.statSync(path.join(out, 'web', rel)).isDirectory()) walk(rel); else files.push(rel); });
-  walk(''); const keep = files.filter(f => !/^sw\.js$/.test(f) && !/^media\//.test(f)).sort(), h = crypto.createHash('sha1');   // media/: the front page's demo videos load only when seen, never precached
-  keep.forEach(f => h.update(f).update(fs.readFileSync(path.join(out, 'web', f))));
-  fs.writeFileSync(out+'/web/sw.js', R('web/sw.template.js').replace('__VERSION__', h.digest('hex').slice(0, 12)).replace('/*__FILES__*/[]', JSON.stringify(['/'].concat(keep.map(f => '/' + f))))); }
+stamp(out + '/web');
 console.log('built', SHEETS.map(s=>s.out).join(', '), '+ web');
+
+// ── Content hashes and the service worker ──────────────────────────────────────────────────────────────────
+// stamp(W): the last step of a build, on the web app in directory W (dist/web, or a copy of it: --stamp).
+//   1. ASSET_V: the content hash of each file loaded by script (DYNAMIC) goes into the scripts that load them (sheet-boot.js,
+//      try-boot.js, feedback.js), in place of the map after their __ASSET_V__ marker.
+//   2. The pages' <script src>/<link href> get ?v=<content hash of that file>: a changed file gets a new address (the
+//      browser and the service worker can't hand a page an older copy), an unchanged one keeps it from build to build.
+//   3. sw.js (from web/sw.template.js) gets FILES, [path, hash] for every file it may cache plus a third element 1
+//      for the app shell (SHELL), and VERSION, a hash of that list. Not in FILES: sw.js itself, and the videos
+//      (media/*.webm, *.mp4: streamed with range requests, never cached). index.html is listed as "/".
+// Hash = the first 10 hex digits of the file's sha1; the service worker checks the same of what it saves.
+// Every step re-runs cleanly on its own output (the map and the tags are replaced, not added).
+function stamp(W) {
+  // The app shell: what the service worker saves on install, so the home page and a sheet open with no connection
+  // (pattern per group, paths relative to dist/web). Everything else is saved the first time it's used (three.js, the
+  // other looks' fonts, latin-ext fonts, items.json, try-out data, icons, artwork) and kept across builds while unchanged.
+  // Every script and stylesheet the home page and sheet.html load by tag must be in here: stamp() stops otherwise.
+  const SHELL = [
+    /^(?:index|sheet)\.html$/,                                              // the home page ("/") and every sheet address
+    /^(?:sw-register|feedback|home-anim)\.js$|^engine\/(?:theme|skins)\.css$|^fonts\/fonts\.css$/,   // every page's <head>
+    /^(?:index|home-dice|pocketbase\.umd)\.js$|^home\.css$/,                // the home page
+    /^sheet-boot\.js$|^sheet\.css$|^engine\/(?:app\.css|themes\.js|classes\.js|main\.js)$|^packs\/[^/]+\.js$/,   // a sheet: boot, engine, every pack
+    // the default (pirate) look's fonts, latin only (latin-ext loads only for letters outside it): Pirata One,
+    // Alegreya SC 500/700, Alegreya Sans 400/500/700, IBM Plex Mono 500/700 (--f-* in src/theme.css)
+    /^fonts\/(?:pirata-one-400|alegreya-sc-(?:500|700)|alegreya-sans-(?:400|500|700)|ibm-plex-mono-(?:500|700))-latin\.woff2$/,
+  ];
+  const hashOf = rel => createHash('sha1').update(fs.readFileSync(path.join(W, rel))).digest('hex').slice(0, 10);
+  const files = [], walk = d => fs.readdirSync(path.join(W, d)).forEach(f => { const rel = d ? d + '/' + f : f;
+    if (fs.statSync(path.join(W, rel)).isDirectory()) walk(rel); else files.push(rel); });
+  walk(''); files.sort();
+  // 1. the map of script-loaded files
+  const DYNAMIC = /^(?:engine\/[^/]+\.js|packs\/[^/]+\.js|trial\/[^/]+\.json|items\.json|feedback\.css)$/, MARK = /\/\*__ASSET_V__\*\/\{[^}]*\}/;
+  const map = {}; files.filter(f => DYNAMIC.test(f)).forEach(f => { map['/' + f] = hashOf(f); });
+  for (const f of ['sheet-boot.js', 'try-boot.js', 'feedback.js']) { const src = fs.readFileSync(path.join(W, f), 'utf8');
+    if (!MARK.test(src)) throw new Error(f + ': the ASSET_V marker is missing (tools/build.js fills in the map after it)');
+    fs.writeFileSync(path.join(W, f), src.replace(MARK, '/*__ASSET_V__*/' + JSON.stringify(map))); }
+  // 2. the pages' tags (a file that isn't there stops the build)
+  const TAG = /(<(?:script|link)\b[^>]*?\b(?:src|href)=")\/([^"?#]+\.(?:js|css))(?:\?v=[0-9a-f]*)?"/g;
+  for (const page of ['index.html', 'sheet.html', 'legal.html', 'try.html']) { const f = path.join(W, page);
+    fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(TAG, (m, a, rel) => a + '/' + rel + '?v=' + hashOf(rel) + '"')); }
+  // 3. the service worker's file list, after checking the shell is complete
+  const shell = f => SHELL.some(re => re.test(f));
+  for (const re of SHELL) if (!files.some(f => re.test(f))) throw new Error('sw: no file matches ' + re + ' (SHELL in tools/build.js)');
+  for (const page of ['index.html', 'sheet.html']) for (const m of fs.readFileSync(path.join(W, page), 'utf8').matchAll(TAG))
+    if (!shell(m[2])) throw new Error('sw: ' + page + ' loads /' + m[2] + ', which is not in the app shell (SHELL in tools/build.js)');
+  const list = files.filter(f => f !== 'sw.js' && !/^media\/.*\.(?:webm|mp4)$/.test(f))
+    .map(f => [f === 'index.html' ? '/' : '/' + f, hashOf(f)].concat(shell(f) ? [1] : []));
+  const version = createHash('sha1').update(JSON.stringify(list)).digest('hex').slice(0, 12);
+  fs.writeFileSync(path.join(W, 'sw.js'), R('web/sw.template.js').replace('__VERSION__', version).replace('/*__FILES__*/[]', JSON.stringify(list)));
+}

@@ -11,7 +11,7 @@ One engine, two ways to run it:
 - `packs/` per-character packs (`henry.js` is the full pirate pack; `bare.js` for everyone else)
 - `data/` synced D&D Beyond data for the claude.ai sheets, and `items.json` (SRD 5.2 items for ➕ Add item, built by `tools/items.py`)
 - `web/` web app pages: `index.html` (built), `index.js` (sign in, characters, add by link, verify, sharing), `sheet-boot.js` (loads a sheet; db on PocketBase), `home.css`,
-  `sw.template.js` + `sw-register.js` (offline), `three.min.js` (r128) and `fonts/` (self-hosted: the app loads nothing from other sites, see Privacy & terms)
+  `sw.template.js` + `sw-register.js` (offline: the app shell is saved on install, the rest on first use; files that didn't change are kept across deploys, see `stamp()` in `tools/build.js`), `three.min.js` (r128) and `fonts/` (self-hosted: the app loads nothing from other sites, see Privacy & terms)
 - `server/` PocketBase: `pb_migrations/` (`1761000000_schema.js`: the whole schema, access rules and settings; later changes go in new files), `pb_hooks/` (security headers, D&D Beyond proxy with a 60 s cache, campaign + pack from the server, no-markup check on stored data, verify, email codes), `pocketbase-main.go` (PocketBase with JS hooks, and the sheet-link route: `/<username>/<id>` and `/<id>` get `sheet.html`; build with `go build`)
 - `Dockerfile`: the app image (see Deploy)
 - `tools/` `build.js`, `test.sh` (runs everything), `refresh.js` (fresh D&D Beyond data without resetting a tracker), `devserver.sh`, `apitest.py`, browser tests (`*.js`)
