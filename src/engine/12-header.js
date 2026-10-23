@@ -18,15 +18,14 @@ function hpColour(){
   const dark = i <= 3 || S.hp <= 0 || i === 9;   // light text on the dark steps; dark text on orange/yellow (contrast ≥ 4.5)
   return {bg, fg: dark ? '#FFF6E6' : '#2A1E0E'};
 }
-// small stroke icons for the stat tiles (insp is not used by a tile at the moment)
+// small stroke icons for the stat tiles
 const ICON = (()=>{
   const sv = d => '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+d+'</svg>';
   return {
     hp:    sv('<path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/>'),
     ac:    sv('<path d="M12 3l7.5 2.8v5.4c0 4.8-3.2 8.3-7.5 9.8-4.3-1.5-7.5-5-7.5-9.8V5.8z"/><path d="M12 7v10" class="thin"/>'),
     init:  sv('<path d="M13.5 2.5L5.5 13.5h6l-1 8 8-11h-6z"/>'),
-    speed: sv('<path d="M7 4v8.5c0 1 .5 1.7 1.5 2.1l7.6 3.2c1.4.6 2.9-.4 2.9-1.9v-.4c0-.8-.5-1.5-1.2-1.8L11 11V4z"/><path d="M3 9h3M2 13h4" class="thin"/>'),
-    insp:  sv('<path d="M12 3.2l2.5 5.4 5.9.7-4.4 4 1.2 5.8L12 16.2l-5.2 2.9L8 13.3l-4.4-4 5.9-.7z"/>')
+    speed: sv('<path d="M7 4v8.5c0 1 .5 1.7 1.5 2.1l7.6 3.2c1.4.6 2.9-.4 2.9-1.9v-.4c0-.8-.5-1.5-1.2-1.8L11 11V4z"/><path d="M3 9h3M2 13h4" class="thin"/>')
   };
 })();
 // the HP tile: coloured by HP left, pulsing low under 10%, ☠️ "Down" at 0, temp HP as +n; tap opens the HP drawer
