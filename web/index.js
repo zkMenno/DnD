@@ -126,6 +126,7 @@ async function renderLogin(mode) {
         <div class="row authsub"><button class="btn" name="go" value="resend" id="otpresend" formnovalidate>Send a new code</button><button class="btn" type="button" id="otpback">Use another email</button></div>
         <p class="small muted">Not there? Check your spam folder.</p>
       </div>` : '<p class="small muted authhint">We email you a 6-digit code. No password to remember.</p>'}
+      ${/^staging\./.test(location.hostname) ? '<p class="small authhint"><b>Staging copy:</b> it sends no emails, so sign in or make an account with a password (below).</p>' : ''}
       <details class="pwbox"${pwKnown(otpEmail) || mode === 'signup-pw' ? ' open' : ''}><summary class="btn">🔑 Use a password instead <span class="xchev" aria-hidden="true"></span></summary>
         <div class="pwpanel">
           <div class="pwseg" role="group" aria-label="Sign in or make a new account">

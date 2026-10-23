@@ -772,3 +772,23 @@ body > #msg{font-size:1.02rem;line-height:1.45}
 /* phones: the code box stacks (column), so the code field's 14rem flex-basis became its height; there it's full width
    and its natural height */
 @media (max-width:520px){ .codebox .authrow .codein,#codebox input[name=code]{flex:none;max-width:none;width:100%;box-sizing:border-box} }
+
+/* ── Drop-downs: the open list in the look's colours ───────────────────────────────────────────────────────────
+   Browsers that support customizable selects (Chrome / Edge / Brave 135+) draw the open list from these rules:
+   the look's surface, accent for the hovered and chosen option, and our own chevron (the built-in picker icon is
+   hidden). Other browsers keep their own list, coloured by `select option` above. */
+@supports (appearance: base-select) {
+  select{appearance:base-select;-webkit-appearance:base-select}
+  select::picker-icon{display:none}
+  select::picker(select){appearance:base-select;border:1.5px solid var(--brass);border-radius:12px;background:var(--surface);color:var(--ink);
+    padding:4px;box-shadow:0 14px 34px -12px rgba(0,0,0,.55);margin-top:4px}
+  select option{padding:8px 12px;border-radius:8px;background:transparent;color:var(--ink);font-weight:600}
+  select option::checkmark{display:none}
+  select option:hover,select option:focus-visible{background:color-mix(in srgb,var(--brass) 18%,var(--surface));outline:none}
+  select option:checked{background:var(--brass);color:var(--bg)}
+  select option:disabled{color:var(--muted);background:transparent}
+}
+/* the front page's read-only note: two sentences, each on its own line (one line each on wide screens) */
+.ql-note .qltxt{display:grid;gap:6px}
+.ql-note .qltxt > span{text-wrap:balance}
+@media (max-width:380px){ .ql-note{font-size:.86rem;gap:10px} .ql-note .qlico{font-size:1.35rem} }

@@ -1817,3 +1817,15 @@ button.btn:not(:disabled):is(:active,.pressing),.restopt:is(:active,.pressing),.
 .throwhint .throwskip{flex:0 0 auto}
 .throwfx.thrown .throwhint{opacity:0;transform:translate(-50%,12px);pointer-events:none;animation:none}
 @keyframes throwhint{0%,100%{box-shadow:0 8px 24px rgba(0,0,0,.35)}50%{box-shadow:0 8px 24px rgba(0,0,0,.35),0 0 0 3px color-mix(in srgb,var(--brass) 35%,transparent)}}
+
+/* ── Drop-downs on the sheet (➕ Add item's base item): the open list in the look's colours where the browser can
+   (customizable selects, Chrome / Edge / Brave 135+); elsewhere the browser's own list ─────────────────────────── */
+@supports (appearance: base-select) {
+  .ifield select{appearance:base-select;-webkit-appearance:base-select}
+  .ifield select::picker-icon{display:none}
+  .ifield select::picker(select){appearance:base-select;border:1.5px solid var(--brass);border-radius:12px;background:var(--surface);color:var(--ink);padding:4px;box-shadow:0 14px 34px -12px rgba(0,0,0,.55);margin-top:4px;max-height:50vh}
+  .ifield select option{padding:8px 12px;border-radius:8px;background:transparent;color:var(--ink)}
+  .ifield select option::checkmark{display:none}
+  .ifield select option:hover,.ifield select option:focus-visible{background:color-mix(in srgb,var(--brass) 18%,var(--surface));outline:none}
+  .ifield select option:checked{background:var(--brass);color:var(--bg)}
+}
