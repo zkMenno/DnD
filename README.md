@@ -1,7 +1,7 @@
 # Character sheets
 
 One engine, two ways to run it:
-- **claude.ai sheets** (Henry and Wick, two players' own sheets kept out of the tests; AppTester-01, AppTester-02, and the made-up try-out characters Torgan Ironvow and Vexa Emberscale): one self-contained HTML file each → `dist/claude/`
+- **claude.ai sheets** (Henry and Wick, two players' own sheets kept out of the tests; AppTester-02, and the made-up try-out characters Torgan Ironvow and Vexa Emberscale): one self-contained HTML file each → `dist/claude/`
 - **Web app** (accounts, several sheets per account, party sharing): `dist/web/` served by PocketBase
 
 ## Layout
@@ -22,17 +22,18 @@ One engine, two ways to run it:
     bash tools/test.sh                   # everything, ~10 min (or: sheets ~5 min · web ~2 min)
     bash tools/test.sh sheets            # lint + every browser test on the claude.ai sheets and the fixture sheets in tools/test/fixtures/sheets
     bash tools/test.sh web               # fresh local server: rules, web e2e (incl. CSP watch), move, headers + rate limits
-    node tools/refresh.js tester apptester.html 172559988   # pull fresh D&D Beyond data into data/tester.json
+    node tools/refresh.js tester2 apptester2.html <ddb id>   # pull fresh D&D Beyond data into data/tester2.json
     bash tools/devserver.sh reset        # needs the pocketbase binary at /home/claude/pbbin/pocketbase
     bash tools/devserver.sh reset fixtures   # same, but D&D Beyond answers come from tools/test/fixtures/ddb (no network)
     DDB_FIXTURES=tools/test/fixtures/ddb PB_BIN=/path/to/pocketbase bash tools/test.sh web   # what CI runs
 Paths and ports are environment variables with this machine's values as defaults (PB_BIN, APP_DIR, PB_WORK, PB_PORT,
 CHROMIUM, OUT, MAILSINK, MAILSINK_PORT: see the top of `tools/devserver.sh` and `tools/test.sh`). The fixtures are raw
-D&D Beyond answers for the characters the tests use: AppTester-01 (172559988), refreshed with
-`curl -s "https://character-service.dndbeyond.com/character/v5/character/<id>?includeCustomItems=true" > tools/test/fixtures/ddb/<id>.json`;
-the invented Corwin Tidewell (900000001) and Pip Mossbottom (900000002) in the invented campaign Saltreach Crossing
-(hand-made from real answers' structure, every name, id and player text made up: edit them, don't refresh them); and
-170557047, a name-only stub so the server rules test can check that id gets its own pack.
+D&D Beyond answers for the characters the web tests use, all invented: Corwin Tidewell (900000001) and Pip Mossbottom
+(900000002) in the invented campaign Saltreach Crossing, and Kestra Galeborn (900000003, a dragonborn Sorcerer 8 /
+Warlock 6 / Bard 6 in no campaign). They are hand-made from real answers' structure, every name, id and player text
+made up: edit them, don't refresh them, and never save a real character's answer here (it holds the player's D&D
+Beyond username and user id). The claude.ai sheet tests use the built sheets plus the fixture sheets in
+`tools/test/fixtures/sheets` (Pip Marrowby, and Kestra again, compacted by the engine from 900000003).
 
 ## How to add a look (☰ → Theme)
 1. Copy a file in `src/looks/` to the next number with the new key (`08-<key>.js`; the key becomes `<html data-skin>`) and

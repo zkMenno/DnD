@@ -9,7 +9,9 @@ const OUT = process.env.OUT || path.join(os.tmpdir(), 'sheet-tests');   // scree
 fs.mkdirSync(OUT, { recursive: true });
 // Fixture sheets: a made-up character in tools/test/fixtures/sheets/<name>.json, for class features no built sheet
 // has (rogue-fighter: a halfling Rogue 3 / Fighter 3 Battle Master, for Sneak Attack, Steady Aim, superiority dice
-// and Halfling Luck). Each is written to $OUT/fixture-<name>.html: a copy of the built trial-brute.html with that
+// and Halfling Luck; sorc-warlock-bard: Kestra Galeborn, a dragonborn Sorcerer 8 / Warlock 6 / Bard 6, the same
+// character as the web tests' D&D Beyond fixture 900000003, made from it by the engine: a spellcaster with three
+// casting classes, pact slots and sorcery points). Each is written to $OUT/fixture-<name>.html: a copy of the built trial-brute.html with that
 // data in its #trial-brute-data script and the character's name as the title (same pack, so same storage prefix).
 const FIXTURES = path.join(__dirname, 'fixtures', 'sheets');
 function fixtureSheet(name) {
@@ -21,8 +23,8 @@ function fixtureSheet(name) {
   return f;
 }
 // The test names for the sheets: built ones (the output names in tools/build.js) and fixture sheets (absolute paths).
-const SHEETS = { tester: 'apptester.html', tester2: 'apptester2.html', 'trial-brute': 'trial-brute.html', 'trial-mage': 'trial-mage.html',
-  'rogue-fighter': fixtureSheet('rogue-fighter') };
+const SHEETS = { tester2: 'apptester2.html', 'trial-brute': 'trial-brute.html', 'trial-mage': 'trial-mage.html',
+  'rogue-fighter': fixtureSheet('rogue-fighter'), 'sorc-warlock-bard': fixtureSheet('sorc-warlock-bard') };
 const ROLL_MS = 4500;   // a roll's burst + 3D dice before the numbers are written in
 
 let failed = 0;
@@ -59,4 +61,4 @@ const wait = async (page, ms = ROLL_MS) => {
 };
 // Saves a screenshot as $OUT/<name>.png.
 const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png') });
-module.exports = { check, withBrowser, openSheet, wait, shot, SHEETS, OUT, DIST };
+module.exports = { check, withBrowser, openSheet, wait, shot, fixtureSheet, SHEETS, OUT, DIST };

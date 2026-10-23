@@ -16,7 +16,6 @@ if (process.argv[2] === '--stamp') { stamp(path.resolve(process.argv[3])); proce
 // trial-brute.html).
 const SHEETS = [   // pack file, data file, page title, output name
   { pack:'henry',  data:'henry',  title:'Henry Gibbs',      out:'henry.html' },
-  { pack:'tester', data:'tester', title:'AppTester-01',     out:'apptester.html' },
   { pack:'wick',   data:'wick',   title:'Wick Softtoppoms', out:'wick.html' },
   { pack:'tester2', data:'tester2', title:'AppTester-02',    out:'apptester2.html' },
   { pack:'trial-brute', data:'trial-brute', title:'Torgan Ironvow', out:'trial-brute.html' },

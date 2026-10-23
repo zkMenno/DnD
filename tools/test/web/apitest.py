@@ -1,6 +1,6 @@
 # End-to-end test of the server rules: per-account trackers, verification, privacy, party log.
 # Uses saved D&D Beyond answers (tools/test/fixtures/ddb): the invented characters Corwin (900000001) and Pip
-# (900000002) are both in the invented campaign Saltreach Crossing, AppTester-01 (172559988) is not.
+# (900000002) are both in the invented campaign Saltreach Crossing, the invented Kestra Galeborn (900000003) is in none.
 # A superuser stands in for "the D&D Beyond code was found".
 # Run: python3 tools/test/web/apitest.py [server URL] (default http://127.0.0.1:8090), or via bash tools/test.sh web.
 # Talks to the API directly (no browser). Needs a fresh database (fixed accounts alice, bob, carol) and the test
@@ -42,7 +42,7 @@ s,_  = mk(ta,ia,900000002,'private'); check('alice can\'t add the same character
 s,_  = mk(tb,ia,900000001,'private'); check('bob can\'t create a tracker for alice', s>=400)
 s,_  = mk(ta,ia,900000001,'party',{'verified':True}); check('nobody can mark themselves verified', s>=400)
 s,hb = mk(tb,ib,900000001,'party'); check('bob adds Corwin, shared with the party', s==200 and hb.get('campaign')==C1)
-s,tc_ = mk(tc,ic,172559988,'party'); check('carol adds AppTester-01 (not in Saltreach Crossing)', s==200 and tc_.get('campaign')!=C1)
+s,tc_ = mk(tc,ic,900000003,'party'); check('carol adds Kestra (not in Saltreach Crossing)', s==200 and tc_.get('campaign')!=C1)
 s,ch = mk(tc,ic,900000002,'private'); check('carol adds Pip too (unverified)', s==200)
 
 # ── Trackers ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -83,10 +83,10 @@ s,x = req('GET','/api/collections/notes/records/'+n2['id'],tok=ta); check('party
 s,_ = req('PATCH','/api/collections/characters/records/'+wa['id'],{'data':{'id':900000002,'hp':{'override':'<img src=x onerror=alert(1)>'}}},ta); check('character data with HTML is refused', s==400)
 s,_ = req('PATCH','/api/collections/play/records/'+pa['id'],{'state':{'hp':'<svg onload=alert(1)>'}},ta); check('a tracker with HTML is refused', s==400)
 s,_ = req('PATCH','/api/collections/play/records/'+pa['id'],{'state':{'hp':12,'note':'HP < 10 is bad'}},ta); check('a plain "<" in text is fine', s==200)
-s,x = req('PATCH','/api/collections/characters/records/'+wa['id'],{'pack':'tester'},ta); check('the pack is the server\'s choice', s==200 and x['pack']=='bare')
-# 170557047 is the one id with its own pack (PACKS in ddb_utils.js). Its saved answer is a stub (name only, no real
-# sheet data): enough for the server to create the record.
-s,x = mk(tc,ic,170557047,'private',{'pack':'evil'}); check('a character with its own pack gets it, whatever the browser sends', s==200 and x['pack']=='henry')
+s,x = req('PATCH','/api/collections/characters/records/'+wa['id'],{'pack':'henry'},ta); check('the pack is the server\'s choice', s==200 and x['pack']=='bare')
+# The same when a character is added: whatever pack the browser sends, the server stores its own (bare for the
+# invented characters; PACKS in ddb_utils.js).
+s,x = mk(tc,ic,900000001,'private',{'pack':'henry'}); check('a new character gets the server\'s pack, whatever the browser sends', s==200 and x['pack']=='bare')
 s,x = req('PATCH','/api/collections/characters/records/'+wa['id'],{'visibility':'public'},ta); check('a sharing change still works', s==200 and x['visibility']=='public')
 # ── Verify reads only the player's own text ─────────────────────────────────────────────────────────────────
 # Verify reads only the player's own text (Notes, Backstory, traits), never the campaign block, where other
