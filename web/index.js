@@ -27,19 +27,25 @@ const ss = { get: k => { try { return sessionStorage.getItem(k); } catch (_) { r
 
 // ── Signed out: the front page ──────────────────────────────────────────────────────────────────────
 function showLanding() {
-  const l = $('#landing'); l.hidden = false; $('#main').innerHTML = ''; $('#who').innerHTML = '<a class="btn login toplogin" href="#signin" data-go="signin">Log in <span aria-hidden="true">→</span></a>';
+  const l = $('#landing'); l.hidden = false; $('#main').innerHTML = '';
+  // signed in: the front page is still there to look at (logo or /#front); the button leads back to your characters
+  $('#who').innerHTML = pb.authStore.isValid ? '<a class="btn login toplogin" href="/" id="tohome">Your characters <span aria-hidden="true">→</span></a>'
+    : '<a class="btn login toplogin" href="#signin" data-go="signin">Log in <span aria-hidden="true">→</span></a>';
+  if (pb.authStore.isValid) $('#tohome').onclick = e => { e.preventDefault(); history.replaceState(null, '', '/'); renderHome(); window.scrollTo(0, 0); };
   document.body.classList.add('front');
 }
 $('#msg').addEventListener('click', () => msg(''));
 // clicks on "Get started" / "Sign in" anywhere on the page
-document.addEventListener('click', e => { const a = e.target.closest('[data-go]'); if (!a || pb.authStore.isValid) return; e.preventDefault(); renderLogin(a.dataset.go); });
+document.addEventListener('click', e => { const a = e.target.closest('[data-go]'); if (!a) return; e.preventDefault();
+  if (pb.authStore.isValid) { history.replaceState(null, '', '/'); renderHome(); window.scrollTo(0, 0); return; }   // signed in: Get started = your characters
+  renderLogin(a.dataset.go); });
 // "Have your character link ready?": keep it for after sign-in
 // (the same box is in the hero and in How it works, step II)
 document.querySelectorAll('form.quicklink').forEach(f => f.addEventListener('submit', e => {
   e.preventDefault();
   const id = ddbId(e.target.url.value), m = e.target.querySelector('.ql-msg');
   if (!id) { m.textContent = 'That doesn’t look like a D&D Beyond character link. It looks like dndbeyond.com/characters/12345678.'; return; }
-  ss.set(PENDING, String(id)); renderLogin('signup');
+  ss.set(PENDING, String(id)); if (pb.authStore.isValid) signedIn(); else renderLogin('signup');   // signed in: add it straight away
 }));
 
 // ── Sign in ─────────────────────────────────────────────────────────────────────────────────────────
@@ -141,6 +147,7 @@ function header() {
   const me = pb.authStore.record;
   $('#landing').hidden = true; document.body.classList.remove('front');
   $('#who').innerHTML = '<span title="' + esc(me.email) + '">@' + esc(me.username || me.email) + '</span> · <a href="#" id="out">Sign out</a>';
+  const brand = document.querySelector('.top .brand'); if (brand) brand.setAttribute('href', '/#front');   // the logo shows the front page
   $('#out').onclick = e => { e.preventDefault(); signOut(); };
 }
 function renderOnboarding() {
@@ -522,12 +529,15 @@ async function addById(id, first) {
 }
 
 // #signin in the address (a link, or Back/Forward): the sign-in card, if signed out
-window.addEventListener('hashchange', () => { if (location.hash === '#signin' && !pb.authStore.isValid) renderLogin('signin'); });
+window.addEventListener('hashchange', () => {
+  if (location.hash === '#signin' && !pb.authStore.isValid) renderLogin('signin');
+  if (location.hash === '#front' && pb.authStore.isValid) { showLanding(); window.scrollTo(0, 0); }
+});
 
 (async () => {
   // signed in (offline too: keep the saved login; the list comes from this device's last copy)
   if (pb.authStore.isValid) {
-    try { await pb.collection('users').authRefresh(); return signedIn(); }
+    try { await pb.collection('users').authRefresh(); if (location.hash === '#front') return showLanding(); return signedIn(); }
     catch (e) { if (!navigator.onLine || !e || !e.status) return renderHome(); pb.authStore.clear(); }
   }
   if (location.hash === '#signin' || new URLSearchParams(location.search).get('next')) return renderLogin('signin');
