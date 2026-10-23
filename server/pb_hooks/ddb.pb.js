@@ -125,6 +125,7 @@ onRecordRequestOTPRequest((e) => {
 // signing in with an emailed code proves the address: mark it verified
 onRecordAuthWithOTPRequest((e) => {
   if (e.record && !e.record.verified()) { e.record.setVerified(true); $app.save(e.record); }
+  if (e.record) $app.store().set("otp-at:" + e.record.id, String(Date.now()));   // lets /api/account/first-password skip a second email
   e.next();
 }, "users");
 
@@ -137,9 +138,11 @@ onRecordCreate((e) => {
 }, "users");
 onRecordCreateRequest((e) => {
   if (e.record.getString("username")) e.record.set("username", require(`${__hooks}/ddb_utils.js`).checkUsername(e.record.getString("username"), ""));
+  e.record.set("pw_set", !!String((e.requestInfo().body || {}).password || ""));   // a password sign-up chose one
   e.next();
 }, "users");
 onRecordUpdateRequest((e) => {
+  e.record.set("pw_set", e.record.original().getBool("pw_set"));   // server-set only
   const n = e.record.getString("username");
   if (n !== e.record.original().getString("username")) e.record.set("username", require(`${__hooks}/ddb_utils.js`).checkUsername(n, e.record.id));
   e.next();

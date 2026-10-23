@@ -59,7 +59,7 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
   + R('src/landing.html') + '\n<p id="msg" class="msg"></p><main id="main"></main>\n'
   + '<footer class="foot"><p>Made with 🎲 by <a href="https://github.com/zkMenno" target="_blank" rel="noopener">Menno</a></p>'
   + '<p class="small">This is an unofficial fan project. Dungeon Tracker is not affiliated with Wizards of the Coast or D&amp;D Beyond.</p>'
-  + '<p><a href="/legal.html">Privacy &amp; Terms</a> · Hosted in Germany.</p></footer>\n'
+  + '<p class="small"><a href="/legal.html">Privacy &amp; Terms</a> · Hosted by Hetzner in Germany.</p></footer>\n'
   + '<script src="/pocketbase.umd.js"></script>\n<script src="/index.js"></script>\n<script src="/home-dice.js" defer></script>\n<script src="/home-anim.js" defer></script>\n</body></html>');
 // front page dice (web/home-anim.js): the sheet's own 3D dice (src/engine/06-3d-dice.js) with the theme's dice sets, in one
 // closure so its names don't meet web/index.js. three.js is loaded by home-anim.js when it's needed, so the line that

@@ -373,8 +373,8 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .pc-ranger figcaption{left:auto;right:24%;transform:translate(0,6px)} .pc-ranger figcaption::after{left:auto;right:22px;transform:rotate(45deg)}
 .pc-wizard:hover figcaption,.pc-wizard:focus-visible figcaption,.pc-ranger:hover figcaption,.pc-ranger:focus-visible figcaption{transform:none}
 @media (max-width:520px){
-  .pc-pirate figcaption{left:22%;transform:translate(0,6px)} .pc-pirate figcaption::after{left:28px}
-  .pc-bard figcaption{left:auto;right:12%;transform:translate(0,6px)} .pc-bard figcaption::after{left:auto;right:22px;transform:rotate(45deg)}
+  .pc-bard figcaption{left:22%;transform:translate(0,6px)} .pc-bard figcaption::after{left:28px}
+  .pc-pirate figcaption{left:auto;right:12%;transform:translate(0,6px)} .pc-pirate figcaption::after{left:auto;right:22px;transform:rotate(45deg)}
   .pc-pirate:hover figcaption,.pc-pirate:focus-visible figcaption,.pc-bard:hover figcaption,.pc-bard:focus-visible figcaption{transform:none}
 }
 /* hover only counts on a character's middle, not on the see-through edges of the picture next to it */
@@ -490,3 +490,19 @@ body > #msg:empty{display:none}
 .tryclose .btn:hover{transform:rotate(90deg);border-color:var(--brass)}
 /* How it works boxes: no gold stripe on the left either */
 .steps > li{border-left-width:1px}
+
+/* Sign-in & security card */
+.sec .secrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.sec .secrow:first-of-type{border-top:0;padding-top:4px}
+.sec .secrow > div{display:grid;gap:2px;min-width:0} .sec .secrow > div span{overflow-wrap:anywhere}
+.secbox{margin:0 0 12px;padding:14px;border-radius:12px;border:1px dashed var(--brass);background:color-mix(in srgb,var(--brass) 5%,transparent)}
+.secbox input{width:100%;box-sizing:border-box;padding:10px 12px;margin:0 0 10px}
+.secbox .authrow input{margin:0}
+#emstep2,#pwstep2{margin-top:10px}
+@media (max-width:520px){ .sec .secrow{flex-direction:column;align-items:stretch} }
+.pwprompt{border-color:color-mix(in srgb,var(--brass) 60%,transparent)} .pwprompt h2{margin-top:0} .pwprompt .authrow input{padding:10px 12px}
+
+/* Your characters: the add box stands out; gold buttons keep a gold edge on hover */
+.addrow input{border:1.5px solid color-mix(in srgb,var(--brass) 75%,transparent)} .addrow input:focus{border-color:var(--brass)}
+.auth .btn.primary:hover,.onb .btn.primary:hover,.addrow .btn.primary:hover,.secbox .btn.primary:hover,.pwprompt .btn.primary:hover{border-color:var(--brass);filter:brightness(1.08)}
+.sec .btn.primary,.secbox .btn.primary,.pwprompt .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--sea-ink,#0c141c)}

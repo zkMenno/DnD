@@ -192,15 +192,17 @@ function signOut() {
 async function renderHome() {
   header();
   const me = pb.authStore.record, auto = isAuto(me.username);
-  $('#main').innerHTML = '<div id="cont"></div>' + (auto ? nameCard(me) : '') + `
+  $('#main').innerHTML = (auto ? nameCard(me) : '') + `
     <section class="card"><h2>Your characters</h2><div id="mine" class="list"><p class="muted">Loading…</p></div>
       <form id="add" class="addrow"><input name="url" placeholder="Add a character: paste its D&amp;D Beyond link" required autocomplete="off" inputmode="url" aria-label="D&amp;D Beyond character link"><button class="btn primary">Add</button></form>
       <p class="small muted visinfo"><b>Who can see your tracker?</b> <i>Only me</i>: just you. <i>My party can see</i>: other verified players whose characters are in the same D&amp;D Beyond campaign can look at it (read-only), and you share a party log under Notes. <i>Anyone signed in</i>: anyone with the link. Verify a character first to share it with your party.</p>
       <p class="small muted">The character must be public on D&amp;D Beyond (Character Settings → Character Privacy → Public). Dungeon Tracker only reads it.</p></section>
-    <section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + (auto ? '' : nameCard(me)) + dataCard();
+    <div id="cont"></div>
+    <section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + (auto ? '' : nameCard(me)) + secCard(me) + dataCard();
+  pwPrompt(me);
   $('#add').addEventListener('submit', addCharacter); $('#uname').addEventListener('submit', saveName);
   { const u = $('#uname [name=u]'); u.addEventListener('input', () => { $('#unpv').textContent = u.value.trim().toLowerCase() || 'name'; }); }   // the example link follows what you type
-  $('#export').onclick = exportData; $('#delacct').onclick = askDelete; bindInvite();
+  bindSec(); $('#export').onclick = exportData; $('#delacct').onclick = askDelete; bindInvite();
   await loadLists();
 }
 
@@ -246,6 +248,72 @@ async function saveName(e) {
 }
 
 // Your data (GDPR, see /legal.html): download everything this app keeps about you, or delete it all
+// No password yet (the account came from an emailed code): suggest saving one, so next time signing in is instant and
+// doesn't use an email. Right after a code sign-in it's one field; later the Sign-in & security flow (with a code) does it.
+function pwPrompt(me) {
+  let skip = false; try { skip = !!localStorage.getItem('pw-later-' + me.id); } catch (_) {}
+  if (me.pw_set || skip) return;
+  const card = document.createElement('section'); card.className = 'card pwprompt';
+  card.innerHTML = `<h2>🔑 Save a password for next time</h2>
+    <p class="small muted">Sign in straight away next time, without waiting for an email. You can still use emailed codes too.</p>
+    <div class="authrow"><input id="firstpw" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" aria-label="New password">
+      <button class="btn primary" type="button" id="firstpwok">Save password</button></div>
+    <div class="row authsub"><button class="btn" type="button" id="firstpwno">Not now</button></div>`;
+  const list = $('#mine') && $('#mine').closest('section'); (list ? list.parentNode.insertBefore(card, list) : $('#main').prepend(card));
+  $('#firstpwno').onclick = () => { try { localStorage.setItem('pw-later-' + me.id, '1'); } catch (_) {} card.remove(); };
+  $('#firstpwok').onclick = async () => {
+    const pw = $('#firstpw').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
+    try { const r = await pb.send('/api/account/first-password', { method: 'POST', body: { password: pw } });
+      pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email })); card.remove(); msg('Password saved. Next time, sign in with your email and password.'); }
+    catch (e) { const t = (e && e.response && e.response.message) || '';
+      if (t === 'fresh-code-needed') { card.remove(); $('#secpw').click(); $('#secpw').scrollIntoView({ block: 'center' }); msg('For safety we email you a code first. Press “Email me a code”.'); }
+      else msg(t || 'Couldn’t save that. Try again.', true); }
+  };
+}
+// Sign-in & security: change your email or set/change your password. Both confirm with a 6-digit code
+// (server/pb_hooks/account.pb.js): for a password it goes to your email, for a new email to the new address.
+const secCard = me => `<section class="card sec"><h2>Sign-in &amp; security</h2>
+    <div class="secrow"><div><b>Email</b><span class="small muted" id="secemail">${esc(me.email || '')}</span></div><button class="btn" type="button" id="secem">Change email</button></div>
+    <div class="secbox" id="secembox" hidden></div>
+    <div class="secrow"><div><b>Password</b><span class="small muted">Optional: you can always sign in with an emailed code.</span></div><button class="btn" type="button" id="secpw">Set or change password</button></div>
+    <div class="secbox" id="secpwbox" hidden></div></section>`;
+function bindSec() {
+  const api = (path, body) => pb.send('/api/account/' + path, { method: 'POST', body });
+  const err = e => (e && e.response && e.response.message) || (e && e.message) || 'That didn’t work. Try again.';
+  const toggle = (box, html, other) => { $(other).hidden = true; const b = $(box); b.hidden = !b.hidden; if (!b.hidden) b.innerHTML = html; return !b.hidden; };
+  $('#secem').onclick = () => {
+    if (!toggle('#secembox', `<label class="authlbl" for="newemail">New email</label><div class="authrow"><input id="newemail" type="email" autocomplete="email" placeholder="you@example.com"><button class="btn primary" type="button" id="emsend">Send a code</button></div>
+      <p class="small muted">We send a 6-digit code to the new address to check it’s yours.</p><div id="emstep2"></div>`, '#secpwbox')) return;
+    $('#emsend').onclick = async () => {
+      const email = $('#newemail').value.trim(); if (!email) return msg('Type the new email first.', true);
+      try { await api('code', { purpose: 'email', email }); msg('Code sent to ' + email + '.');
+        $('#emstep2').innerHTML = `<div class="authrow"><input id="emcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456" aria-label="Code"><button class="btn primary" type="button" id="emok">Change email</button></div>`;
+        $('#emcode').focus();
+        $('#emok').onclick = async () => {
+          try { const r = await api('confirm', { code: $('#emcode').value }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
+            $('#secemail').textContent = r.email; $('#secembox').hidden = true; msg('Done. You now sign in with ' + r.email + '.'); }
+          catch (e) { msg(err(e), true); } };
+      } catch (e) { msg(err(e), true); }
+    };
+  };
+  $('#secpw').onclick = () => {
+    if (!toggle('#secpwbox', `<p class="small muted">First we email you a code, to check it’s you.</p><button class="btn primary" type="button" id="pwsend">Email me a code</button><div id="pwstep2"></div>`, '#secembox')) return;
+    $('#pwsend').onclick = async () => {
+      try { const r = await api('code', { purpose: 'password' }); msg('Code sent to ' + r.sent + '.'); $('#pwsend').hidden = true;
+        $('#pwstep2').innerHTML = `<label class="authlbl" for="pwcode">Code</label><input id="pwcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
+          <label class="authlbl" for="pwnew">New password</label><input id="pwnew" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+          <div class="row authsub"><button class="btn primary" type="button" id="pwok">Save password</button></div>`;
+        $('#pwcode').focus();
+        $('#pwok').onclick = async () => {
+          const pw = $('#pwnew').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
+          try { const r = await api('confirm', { code: $('#pwcode').value, password: pw }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
+            try { localStorage.setItem('has-password-' + r.record.id, '1'); } catch (_) {}
+            $('#secpwbox').hidden = true; msg('Password saved. You can sign in with it or with an emailed code.'); }
+          catch (e) { msg(err(e), true); } };
+      } catch (e) { msg(err(e), true); }
+    };
+  };
+}
 const dataCard = () => `<section class="card"><h2>Your data</h2>
     <p class="small muted">Everything this app keeps about you, stored in the EU.</p>
     <div class="row"><button class="btn" id="export">⬇️ Download my data</button><button class="btn danger" id="delacct">Delete my account</button></div>
