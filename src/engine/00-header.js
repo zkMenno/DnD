@@ -55,6 +55,7 @@
       04-dice               rolls, the roll dock             15-tabs               tabs, arrows, keys, swipes
       05-action-animations  bursts before a roll lands       16-glossary           terms and their bubbles
       06-3d-dice            three.js dice and dice sets      17-dialog-and-notes   confirm dialog, notes, party log
+      06b-throw-dice        Throw it yourself (FEATURES)
       07-boosts             inspiration and blessings        18-menu-rests-quickroll ☰ menu, rests, Quick roll
       08-roll-flow          hit → damage, riders, checks     19-ammo-coins-touch   arrows, coins, touch, keys
       08b-spells            Spells tab and casting           20-events             one delegated click handler

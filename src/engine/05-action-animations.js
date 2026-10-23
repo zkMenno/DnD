@@ -2,8 +2,8 @@
    §5  ACTION ANIMATIONS — a short burst over the middle of the screen, then the dice, then the result
    Defines: FX (burst kinds, extended by §7), fx() (the one entry point), fxParts(), DMG_ICON, dmgIcon(), dmgTag(),
    spellEl(), spellIcon(), healMe(), healNote(), DIE_SHAPE, diceFx() (flat dice when 3D can't run).
-   Relies on: reduceMotion, DIE_SVG (§4), esc, WORD, D (§2), S, save (§3). At run time: dice3d (§6), paintRes (§10),
-   paintVitals (§12). Everything is skipped (the callback runs at once) when the OS asks for reduced motion.
+   Relies on: reduceMotion, DIE_SVG (§4), esc, WORD, D (§2), S, save (§3). At run time: dice3d (§6), throwWanted and
+   throwDice (§6b), paintRes (§10), paintVitals (§12). Everything is skipped (the callback runs at once) when the OS asks for reduced motion.
    ============================================================================ */
 // ── Burst animations ───────────────────────────────────────────────────────────────────────────────────────
 let fxBusy = false;   // a burst or dice tumble is playing: fx() calls made meanwhile skip straight to their callback
@@ -75,7 +75,8 @@ function fx(kind, then, dice, after){
   fxBusy = true;
   const done = () => { try { then && then(); } finally { fxBusy = false; } };
   const afterStep = () => aft ? emojiFx(after, false, done) : done();
-  const diceStep = () => hasDice ? dice3d(dice, afterStep) : afterStep();
+  // the dice: thrown by the player when this device chose "Throw it yourself" (§6b), else the automatic throw (§6)
+  const diceStep = () => !hasDice ? afterStep() : throwWanted() ? throwDice(dice, afterStep) : dice3d(dice, afterStep);
   if (spec) emojiFx(kind, hasDice, diceStep); else diceStep();
 }
 // ── Healing ────────────────────────────────────────────────────────────────────────────────────────────────
