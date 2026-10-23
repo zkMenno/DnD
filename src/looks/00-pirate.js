@@ -4,6 +4,7 @@
 module.exports = {
   label: 'Pirate', emoji: '🏴‍☠️',
   swatch: ['#0C141C', '#E2B04A', '#ECE2CC'],   // the theme picker's swatch: dark background, accent, light background
+  preview: ['#72B4CF', '#E26A5C'],   // its dark sea and hp colours (src/theme.css), shown on the picker tile
   base: true,
   // the web/fonts files the src/theme.css fonts need (<name>-latin.woff2 and -latin-ext.woff2)
   fontFiles: ['pirata-one-400', 'alegreya-sc-500', 'alegreya-sc-700', 'alegreya-sans-400', 'alegreya-sans-500', 'alegreya-sans-700', 'ibm-plex-mono-500', 'ibm-plex-mono-700'],

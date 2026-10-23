@@ -86,8 +86,8 @@ function skinRow(open, chev){
   const K = window.Skin; if (!K || !window.SHEET) return '';
   const cur = K.skin(), mode = K.mode(), it = K.list.find(x => x[0] === cur) || K.list[0], ML = {auto:'Auto', light:'Light', dark:'Dark'};
   return '<div style="height:8px"></div><button class="menulink'+(open?' open':'')+'" data-act="menuview" data-v="skin" aria-expanded="'+open+'"><span class="mico" aria-hidden="true">🎨</span><span class="dst"><b>Theme</b><span>'+esc(it[1])+' · '+ML[mode]+'</span></span>'+chev(open)+'</button>'
-    + (open ? '<div class="msub skinpick"><div class="skingrid">'+K.list.map(([k, n, e, dk, ac, lt]) => '<button class="skinopt'+(k===cur?' on':'')+'" data-act="skinpick" data-k="'+k+'" aria-pressed="'+(k===cur)+'">'
-          + '<span class="skinsw" style="background:linear-gradient(135deg,'+lt+' 0 50%,'+dk+' 50% 100%)"><span style="background:'+ac+'"></span></span><span class="skinn">'+e+' '+esc(n)+'</span></button>').join('')+'</div>'
+    + (open ? '<div class="msub skinpick"><div class="skingrid">'+K.list.map(([k, n, e, dk, ac, lt, sea, hp]) => '<button class="skinopt'+(k===cur?' on':'')+'" data-act="skinpick" data-k="'+k+'" aria-pressed="'+(k===cur)+'">'
+          + '<span class="skinsw" style="--sd:'+dk+';--sa:'+ac+';--sl:'+lt+';--ss:'+(sea||ac)+';--sh:'+(hp||ac)+'"><span class="skini" aria-hidden="true">'+e+'</span><i></i><i></i></span><span class="skinn">'+esc(n)+'</span></button>').join('')+'</div>'
         + '<div class="skinmode" role="group" aria-label="Light or dark">'+['auto','light','dark'].map(m => '<button data-act="skinmode" data-m="'+m+'" aria-pressed="'+(m===mode)+'">'+(m==='auto'?'🖥️ ':m==='light'?'☀️ ':'🌙 ')+ML[m]+'</button>').join('')+'</div>'
         + '<p class="small muted" style="margin:6px 2px 0">Saved on this device. Auto follows your phone or computer’s light/dark setting.</p></div>' : '');
 }

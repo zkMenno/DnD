@@ -11,7 +11,8 @@
 // 00-pirate.js is the base look (base: true): its tokens are src/theme.css itself, its words and dice THEMES.pirate in
 // src/themes.js, so it only has the picker entry and its font files. Every other look exports:
 //   label, emoji   the name in the picker (label also heads its block in skins.css)
-//   swatch         [dark background, accent, light background]: the picker's little swatch
+//   swatch         [dark background, accent, light background]: the picker's little tile (which also shows the look's
+//                  icon and its dark sea + hp colours; the base look gives those as preview: [sea, hp])
 //   light, dark    colour tokens, named as in src/theme.css without the "--": every #RRGGBB token pirate has
 //   fonts          { title, display?, body? }: CSS font stacks for --f-pirate, --f-display, --f-body
 //   fontFiles      the web/fonts files those stacks and the dice need, as "<name>" for web/fonts/<name>-latin.woff2
@@ -247,7 +248,7 @@ function build(root){
   const looks = loadLooks(root), errs = checkLooks(root, looks);
   if (errs.length) throw new Error('A look is incomplete (src/looks, see tools/looks.js):\n  ' + errs.join('\n  '));
   const skins = looks.filter(l => !l.base);
-  return { looks, css: skinsCss(looks), list: looks.map(l => [l.key, l.label, l.emoji, ...l.swatch]),
+  return { looks, css: skinsCss(looks), list: looks.map(l => [l.key, l.label, l.emoji, ...l.swatch, ...(l.dark ? [l.dark.sea, l.dark.hp] : l.preview || [])]),   // + two more of its colours (sea, hp) for the picker tile
     words: Object.fromEntries(skins.map(l => [l.key, l.words])), dice: Object.fromEntries(skins.map(l => [l.key, l.dice])) };
 }
 // text with its one placeholder /*__<name>__*/<empty literal> replaced by value as JSON; throws if the placeholder

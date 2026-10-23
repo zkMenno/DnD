@@ -518,7 +518,7 @@ function bindLooks() {
   const K = window.Skin, box = $('#looks'); if (!K || !box) return;
   const ML = { auto: '🖥️ Auto', light: '☀️ Light', dark: '🌙 Dark' };
   const paint = () => { const cur = K.skin(), mode = K.mode();
-    box.innerHTML = '<div class="skingrid">' + K.list.map(([k, n, e, dk, ac, lt]) => `<button type="button" class="skinopt${k === cur ? ' on' : ''}" data-skin="${k}" aria-pressed="${k === cur}"><span class="skinsw" style="background:linear-gradient(135deg,${lt} 0 50%,${dk} 50% 100%)"><span style="background:${ac}"></span></span><span class="skinn">${e} ${esc(n)}</span></button>`).join('') + '</div>'
+    box.innerHTML = '<div class="skingrid">' + K.list.map(([k, n, e, dk, ac, lt, sea, hp]) => `<button type="button" class="skinopt${k === cur ? ' on' : ''}" data-skin="${k}" aria-pressed="${k === cur}"><span class="skinsw" style="--sd:${dk};--sa:${ac};--sl:${lt};--ss:${sea || ac};--sh:${hp || ac}"><span class="skini" aria-hidden="true">${e}</span><i></i><i></i></span><span class="skinn">${esc(n)}</span></button>`).join('') + '</div>'
       + '<div class="skinmode" role="group" aria-label="Light or dark">' + Object.entries(ML).map(([m, t]) => `<button type="button" data-mode="${m}" aria-pressed="${m === mode}">${t}</button>`).join('') + '</div>';
     box.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { K.set(b.dataset.skin, K.mode()); paint(); });
     box.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { K.set(K.skin(), b.dataset.mode); paint(); }); };

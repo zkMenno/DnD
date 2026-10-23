@@ -758,3 +758,8 @@ body > #msg{font-size:1.02rem;line-height:1.45}
   .steps .substeps{padding-left:1.1em;margin:4px 0 8px}
   .steps .ql-step{margin:8px 0}
 }
+/* Account → Theme tiles: the same look-coloured tiles as the sheet menu (src/app.css) */
+.looks .skinsw{width:40px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--sd) 0 64%,var(--sl) 64%)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.looks .skinsw .skini{background:none!important;position:absolute;left:5px;top:5px;color:var(--sa);font-size:17px;line-height:1;--ia:var(--sa);--iao:.28;width:auto;height:auto;border-radius:0;box-shadow:none;right:auto;bottom:auto}
+.looks .skinsw > i{position:absolute;width:7px;height:7px;border-radius:50%;right:4px;bottom:11px;background:var(--ss);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.looks .skinsw > i + i{right:12px;bottom:4px;background:var(--sh)}

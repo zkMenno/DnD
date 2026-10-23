@@ -1719,3 +1719,14 @@ body:has(#menubox:not([hidden])) #dock,body:has(#restbox:not([hidden])) #dock{vi
     border-radius:14px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
     box-shadow:0 -6px 18px -10px rgba(0,0,0,.45)}
 }
+
+/* ── Theme picker tiles (☰ → Theme, Account → Theme) ───────────────────────────────────────────────────────────
+   Each look in its own colours: its dark page with its icon in its accent colour, a corner of its light page, and
+   two dots of its sea and hp colours, so the eight tiles tell themselves apart at a glance. Overrides the plain
+   two-tone swatch above. */
+.skinsw{width:40px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--sd) 0 64%,var(--sl) 64%)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);display:grid;place-items:center}
+.skinsw .skini{position:absolute;left:5px;top:5px;right:auto;bottom:auto;width:auto;height:auto;border-radius:0;box-shadow:none;background:none!important;color:var(--sa);font-size:17px;line-height:1;--ia:var(--sa);--iao:.28}
+.skinsw > i{position:absolute;width:7px;height:7px;border-radius:50%;right:4px;bottom:11px;background:var(--ss);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.skinsw > i + i{right:12px;bottom:4px;background:var(--sh)}
+.skinsw > span:not(.skini){display:none}
