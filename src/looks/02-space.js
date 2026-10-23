@@ -1,6 +1,6 @@
 // Starfarer (space): starships and strange planets. One look of ☰ → Theme; tools/looks.js explains every field.
 module.exports = {
-  label: 'Starfarer', emoji: '🚀',
+  label: 'Starfarer', emoji: '🚀', pick: 4,   // place in the theme picker (1 = first)
   swatch: ['#0D1424', '#4FE0EE', '#E9EEF5'],   // the theme picker's swatch: dark background, accent, light background
   // colour tokens (the names in src/theme.css), light and dark
   light: { bg:'#E9EEF5', surface:'#F5F8FC', raised:'#FFFFFF', ink:'#111C2E', muted:'#55647C', line:'#C9D3E2', rope:'#8EA2C2', chart:'#E0E7F1', sea:'#5B3FD6', 'sea-ink':'#FFFFFF', 'sea-soft':'#E3DDFB', brass:'#0A7F95', 'brass-soft':'#D2EEF3', hp:'#C42A5E', good:'#1E7A52', aye:'#1B6E4A', warn:'#B45F06' },

@@ -763,3 +763,5 @@ body > #msg{font-size:1.02rem;line-height:1.45}
 .looks .skinsw .skini{background:none!important;position:absolute;left:5px;top:5px;color:var(--sa);font-size:17px;line-height:1;--ia:var(--sa);--iao:.28;width:auto;height:auto;border-radius:0;box-shadow:none;right:auto;bottom:auto}
 .looks .skinsw > i{position:absolute;width:7px;height:7px;border-radius:50%;right:4px;bottom:11px;background:var(--ss);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 .looks .skinsw > i + i{right:12px;bottom:4px;background:var(--sh)}
+/* theme picker: rows of four on wider screens (8 looks = two even rows) */
+@media (min-width:640px){ .looks .skingrid{grid-template-columns:repeat(4,minmax(0,1fr))} }

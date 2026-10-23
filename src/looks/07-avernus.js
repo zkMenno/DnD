@@ -1,6 +1,6 @@
 // Avernus (avernus): the first layer of the Nine Hells. One look of ☰ → Theme; tools/looks.js explains every field.
 module.exports = {
-  label: 'Avernus', emoji: '🔥',
+  label: 'Avernus', emoji: '🔥', pick: 8,   // place in the theme picker (1 = first)
   swatch: ['#120806', '#FFB347', '#F0E4DA'],   // the theme picker's swatch: dark background, accent, light background
   // colour tokens (the names in src/theme.css), light and dark
   light: { bg:'#F0E4DA', surface:'#F8EFE8', raised:'#FDF8F4', ink:'#2A1410', muted:'#6E4A40', line:'#DEC6B8', rope:'#B07A5E', chart:'#E8D8CC', sea:'#7A2E1E', 'sea-ink':'#FDF8F4', 'sea-soft':'#F1DCD4', brass:'#B4410E', 'brass-soft':'#F6DCCB', hp:'#A3201B', good:'#2C7A45', aye:'#2A6E40', warn:'#9A5B00' },

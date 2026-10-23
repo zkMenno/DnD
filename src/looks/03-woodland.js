@@ -1,6 +1,6 @@
 // Feywild (woodland): the fey forest. One look of ☰ → Theme; tools/looks.js explains every field.
 module.exports = {
-  label: 'Feywild', emoji: '🍃',
+  label: 'Feywild', emoji: '🍃', pick: 2,   // place in the theme picker (1 = first)
   swatch: ['#132119', '#DCB867', '#E6ECD8'],   // the theme picker's swatch: dark background, accent, light background
   // colour tokens (the names in src/theme.css), light and dark
   light: { bg:'#E6ECD8', surface:'#F2F6E8', raised:'#FAFCF3', ink:'#1C2619', muted:'#57684F', line:'#C8D3B1', rope:'#8BA266', chart:'#DEE6CC', sea:'#2D6A4C', 'sea-ink':'#FAFCF3', 'sea-soft':'#D5E6D8', brass:'#946719', 'brass-soft':'#EFE2BE', hp:'#A3302A', good:'#2C7A45', aye:'#2A6E40', warn:'#9A5B00' },

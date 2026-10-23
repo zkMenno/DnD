@@ -121,8 +121,9 @@ function gearPanel(){
     + (live ? useBtn(i.name) : '')
     + (i.added ? addedCtl(i) : i.equipped && (i.filter==='Weapon'||i.filter==='Armor')?'<span class="chip">equipped</span>':i.filter==='Weapon'||i.filter==='Armor'?'<span class="chip ghost">spare</span>':'')+'</div>';
   };
-  return '<section class="card" id="coinbox"></section>'
-    + '<section class="card carrycard">'+carryHTML()+'</section>'
+  // carrying first by default; like every titled card it can be moved with ↕ Sections → Reorder
+  return '<section class="card carrycard"><h2><span class="emo" aria-hidden="true">⚖️</span>Carrying capacity</h2>'+carryHTML()+'</section>'
+    + '<section class="card" id="coinbox"></section>'
     + (CAN_ADD() ? '<section class="card addcard"><div class="cardhead"><h2><span class="emo" aria-hidden="true">🛒</span>New gear</h2><button class="btn primary" data-act="additem">➕ Add item</button></div>'
       + '<p class="small muted" style="margin:0">'+(ADDED.length ? ADDED.length+' item'+(ADDED.length===1?'':'s')+' added here, marked <span class="chip addtag">not in D&amp;D Beyond yet</span>. They go once D&amp;D Beyond has them and you sync.' : 'Picked something up? Add it here. It works straight away and goes on the change list until it’s in D&amp;D Beyond.')+'</p></section>' : '')
     + '<section class="card"><h2><span class="emo" aria-hidden="true">⚔️</span>Weapons and armour</h2><div class="items">'+weaponsArmor.map(row).join('')+'</div></section>'
@@ -328,11 +329,12 @@ async function openItemPicker(){
       + (it.has ? '<p class="small">Contains: '+esc(it.has.map(([n, x]) => (n>1?n+'× ':'')+x).join(', '))+'</p>' : '')
       + itemExplain(it, base)
       + (bl.length ? '<label class="ifield"><span class="eyebrow">Which '+(bl === bases.armor ? 'armour' : 'weapon')+(needsBase(it) ? '' : ' (optional)')+'</span><select id="itbase"><option value="">'+(needsBase(it) ? 'Pick one…' : 'Not a specific one')+'</option>'+bl.map(b => '<option'+(base && base.n===b.n?' selected':'')+'>'+esc(b.n)+'</option>').join('')+'</select></label>' : '')
-      + '<div class="ifield irow2"><span class="eyebrow">How many</span><span class="istep"><button class="iconbtn" data-i="qty" data-d="-1" aria-label="One fewer">−</button><output class="num">'+qty+'</output><button class="iconbtn" data-i="qty" data-d="1" aria-label="One more">+</button></span></div>'
       + (wa ? '<label class="ifield irow2 icheck"><span class="eyebrow">Equipped</span><input type="checkbox" id="iteq"'+(eq?' checked':'')+'></label>' : '')
       + (have ? '<p class="small muted">D&amp;D Beyond already lists '+have+'. This adds '+qty+' more.</p>' : '')
-      + carryHTML(((base ? base.w : it.w) || 0) / (!base && it.q > 1 ? it.q : 1) * qty)
-      + '</div><div class="mbtns"><button class="btn primary" data-i="add"'+(needsBase(it) && !base ? ' disabled' : '')+'>➕ Add '+(qty>1?qty+'× ':'')+esc(inv.name)+'</button></div>';
+
+      + '</div><div class="icarry">'+carryHTML(((base ? base.w : it.w) || 0) / (!base && it.q > 1 ? it.q : 1) * qty)+'</div>'
+      // footer: how many, next to the Add button it changes
+      + '<div class="mbtns iadd"><span class="istep" role="group" aria-label="How many"><span class="eyebrow">How many</span><button class="iconbtn" data-i="qty" data-d="-1" aria-label="One fewer">−</button><output class="num">'+qty+'</output><button class="iconbtn" data-i="qty" data-d="1" aria-label="One more">+</button></span><button class="btn primary" data-i="add"'+(needsBase(it) && !base ? ' disabled' : '')+'>➕ Add '+(qty>1?qty+'× ':'')+esc(inv.name)+'</button></div>';
     const sel = box.querySelector('#itbase'); if (sel) sel.addEventListener('change', () => { base = bl.find(b => b.n === sel.value) || null; paint(); });
     const cb = box.querySelector('#iteq'); if (cb) cb.addEventListener('change', () => { eq = cb.checked; });
   };

@@ -7,7 +7,7 @@
 //   dice        each look's dice sets (→ THEMES.pirate.skinDice in the web engine's themes.js, §6)
 // The claude.ai sheets only ever wear the pirate look, so their engine keeps the empty placeholders.
 //
-// One file per look: src/looks/NN-<key>.js (NN = its place in the picker; the key is <html data-skin="<key>">).
+// One file per look: src/looks/NN-<key>.js (NN = build order; `pick` sets its place in the picker; the key is <html data-skin="<key>">).
 // 00-pirate.js is the base look (base: true): its tokens are src/theme.css itself, its words and dice THEMES.pirate in
 // src/themes.js, so it only has the picker entry and its font files. Every other look exports:
 //   label, emoji   the name in the picker (label also heads its block in skins.css)
@@ -248,7 +248,7 @@ function build(root){
   const looks = loadLooks(root), errs = checkLooks(root, looks);
   if (errs.length) throw new Error('A look is incomplete (src/looks, see tools/looks.js):\n  ' + errs.join('\n  '));
   const skins = looks.filter(l => !l.base);
-  return { looks, css: skinsCss(looks), list: looks.map(l => [l.key, l.label, l.emoji, ...l.swatch, ...(l.dark ? [l.dark.sea, l.dark.hp] : l.preview || [])]),   // + two more of its colours (sea, hp) for the picker tile
+  return { looks, css: skinsCss(looks), list: looks.slice().sort((a, b) => (a.pick||99) - (b.pick||99)).map(l => [l.key, l.label, l.emoji, ...l.swatch, ...(l.dark ? [l.dark.sea, l.dark.hp] : l.preview || [])]),   // + two more of its colours (sea, hp) for the picker tile
     words: Object.fromEntries(skins.map(l => [l.key, l.words])), dice: Object.fromEntries(skins.map(l => [l.key, l.dice])) };
 }
 // text with its one placeholder /*__<name>__*/<empty literal> replaced by value as JSON; throws if the placeholder

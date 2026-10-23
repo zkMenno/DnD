@@ -1,6 +1,6 @@
 // Ravenloft (gothic): gothic horror. One look of ☰ → Theme; tools/looks.js explains every field.
 module.exports = {
-  label: 'Ravenloft', emoji: '🦇',
+  label: 'Ravenloft', emoji: '🦇', pick: 5,   // place in the theme picker (1 = first)
   swatch: ['#161118', '#D9B26A', '#E9E4E2'],   // the theme picker's swatch: dark background, accent, light background
   // colour tokens (the names in src/theme.css), light and dark
   light: { bg:'#E9E4E2', surface:'#F5F1EF', raised:'#FCFAF9', ink:'#1C1519', muted:'#5F4F58', line:'#D4C8CC', rope:'#8F7480', chart:'#E2DBD9', sea:'#5A3D7A', 'sea-ink':'#FCFAF9', 'sea-soft':'#E5DCEE', brass:'#8E2236', 'brass-soft':'#F1D9DE', hp:'#B0261E', good:'#2F6B47', aye:'#2D6342', warn:'#9A5B00' },

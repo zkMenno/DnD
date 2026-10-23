@@ -2,7 +2,7 @@
 // The base look: its colour tokens and fonts are src/theme.css itself (no data-skin), its words and dice sets are
 // THEMES.pirate in src/themes.js (the claude.ai sheets use them too), so only the picker entry and font files live here.
 module.exports = {
-  label: 'Pirate', emoji: '🏴‍☠️',
+  label: 'Pirate', emoji: '🏴‍☠️', pick: 3,   // place in the theme picker (1 = first)
   swatch: ['#0C141C', '#E2B04A', '#ECE2CC'],   // the theme picker's swatch: dark background, accent, light background
   preview: ['#72B4CF', '#E26A5C'],   // its dark sea and hp colours (src/theme.css), shown on the picker tile
   base: true,

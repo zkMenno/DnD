@@ -1,6 +1,6 @@
 // Underdark (underdark): glowing caves below the world. One look of ☰ → Theme; tools/looks.js explains every field.
 module.exports = {
-  label: 'Underdark', emoji: '🍄',
+  label: 'Underdark', emoji: '🍄', pick: 7,   // place in the theme picker (1 = first)
   swatch: ['#0A0710', '#5EF0D2', '#E8E3EE'],   // the theme picker's swatch: dark background, accent, light background
   // colour tokens (the names in src/theme.css), light and dark
   light: { bg:'#E8E3EE', surface:'#F4F1F8', raised:'#FBFAFD', ink:'#1E1828', muted:'#5C5270', line:'#D3CADF', rope:'#8C7BA6', chart:'#E0D9EA', sea:'#5B3C99', 'sea-ink':'#FBFAFD', 'sea-soft':'#E4DCF5', brass:'#13756D', 'brass-soft':'#D3EEEA', hp:'#B3264B', good:'#2C7A45', aye:'#2A6E40', warn:'#9A5B00' },

@@ -1,6 +1,6 @@
 // Dragon Keep (fantasy): castles, heraldry and dragons. One look of ☰ → Theme; tools/looks.js explains every field.
 module.exports = {
-  label: 'Dragon Keep', emoji: '🏰',
+  label: 'Dragon Keep', emoji: '🏰', pick: 1,   // place in the theme picker (1 = first)
   swatch: ['#171B36', '#E9C766', '#F1EBDD'],   // the theme picker's swatch: dark background, accent, light background
   // colour tokens (the names in src/theme.css), light and dark
   light: { bg:'#F1EBDD', surface:'#FAF6EC', raised:'#FFFCF4', ink:'#231D35', muted:'#615878', line:'#DCD1BA', rope:'#B89A5A', chart:'#E9E1CE', sea:'#2D4C93', 'sea-ink':'#FFFCF4', 'sea-soft':'#D9E1F2', brass:'#9A7414', 'brass-soft':'#F2E4BC', hp:'#9C1F33', good:'#2F6B47', aye:'#2D6342', warn:'#9A5B00' },

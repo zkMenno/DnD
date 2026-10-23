@@ -1,6 +1,6 @@
 // Icewind (icewind): the frozen north. One look of ☰ → Theme; tools/looks.js explains every field.
 module.exports = {
-  label: 'Icewind', emoji: '❄️',
+  label: 'Icebreaker', emoji: '❄️', pick: 6,   // place in the theme picker (1 = first)
   swatch: ['#08111A', '#9EDBFF', '#E8EFF3'],   // the theme picker's swatch: dark background, accent, light background
   // colour tokens (the names in src/theme.css), light and dark
   light: { bg:'#E8EFF3', surface:'#F4F8FA', raised:'#FFFFFF', ink:'#142231', muted:'#4F6475', line:'#C9D8E2', rope:'#8FAABD', chart:'#DEE8EE', sea:'#4A5C8C', 'sea-ink':'#FFFFFF', 'sea-soft':'#DDE3F2', brass:'#1F6E99', 'brass-soft':'#D5E8F3', hp:'#B2303A', good:'#2C7A45', aye:'#2A6E40', warn:'#9A5B00' },
