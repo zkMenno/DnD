@@ -746,3 +746,15 @@ body > #msg{font-size:1.02rem;line-height:1.45}
   .sec .secrow > .secbtns{display:flex;flex-direction:row-reverse;justify-content:flex-end;flex-wrap:nowrap;align-self:stretch;width:auto}
   .secrow .secbtns > .btn{align-self:auto}
 }
+/* Front page "How it works", phones: the Roman numeral sits in line with the heading and everything below it
+   (bullets, the link box, notes) runs the full width of the box instead of hanging under an empty column */
+@media (max-width:560px){
+  .steps > li{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:baseline;padding:16px}
+  .steps > li > .num{min-width:0;text-align:left;grid-row:1}
+  .steps > li > div{display:contents}
+  .steps > li > div > h3{grid-column:2;grid-row:1;margin:0}
+  .steps > li > div > :not(h3){grid-column:1/-1}
+  .steps > li > div > :nth-child(2){margin-top:10px}
+  .steps .substeps{padding-left:1.1em;margin:4px 0 8px}
+  .steps .ql-step{margin:8px 0}
+}

@@ -11,9 +11,9 @@
   const KINDS = [['bug', '🐞', 'Bug'], ['idea', '💡', 'Idea'], ['other', '💬', 'Other']];
   // the signed-in player's token and id, if any (PocketBase keeps them in localStorage under pocketbase_auth)
   const auth = () => { try { const a = JSON.parse(localStorage.getItem('pocketbase_auth') || 'null'); return a && a.token && a.record ? a : null; } catch (_) { return null; } };
-  // this script's ?v= build tag (read now: document.currentScript is only set while the script first runs)
-  let V = ''; try { V = new URL(document.currentScript.src).searchParams.get('v') || ''; } catch (_) {}
-  // adds the dialog's stylesheet once, with the same ?v= build tag as this script
+  // feedback.css's content hash (?v=), filled in by tools/build.js (the same map as in web/sheet-boot.js)
+  const ASSET_V = /*__ASSET_V__*/{}, V = ASSET_V['/feedback.css'] || '';
+  // adds the dialog's stylesheet once, at its content-hash address
   const css = () => { if (document.getElementById('fbcss')) return;
     const l = document.createElement('link'); l.id = 'fbcss'; l.rel = 'stylesheet'; l.href = '/feedback.css' + (V ? '?v=' + V : ''); document.head.appendChild(l); };
   // Opens the dialog; kind ('bug' | 'idea' | 'other') preselects the kind. Does nothing if it's already open.

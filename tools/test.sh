@@ -39,6 +39,8 @@ else echo "(skipped: run npm install once to get eslint)"; fi
 [ "$part" = web ] || for t in smoke combat items spells; do step "$t"; node tools/test/$t.js | grep -v '^PASS' ; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
 
 # ── Web app tests ───────────────────────────────────────────────────────────────────────────────────────────
+# The service worker across two builds: needs no PocketBase (it serves copies of dist/web itself).
+[ "$part" = sheets ] || { step "web e2e-sw (offline copy across deploys)"; node tools/test/web/e2e-sw.js | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; }
 # A fresh local PocketBase (tools/devserver.sh, binary $PB_BIN) serving this checkout. Several web tests use fixed
 # accounts, so they need this fresh database; e2e runs before e2e-items, which uses its account.
 PB_BIN=${PB_BIN:-/home/claude/pbbin/pocketbase}; export PB_BIN APP_DIR=${APP_DIR:-$PWD}

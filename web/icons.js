@@ -8,7 +8,7 @@
 // carried meaning on its own. No inline scripts (CSP).
 (function () {
   const MAP = /*__ICON_MAP__*/{};
-  let V = ''; try { V = new URL(document.currentScript.src).searchParams.get('v') || ''; } catch (_) {}
+  const ASSET_V = /*__ASSET_V__*/{}, V = ASSET_V['/icons.svg'] || '';   // the sprite's content hash (tools/build.js)
   const SPRITE = '/icons.svg' + (V ? '?v=' + V : '');
   // every emoji with and without its variation selector (U+FE0F), longest first so sequences win
   const keys = new Set(); Object.keys(MAP).forEach(k => { keys.add(k); keys.add(k.replace(/️/g, '')); });

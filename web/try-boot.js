@@ -3,12 +3,13 @@
 // the tracker and notes stay in this browser (localStorage). A bar on top says so and links to sign-up.
 // Sets window.SHEET with trial: true (no sync, no party log), then loads themes → classes → the trial's pack → main.
 // An unknown ?c= goes back to the home page.
-// Globals: BUILD_V, withV (also window.withV), loadScript. Same build-tag scheme as web/sheet-boot.js.
+// Globals: ASSET_V, withV (also window.withV), loadScript. Same build-tag scheme as web/sheet-boot.js.
 
-// The build tag from this script's own address (?v=…), so every file loaded below is from the same build.
-const BUILD_V = (() => { try { return new URL(document.currentScript.src).searchParams.get('v') || ''; } catch (_) { return ''; } })();
-// Add the build tag to a path; unchanged when there is no tag.
-const withV = p => BUILD_V ? p + (p.includes('?') ? '&' : '?') + 'v=' + BUILD_V : p;
+// ASSET_V: path → content hash of each file loaded below (filled in by tools/build.js), so every file is the one this
+// page was built with.
+const ASSET_V = /*__ASSET_V__*/{};
+// Add a file's content hash to its path; unchanged for a path the map doesn't know.
+const withV = p => ASSET_V[p] ? p + (p.includes('?') ? '&' : '?') + 'v=' + ASSET_V[p] : p;
 window.withV = withV;
 // Load the trial character into the page, add the try-out bar, then the engine.
 (async () => {
