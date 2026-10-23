@@ -930,12 +930,15 @@ button.crest{border:0;cursor:pointer;font:inherit;padding:0}
 /* the Quick roll button on each row */
 .qrgo{flex:none;min-width:86px}
 .qrdraghint{font-family:var(--f-body,inherit);font-size:.7rem;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);margin-left:8px;opacity:.8}
-.spfavlist > .spell,.atklist > .atkdrag{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+/* draggable rows (Quick roll favourites, favourite spells, attacks): a long press drags instead of selecting */
+.qrfav .qrrow,.spfavlist > .spell,.atklist > .atkdrag{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 /* while a drag is on, nothing on the page gets selected */
 .dragmode,.dragmode *{user-select:none!important;-webkit-user-select:none!important}
 .qrrow.dragging{position:relative;z-index:5;background:color-mix(in srgb,var(--sea) 12%,var(--surface))!important;border-radius:12px;box-shadow:0 10px 26px -8px rgba(0,0,0,.55),0 0 0 1px var(--sea);transition:none!important;cursor:grabbing}
 .dragmode{cursor:grabbing}
 .dragmode .dragging{cursor:grabbing;border-radius:10px;position:relative;z-index:6;box-shadow:0 12px 28px -8px rgba(0,0,0,.6),0 0 0 1px var(--sea)!important;transition:none!important}
+/* with a mouse, a favourite Quick roll row shows it can be dragged (.qrfav: the ⭐ Favourites section, 'qr'+kind) */
+@media (hover:hover) and (pointer:fine){ .qrfav .qrrow{cursor:grab} .qrfav .qrrow button{cursor:pointer} }
 /* desktop: rests and the ☰ menu open as a centred window over a dimmed screen, like a game's settings menu */
 @keyframes modalin{from{opacity:0;transform:translate(-50%,-10px) scale(.97)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
 @media (min-width:1040px) and (pointer:fine){
