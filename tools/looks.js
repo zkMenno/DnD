@@ -111,6 +111,9 @@ function skinsCss(looks){
   // small theme symbols float with the background dice: only the current look's set shows (src/bgdice.html)
   css.push('.bdg{display:none}');
   css.push(':root:not([data-skin]) .bdg-pirate,' + looks.map(l => ':root[data-skin="' + l.key + '"] .bdg-' + l.key).join(',') + '{display:block}');
+  // public pages (front page, sign-in, Privacy & terms: <html class="pub">): one symbol of every look among the dice
+  // (the slots marked bdg-mix in src/bgdice.html, one per look, spread around the page)
+  css.push(':root.pub .bdg{display:none}', ':root.pub .bdg.bdg-mix{display:block}');
   // Roll sheet + tooltips: no parchment outside the pirate look. Every look adds an accent glow top-left and a shade
   // bottom-right over its texture, so even a quiet texture never reads as a flat colour.
   // (Original note:) no parchment outside the pirate look. Light mode keeps the dark card (ink on paper,

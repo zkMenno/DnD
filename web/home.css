@@ -798,3 +798,21 @@ body > #msg{font-size:1.02rem;line-height:1.45}
 .pwpanel #pw2box{margin-top:14px}
 .pwpanel .pwseg + .authlbl{margin-top:14px}
 .pwpanel .pwgorow{margin-top:14px}
+
+/* ── Accent frames on the public pages ────────────────────────────────────────────────────────────────────────
+   How it works boxes, the hero's paste-your-link box and every text field: a faint accent border at rest that
+   turns full accent on hover, while typing in it, or when pressed. Replaces the gold stripe on the left and the
+   dashed outline. */
+.steps > li,.quicklink{border:1.5px solid color-mix(in srgb,var(--brass) 32%,var(--line));border-left-width:1.5px;transition:border-color .15s,box-shadow .15s}
+.quicklink{border-style:solid}
+.steps > li:focus-within,.quicklink:focus-within,.steps > li:active{border-color:var(--brass)}
+.quicklink:focus-within{box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 18%,transparent)}
+@media (hover:hover) and (pointer:fine){ .steps > li:hover,.quicklink:hover{border-color:color-mix(in srgb,var(--brass) 80%,var(--line))} }
+/* text fields (sign-in, the link box, account forms) */
+input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea{border:1.5px solid color-mix(in srgb,var(--brass) 40%,var(--line));transition:border-color .15s,box-shadow .15s}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):focus,textarea:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 28%,transparent)}
+@media (hover:hover) and (pointer:fine){ input:not([type=checkbox]):not([type=radio]):not([type=range]):hover:not(:focus),textarea:hover:not(:focus){border-color:color-mix(in srgb,var(--brass) 75%,var(--line))} }
+/* the password box's last row: Forgot your password? on the left, Roll in / Create account on the right */
+.pwpanel .pwgorow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pwpanel .pwgorow #pwgo{order:2;margin-left:auto}
+.pwpanel .pwgorow #pwforgot{order:1}

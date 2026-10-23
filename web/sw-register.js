@@ -14,14 +14,15 @@
   // [key, name, emoji, swatch: dark background, accent, light background] per look, pirate first: filled in by
   // tools/build.js from src/looks/*.js (tools/looks.js)
   const SKINS = /*__LOOKS__*/[];
-  // The front page (the one visitors see first) always wears the pirate look; only light/dark follows the choice.
+  // Public pages (the front page, sign-in, Privacy & terms) always wear the pirate look; only light/dark follows the choice.
   // index.js calls Skin.front(true/false) when it shows or leaves it; here we guess for the first paint.
-  let front = location.pathname === '/' && (location.hash === '#front' || !get('pocketbase_auth'));
+  let front = (location.pathname === '/' && (location.hash === '#front' || !get('pocketbase_auth'))) || location.pathname === '/legal.html';
   let cur = get('dt-skin');
   // Apply skin s and mode m ('light', 'dark', anything else = auto) to <html>. The front page keeps the pirate look.
   const apply = (s, m) => {
     cur = s;
     if (s && s !== 'pirate' && !front) d.setAttribute('data-skin', s); else d.removeAttribute('data-skin');
+    d.classList.toggle('pub', front);   // public pages: a symbol of every look among the background dice
     if (m === 'light' || m === 'dark') d.setAttribute('data-theme', m); else d.removeAttribute('data-theme');
   };
   apply(get('dt-skin'), get('dt-mode'));

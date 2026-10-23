@@ -179,7 +179,7 @@
   const D = window.HomeDice; if (!D) return;
   const keys = D.order.flatMap(g => g[1]), tray = $('#tray'), sw = $('#swatches');
   let cur = keys.includes(store.get('dt-front-dice')) ? store.get('dt-front-dice') : D.def, rolling = false, rolled = false;
-  $('#dice-count').textContent = keys.length;
+  $('#dice-count').textContent = D.total || keys.length;
   sw.innerHTML = D.order.map(([label, ks]) => '<div class="sgroup" role="group" aria-label="' + label + '"><h4>' + label + '</h4><div class="srow">'
     + ks.map(k => { const s = D.sets[k]; return '<button type="button" class="sw" role="radio" data-k="' + k + '" aria-label="' + s.name + ': ' + s.desc + '"><span>20</span></button>'; }).join('')
     + '</div></div>').join('');
@@ -189,7 +189,7 @@
   const pick = k => {
     cur = k; D.use(k); store.set('dt-front-dice', k);
     sw.querySelectorAll('.sw').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; });
-    const s = D.sets[k]; $('#setname').innerHTML = '<b>' + s.name + ':</b> <span>' + s.desc + '</span>';
+    const s = D.sets[k]; $('#setname').innerHTML = '<b>' + s.name + ':</b> <span>' + s.desc + (s.look ? ' · from ' + s.look : '') + '</span>';
   };
   pick(cur); tray.hidden = false;
 

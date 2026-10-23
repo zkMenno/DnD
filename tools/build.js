@@ -107,7 +107,7 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: the easiest way t
 // line that loads it in the sheet is left out (the build stops if that line changes, rather than shipping two loaders).
 { const d3 = R('src/engine/06-3d-dice.js'), loader = /^\(function\(\)\{ try \{ const s = document\.createElement\('script'\);.*\n/m;
   if (!loader.test(d3)) throw new Error('home-dice: the three.js loader line in src/engine/06-3d-dice.js changed; update tools/build.js');
-  fs.writeFileSync(out+'/web/home-dice.js', '// Built by tools/build.js from src/themes.js + src/engine/06-3d-dice.js + src/home-dice-api.js. Do not edit.\n(function(){\n' + R('src/themes.js')
+  fs.writeFileSync(out+'/web/home-dice.js', '// Built by tools/build.js from src/themes.js + src/engine/06-3d-dice.js + src/home-dice-api.js. Do not edit.\n(function(){\n' + inject(R('src/themes.js'), 'SKIN_DICE', LOOKS.dice, 'src/themes.js')
     + '\nconst THEME = THEMES.pirate || THEMES[Object.keys(THEMES)[0]];\nconst ui = { dice: null };\nconst diceFx = (dice, done) => done();   // no WebGL: the result just shows\n'
     + d3.replace(loader, '') + '\n' + R('src/home-dice-api.js') + '})();\n'); }
 // ── Web app: Privacy & terms ───────────────────────────────────────────────────────────────────────────────

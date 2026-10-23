@@ -781,11 +781,20 @@ async function addById(id, first) {
   }
 }
 
-// ── Start ──────────────────────────────────────────────────────────────────────────────────────────────────
+// ── Logo ─────────────────────────────────────────────────────────────────────────────────────────────────
+// The logo always goes to the front page. From the sign-in card (same page, only the #signin part differs) the
+// browser wouldn't redraw anything by itself, so the click shows the front page directly.
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('.top .brand'); if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+  if (location.pathname !== '/') return;   // other pages: a normal link to /
+  e.preventDefault(); history.pushState(null, '', pb.authStore.isValid ? '/#front' : '/'); msg(''); showLanding(); window.scrollTo(0, 0);
+});
+
+// ── Start ─────────────────────────────────────────────────────────────────────────────────────────────────
 // #signin in the address (a link, or Back/Forward): the sign-in card, if signed out; #front shows the front page.
 window.addEventListener('hashchange', () => {
   if (location.hash === '#signin' && !pb.authStore.isValid) renderLogin('signin');
-  if (location.hash === '#front' && pb.authStore.isValid) { showLanding(); window.scrollTo(0, 0); }
+  if (location.hash === '#front') { showLanding(); window.scrollTo(0, 0); }   // signed in or out (the logo links here)
 });
 
 // First paint: refresh a saved login and go home (or to ?next=); signed out, the sign-in card for #signin or ?next=,
