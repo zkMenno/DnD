@@ -44,10 +44,10 @@ const navArrow = dir => deskFine() ? (dir==='back' ? '↓' : '↑') : (dir==='ba
 const modalBox = () => deskFine() ? ['#restbox','#menubox','#rollbox','#hpedit'].map(q => $(q)).find(b => b && !b.hidden) : null;
 // close a desktop window by pressing its own close button (the header drawer has closeDrawer())
 function closeModal(b){ if (b.id === 'hpedit') return closeDrawer(); const x = b.querySelector('[data-act="restclose"],[data-act="menu"],.x2'); if (x) x.click(); }
-// a click outside the open window (but not on the dock, a bubble or a confirm dialog) closes it and does nothing else;
-// Esc closes it too unless a glossary bubble is open
+// a click outside the open window (but not on the dock, a bubble, a confirm dialog or dice waiting to be thrown, §6b)
+// closes it and does nothing else; Esc closes it too unless a glossary bubble is open
 document.addEventListener('click', e => {
-  const b = modalBox(); if (!b || b.contains(e.target) || e.target.closest('#dock,#bubble,.cfm,.confirm')) return;
+  const b = modalBox(); if (!b || b.contains(e.target) || e.target.closest('#dock,#bubble,.cfm,.confirm,.throwfx')) return;
   e.stopPropagation(); e.preventDefault(); closeModal(b);
 }, true);
 document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; const b = modalBox(); if (b && !$('#bubble')) { e.preventDefault(); closeModal(b); } });

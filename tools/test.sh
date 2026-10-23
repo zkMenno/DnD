@@ -36,7 +36,7 @@ else echo "(skipped: run npm install once to get eslint)"; fi
 [ "$part" = lint ] && { echo; [ $fail = 0 ] && echo "ALL GREEN (build + lint)" || echo "SOMETHING FAILED"; exit $fail; }
 
 # ── claude.ai sheet tests ───────────────────────────────────────────────────────────────────────────────────
-[ "$part" = web ] || for t in smoke combat items spells; do step "$t"; node tools/test/$t.js | grep -v '^PASS' ; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
+[ "$part" = web ] || for t in smoke combat items spells throw; do step "$t"; node tools/test/$t.js | grep -v '^PASS' ; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
 
 # ── Web app tests ───────────────────────────────────────────────────────────────────────────────────────────
 # The service worker across two builds: needs no PocketBase (it serves copies of dist/web itself).
