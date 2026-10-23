@@ -127,11 +127,6 @@ function startAttack(w, o){
   paintCur([], true, 'next');   // 1. the empty sheet slides in from the right
   afterSheet(() => fx(k, () => { if (cur !== me) return; me.veil = null; flipKeys.add('d20'); if (!$('#dock').hidden) paintCur(['hit'], false); }, d20Dice(me.t), nat));   // 2. animations, 3. write the roll in
 }
-// roll to hit with a weapon at once, normal mode, skipping the mode step (the data-weapon click route, §20)
-function rollWeapon(name){
-  const w = D.weapons.find(x=>x.name===name); if (!w) return;
-  startAttack(w, {mode:'norm', sneak:true, savage:true});
-}
 // current attack total: d20 + weapon bonus + hit riders + boosts
 const curHit = () => cur.t.pick + cur.w.hit + riderSum(cur.hrid) + boostSum(cur);
 // current attack is a natural 20
@@ -140,8 +135,7 @@ const curCrit = () => !!cur.t && cur.t.pick===20;
 const curDmg = () => { const d = cur.dmg; return sum(d.wd) + d.flat + riderSum(d.rid); };
 // Roll damage for the current attack: variant 'two' uses the versatile die. Dice double on a crit; Great Weapon
 // Fighting and automatic damage riders (Rage…) apply. Same veil → burst → numbers sequence as the hit.
-// (fresh is not used.)
-function rollDamage(variant, fresh){
+function rollDamage(variant){
   const w = cur.w, mult = curCrit() ? 2 : 1;
   const p = parseDice(variant==='two' && w.versatile ? w.versatile : w.dice);
   cur.view = 'dmg';
@@ -221,8 +215,8 @@ function rollPeek(dir){
   const keep = cur.view; cur.view = v; const h = curSheetHtml([]); cur.view = keep; return h;
 }
 // Switch between the hit and damage steps without rerolling (v = 'hit' / 'dmg'). Returns false when there's
-// nothing to switch to, so a swipe can rubber-band instead. (from is not used.)
-function rollView(v, from){
+// nothing to switch to, so a swipe can rubber-band instead.
+function rollView(v){
   if (!cur || !$('#dock .roll [data-flow]')) return false;
   if (v==='hit' && !cur.t) return false;
   if (v==='dmg' && !cur.dmg) return false;

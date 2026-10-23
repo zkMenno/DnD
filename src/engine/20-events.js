@@ -1,6 +1,6 @@
 // ── §20 Events: one delegated click handler; data-act names the action ─────────────────────────────────────
 // Every button on the sheet is handled here, on document: glossary terms (data-term), tabs (data-tab), rolls
-// (data-weapon, data-hit, data-combo, data-check, data-save, data-tool, data-skill), resource pips (data-pip,
+// (data-hit, data-combo, data-check, data-save, data-tool, data-skill), resource pips (data-pip,
 // data-pool), item counts (data-inv), and everything else by data-act through one switch.
 // Also: the read-only guard for shared sheets (VIEW), and desktop hover tooltips for .hovertip terms.
 // Calls into nearly every other section, so it loads late; the handlers run only after the page is built (§13).
@@ -8,7 +8,7 @@
 // ── Read-only guard ────────────────────────────────────────────────────────────────────────────────────────
 // Read-only (a shared sheet): what a viewer may still do: look things up, move around, change their own view prefs.
 const VIEW_OK = new Set(['close','rollview','tipclose','tabprev','tabnext','tabl','tabr','reload','spfav','cbfav','fav','qrfav','trf','trs','trall','spf','spe',
-  'restclose','rollboxclose','hpclose','menu','menuview','diceset','dsprev','diceedit','dsmove','dsgmove','jump','jumpto','jumpedit','secmove','atkedit','wmove',
+  'restclose','rollboxclose','hpclose','menu','menuview','diceset','dsprev','diceedit','dsmove','dsgmove','jump','jumpto','jumpedit','secmove','wmove',
   'notescope','notefilter','copychanges','concopen','diceask','diceaskno','skinpick','skinmode','feedback']);
 // May a viewer press this button? Terms, tabs, VIEW_OK actions, and plain buttons inside a tooltip bubble.
 const viewAllowed = el => !!(el.dataset.term || el.dataset.tab || VIEW_OK.has(el.dataset.act) || el.closest('.bubble') && !el.dataset.act && !el.dataset.pip);
@@ -34,7 +34,6 @@ document.addEventListener('click', e => {
   if (el.dataset.term) return toggleTip(el);
   const ds = el.dataset;
   if (ds.tab) return goTab(ds.tab);
-  if (ds.weapon) return rollWeapon(ds.weapon);
   if (ds.hit) return attackSetup(ds.hit);
   if (ds.combo) return rollCombo(ds.combo);
   if (ds.check) { closeTip(); return rollCheck(ABIL_NAME[ds.check]+' check', D.mod[ds.check]); }
@@ -157,7 +156,6 @@ document.addEventListener('click', e => {
     case 'jumpto': return jumpTo(+ds.i);
     case 'jumpedit': jumpEdit = !jumpEdit; return openJump(true);
     case 'secmove': return moveSec(+ds.i, +ds.d);
-    case 'atkedit': atkEdit = !atkEdit; return paintCombat();
     case 'wmove': moveAtk(ds.k, +ds.d); if (jumpEdit) openJump(true); return;
     case 'diceset': return pickDiceSet(ds.k);
     case 'dsprev': return previewDiceSet(ds.k);

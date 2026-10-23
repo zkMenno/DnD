@@ -366,8 +366,6 @@ function dice3d(dice, done){
   const wrap = document.createElement('div'); wrap.className = 'fx fxdice'; wrap.setAttribute('aria-hidden','true'); wrap.appendChild(D3.canvas); document.body.appendChild(wrap);
   const visH = 2 * Math.tan(T.MathUtils.degToRad(17.5)) * 12, px = visH / Hh;   // world units per pixel
   // Every device gets the rolling throw: dice come up from the bottom edge and roll and bounce across the table.
-  // desk is always true; the `: …` branches below are the old quick side throw that phones used to get.
-  const desk = true;
   const n = dice.length, perRow = Math.min(n, 4), gapPx = n > 2 ? 92 : 130, size = (n > 2 ? 46 : 58) * px;
   const objs = dice.map((d, i) => {
     const { die, mat, fin } = d3Die(d, diceSet());
@@ -376,34 +374,28 @@ function dice3d(dice, done){
     // from its own angle; dice that end up touching knock each other aside (see the collision pass in frame())
     const jx = (Math.random() - .5) * .9 * gapPx, jy = (Math.random() * .8 - .55) * gapPx;
     const tx = ((col - (inRow-1)/2) * gapPx + jx) * px, ty = (-(row - (Math.ceil(n/perRow)-1)/2) * gapPx + jy) * px;
-    const sx = desk ? tx + (Math.random()-.5) * 9 : -W/2*px - 1.5 - Math.random()*1.5;
-    const sy = desk ? -Hh/2*px - 1.2 - Math.random()*2 : ty + (Math.random()-.5) * 3;
+    const sx = tx + (Math.random()-.5) * 9;
+    const sy = -Hh/2*px - 1.2 - Math.random()*2;
     // rolling: turn about the axis across the direction of travel (plus a little wobble), so the die tumbles forward
     const dir = new T.Vector3(tx - sx, ty - sy, 0).normalize();
-    const axis = desk ? new T.Vector3(-dir.y, dir.x, 0).add(new T.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).multiplyScalar(.45)).normalize()
-                      : new T.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).normalize();
+    const axis = new T.Vector3(-dir.y, dir.x, 0).add(new T.Vector3(Math.random()-.5, Math.random()-.5, Math.random()-.5).multiplyScalar(.45)).normalize();
     die.scale.setScalar(size); D3.scene.add(die);
-    return { die, mat, d, fin, tx, ty, sx, sy, axis, spin: desk ? -Math.PI*(5 + Math.random()*5) : Math.PI*(3 + Math.random()*2), delay: i*(desk ? 110 : 80) + Math.random()*60,
-      dur: (desk ? 1250 : 760) * (.85 + Math.random()*.3), landed: 0,
+    return { die, mat, d, fin, tx, ty, sx, sy, axis, spin: -Math.PI*(5 + Math.random()*5), delay: i*110 + Math.random()*60,
+      dur: 1250 * (.85 + Math.random()*.3), landed: 0,
       ox: 0, oy: 0, vx: 0, vy: 0, px: null, py: null, kick: 0, kaxis: new T.Vector3(0, 0, 1) };
   });
   const t0 = performance.now(), end = Math.max(...objs.map(o => o.dur + o.delay)) + 1400;   // landed dice stay on screen a while before the sheet
   const minD = size * 1.9, maxX = W/2*px - size, maxY = Hh/2*px - size, kickQ = new T.Quaternion();
-  const ease = t => 1 - Math.pow(1-t, 3), spinQ = new T.Quaternion();
+  const spinQ = new T.Quaternion();
   // one animation frame: place, spin and knock every die, then render; at the end fade out and clean up
   (function frame(now){
     const el = now - t0;
     objs.forEach(o => {
-      const t = Math.max(0, Math.min(1, (el - o.delay) / o.dur)), e = ease(t); o.t = t;
-      if (desk) {
-        // up the table with a slight overshoot, three bounces that die away, spin slowing to a stop
-        const e2 = 1 - Math.pow(1-t, 3.2), over = Math.sin(Math.PI*Math.min(1, t*1.15)) * .35 * (1-t);
-        o.die.position.set(o.sx + (o.tx - o.sx)*e2, o.sy + (o.ty - o.sy)*e2 + over, Math.abs(Math.sin(Math.PI*3*Math.pow(t, .8))) * 2.2 * Math.pow(1-t, 1.6));
-        spinQ.setFromAxisAngle(o.axis, Math.pow(1-t, 2.4) * o.spin);
-      } else {
-        o.die.position.set(o.sx + (o.tx - o.sx)*e, o.sy + (o.ty - o.sy)*e + Math.sin(Math.PI*Math.min(1, t*1.25)) * .6 * (1-t), Math.sin(Math.PI*t) * 1.2);
-        spinQ.setFromAxisAngle(o.axis, (1-e) * o.spin);
-      }
+      const t = Math.max(0, Math.min(1, (el - o.delay) / o.dur)); o.t = t;
+      // up the table with a slight overshoot, three bounces that die away, spin slowing to a stop
+      const e2 = 1 - Math.pow(1-t, 3.2), over = Math.sin(Math.PI*Math.min(1, t*1.15)) * .35 * (1-t);
+      o.die.position.set(o.sx + (o.tx - o.sx)*e2, o.sy + (o.ty - o.sy)*e2 + over, Math.abs(Math.sin(Math.PI*3*Math.pow(t, .8))) * 2.2 * Math.pow(1-t, 1.6));
+      spinQ.setFromAxisAngle(o.axis, Math.pow(1-t, 2.4) * o.spin);
       // knocked: the push from collisions rides on top of the scripted path and slows down; a hit also adds a wobble
       // that dies away, so the die still settles showing its rolled face
       o.ox += o.vx; o.oy += o.vy; o.vx *= .9; o.vy *= .9; o.kick *= .9;

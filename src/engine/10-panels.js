@@ -115,8 +115,6 @@ const favBtn = n => '<button class="favbtn'+(isFav(n)?' on':'')+'" data-act="fav
 // star or unstar an attack and repaint the Combat tab
 function toggleFav(n){ const f = favs().slice(), i = f.indexOf(n); if (i < 0) f.push(n); else f.splice(i, 1); ui.favs = f; saveUi(); paintCombat(); }
 // Attack list order: your own (ui.wOrder, this device), changed by dragging the cards or in ↕ Sections → Reorder.
-// atkEdit = inline ▲ / ▼ arrows on each card. No button sends 'atkedit' any more, so it stays false.
-let atkEdit = false;
 // [name, card HTML] for the equipped weapons + the plain unarmed strike (when Martial Arts doesn't make it a weapon),
 // in this device's saved order; names not in the saved order keep their place at the end
 function atkItems(){
@@ -127,24 +125,20 @@ function atkItems(){
 }
 // repaint the Combat tab in place (then Action Resources, the saved card order and the drag handles)
 function paintCombat(){ const el = document.querySelector('[data-panel="combat"]'); if (!el) return; el.innerHTML = combatPanel(); linkify(el); decorate(el); paintRes(); applySecOrder(el); bindListDrags(); }
-// drag to reorder: attack cards (Combat, not while the ▲ / ▼ arrows show), favourite combos (Combos) and favourite
+// drag to reorder: attack cards (Combat), favourite combos (Combos) and favourite
 // spells (Spells); each drop saves the new order and repaints that tab
 function bindListDrags(){
-  bindDragList(document.querySelector('[data-panel="combat"]'), 'atk', '.atklist > .atkdrag', r => r.dataset.key, order => { ui.wOrder = order; saveUi(); paintCombat(); }, () => atkEdit);
+  bindDragList(document.querySelector('[data-panel="combat"]'), 'atk', '.atklist > .atkdrag', r => r.dataset.key, order => { ui.wOrder = order; saveUi(); paintCombat(); });
   bindDragList(document.querySelector('[data-panel="combos"]'), 'cbfav', '.cbfavlist > .combo', r => r.dataset.cb, order => {
     ui.cbFav = order.concat(cbFavs().filter(n => !order.includes(n))); saveUi(); paintCombos(); });
   bindDragList(document.querySelector('[data-panel="spells"]'), 'spfav', '.spfavlist > .spell', r => r.querySelector('.spstar').dataset.k, order => {
     ui.spFav = order.concat((ui.spFav||[]).filter(n => !order.includes(n))); saveUi(); paintSpells(); });
 }
 // Move an attack one place up (d = -1) or down (d = 1) and save the order: the ▲ / ▼ in ↕ Sections → Reorder (§14).
-// The slide animation only finds a card while the inline arrows (atkEdit) show.
 function moveAtk(k, d){
   const keys = atkItems().map(x=>x[0]), i = keys.indexOf(k), j = i + d; if (i < 0 || j < 0 || j >= keys.length) return;
   [keys[i], keys[j]] = [keys[j], keys[i]]; ui.wOrder = keys; saveUi();
-  const el = document.querySelector('.reordwrap[data-key="'+CSS.escape(k)+'"]'), y0 = el ? el.getBoundingClientRect().top : 0;
   paintCombat();
-  const el2 = document.querySelector('.reordwrap[data-key="'+CSS.escape(k)+'"]');
-  if (el2 && el2.animate && !reduceMotion()) { const dy = y0 - el2.getBoundingClientRect().top; el2.animate([{transform:'translateY('+dy+'px)'},{transform:'none'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'}); el2.classList.add('moved'); setTimeout(()=>el2.classList.remove('moved'), 500); }
 }
 // ── Turn at a glance ───────────────────────────────────────────────────────────────────────────────────────
 // "Turn at a glance" for any character, built from the sheet: attacks, spells by casting time, and D&D Beyond
@@ -173,8 +167,8 @@ function autoEconomy(){
 // paintRes() fills with Action Resources
 function combatPanel(){
   const econ = PACK.turnEconomy ? PACK.turnEconomy() : autoEconomy();   // [tag, glossary term, [options…]] rows for the turn card
-  return activeBar()+'<section class="card"><div class="cardhead"><h2><span class="emo" aria-hidden="true">🎯</span>Attacks</h2><span class="atktools"><button type="button" class="term modeinfo" data-term="Advantage">ⓘ Getting advantage</button></span></div><div class="atklist'+(atkEdit?' editing':'')+'">'
-    + atkItems().map(([k, html], i, all) => atkEdit ? '<div class="reordwrap" data-key="'+esc(k)+'"><div class="reord"><button class="btn small" data-act="wmove" data-k="'+esc(k)+'" data-d="-1"'+(i?'':' disabled')+' aria-label="Move up">▲</button><button class="btn small" data-act="wmove" data-k="'+esc(k)+'" data-d="1"'+(i<all.length-1?'':' disabled')+' aria-label="Move down">▼</button></div>'+html+'</div>' : '<div class="atkdrag" data-key="'+esc(k)+'">'+html+'</div>').join('')
+  return activeBar()+'<section class="card"><div class="cardhead"><h2><span class="emo" aria-hidden="true">🎯</span>Attacks</h2><span class="atktools"><button type="button" class="term modeinfo" data-term="Advantage">ⓘ Getting advantage</button></span></div><div class="atklist">'
+    + atkItems().map(([k, html]) => '<div class="atkdrag" data-key="'+esc(k)+'">'+html+'</div>').join('')
     + '</div>'+(PACK.attackNote ? '<p class="small muted" style="margin:10px 0 0">'+PACK.attackNote()+'</p>' : '')+'</section>'
     + '<section class="card"><h2><span class="emo" aria-hidden="true">🧭</span>'+WORD.turn+'</h2><div class="econ rows">' + econ.map(([k,t,l],i) => '<div class="ecr"><button class="tag term '+k+'" data-term="'+esc(t)+'"><span class="ecnum" aria-hidden="true">'+(i+1)+'</span>'+esc(t)+'</button><ul class="ecl">'+l.filter(Boolean).map(x=>'<li><span>'+esc(x)+'</span></li>').join('')+'</ul></div>').join('') + '</div></section>'
     + '<section class="card" id="res"></section>';

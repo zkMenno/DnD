@@ -25,7 +25,6 @@ function d20(mode){
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // a small d20 outline (also blown up for the d20 burst, §5)
 const DIE_SVG = '<svg class="rolldie" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 2.2l8.5 4.9v9.8L12 21.8l-8.5-4.9V7.1z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 7.5l4.3 7.6H7.7zM12 2.2v5.3M3.5 7.1l4.2 8M20.5 7.1l-4.2 8M3.5 16.9h4.2M20.5 16.9h-4.2M12 21.8v-6.7" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>';
-let rollTimer = null;   // cleared whenever the dock changes (nothing sets it any more)
 let rollSwipeDX = 0;   // how far a swipe had dragged the sheet when it let go (the slide continues from there)
 
 // ── Layout helpers and desktop windows ─────────────────────────────────────────────────────────────────────
@@ -65,7 +64,6 @@ function showRoll(html, again, trans){
   // desktop: a roll made from inside the rest / menu window sits centred under it, at the window's width
   const dkw = $('#dock'); if (dkw) dkw.classList.toggle('inwin', !!(typeof modalBox === 'function' && modalBox()));
   const dk = $('#dock');
-  clearInterval(rollTimer);
   const prev = !dk.hidden && dk.querySelector('.roll');
   again = again && prev;
   // trans: 'next' = the new sheet slides in from the right and the old one leaves left (like the tabs);
@@ -105,7 +103,6 @@ let dicePromptAfterRoll = false;
 // doesn't touch cur / checkRoll (§8). If the first
 // throw asked to offer another dice set, that note appears once the sheet has gone.
 function closeRoll(dir){
-  clearInterval(rollTimer);
   const dk = $('#dock'), roll = dk.querySelector('.roll');
   if (dicePromptAfterRoll && typeof dicePromptMaybe === 'function') { dicePromptAfterRoll = false; setTimeout(dicePromptMaybe, 450); }
   if (!roll || reduceMotion()) { dk.hidden = true; return; }

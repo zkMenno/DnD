@@ -272,9 +272,9 @@ function toggleQrFav(l){
 // ── Drag to reorder ────────────────────────────────────────────────────────────────────────────────────────
 // Drag to reorder a list. Mouse: press and drag. Touch: hold ~0.35 s, then drag (a quick swipe still scrolls).
 // root: an element that stays on the page (listeners are bound once per name); name: which list on that root;
-// rowSel: the draggable rows inside it; keyOf(row) → its key; done(order) gets the new order of keys;
-// skip() → true pauses dragging. A drag never counts as a tap (the click after it is swallowed).
-function bindDragList(root, name, rowSel, keyOf, done, skip){
+// rowSel: the draggable rows inside it; keyOf(row) → its key; done(order) gets the new order of keys.
+// A drag never counts as a tap (the click after it is swallowed).
+function bindDragList(root, name, rowSel, keyOf, done){
   if (!root || (root._drags = root._drags || {})[name]) return; root._drags[name] = true;
   let d = null;
   // the visible sibling rows of a row
@@ -309,7 +309,7 @@ function bindDragList(root, name, rowSel, keyOf, done, skip){
     done(order);
   };
   root.addEventListener('pointerdown', e => {
-    const row = e.target.closest(rowSel); if (!row || !root.contains(row) || e.button > 0 || (skip && skip())) return;
+    const row = e.target.closest(rowSel); if (!row || !root.contains(row) || e.button > 0) return;
     if (e.target.closest('input,textarea,select,summary')) return;
     if (rowsNow(row).length < 2) return;
     d = {row, y0:e.clientY, x0:e.clientX, pid:e.pointerId, touch: e.pointerType !== 'mouse', armed:false};
