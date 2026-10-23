@@ -1,9 +1,15 @@
-// Web app: add an item (list fetched from items.json), it's saved to the account's tracker and shows on another device
+// Web app: add an item (list fetched from items.json), it's saved to the account's tracker and shows on another
+// device, while the server's copy of the character data stays as D&D Beyond has it.
+// Run: node tools/test/web/e2e-items.js [server URL], or as part of bash tools/test.sh web. Default server:
+// http://127.0.0.1:8090 (tools/devserver.sh). Prints PASS/FAIL per check and exits non-zero on a failure.
+// Order: run after e2e.js. It signs in as the account e2e.js makes (menno@example.test) and opens its character.
 const {chromium} = require('playwright'), watch = require('./watch');
 const B = process.argv[2] || 'http://127.0.0.1:8090';
 (async () => {
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+  // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
+  // A new "device" (browser context): signs in and opens the first character. p.errs collects errors and CSP blocks.
   const dev = async () => { const ctx = await b.newContext({viewport:{width:390,height:844}}); const p = await ctx.newPage(); p.errs = []; watch(p, p.errs); p.setDefaultTimeout(20000);
     await p.goto(B + '/#signin'); await p.fill('input[name=email]', 'menno@example.test'); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'Passw0rd-menno'); await p.click('button[value=in]');
     await p.waitForSelector('.ch a.open'); await p.click('.ch a.open'); await p.waitForSelector('#vitals'); await p.waitForTimeout(1500); return p; };

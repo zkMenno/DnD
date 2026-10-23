@@ -1,12 +1,16 @@
 // Every sheet, phone and desktop: all tabs open without errors, a sync keeps the item list, and the key numbers
 // match expect.json (AC, HP, speed, saves, attacks, trackers, slots). After an intended change:
 //   UPDATE=1 node tools/test/smoke.js   rewrites expect.json; review the diff before committing it.
+// Run: node tools/test/smoke.js (after node tools/build.js), or as part of bash tools/test.sh sheets. Uses the built
+// claude.ai sheets in dist/claude through lib.js; prints PASS/FAIL per check and exits non-zero on a failure.
 const fs = require('fs'), path = require('path');
 const { check, withBrowser, openSheet, SHEETS } = require('./lib');
 const EXPECT = path.join(__dirname, 'expect.json');
 const expect = fs.existsSync(EXPECT) ? JSON.parse(fs.readFileSync(EXPECT, 'utf8')) : {};
 const got = {};
 
+// Every sheet at both widths: click through every tab, then (phone only) check that a sync keeps the item list and
+// the data is current, and collect the key numbers. Then compare them with expect.json (or rewrite it with UPDATE).
 withBrowser(async browser => {
   for (const sheet of Object.keys(SHEETS)) for (const width of [390, 1400]) {
     const p = await openSheet(browser, sheet, width);

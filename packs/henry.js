@@ -1,6 +1,8 @@
 
 /* ============================================================================
-   CHARACTER PACK — Henry Gibbs, halfling Fighter/Rogue (Swashbuckler), Northlands campaign.
+   CHARACTER PACK — Henry Gibbs, halfling Fighter/Rogue (Swashbuckler), The Bluff campaign (Northlands Sagas).
+   Used by the claude.ai sheet henry.html and, in the web app, by every copy of D&D Beyond character 170557047
+   (PACKS in server/pb_hooks/ddb_utils.js).
    Everything that is about *this* character or campaign lives here; #main is the generic engine.
    The engine reads PACK.* and degrades gracefully when an optional hook is missing.
 
@@ -28,8 +30,10 @@
      abilityUse()  → {str…cha: one-line "what it does for you"} in ability bubbles
      profInfo()    → glossary entries for proficiencies (armour, weapons, tools, languages)
      glossary()    → glossary entries G (format at fmtTip in #main)
+     sync          {pullTask, pushTask} scheduled-task ids behind ☰ → Sync pull / push (claude.ai sheets only)
    NEW CHARACTER: copy this script, change the id/theme/tabs, rewrite the hooks you want, drop the rest,
    and put that character's compact D&D Beyond JSON in #<id>-data (Sync fills it in after the first load).
+   Then add it to SHEETS in tools/build.js (claude.ai sheet) and/or PACKS in server/pb_hooks/ddb_utils.js (web app).
    ============================================================================ */
 const PACK = (() => {
   // Henry's key weapons, looked up fresh each call (the sheet can change on sync)

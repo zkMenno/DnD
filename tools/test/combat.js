@@ -1,7 +1,13 @@
 // The hit → damage flow and its extras: Sneak Attack / Menacing (Henry), Rage / Smite / Colossus Slayer / Frenzy,
 // Flurry, Lay on Hands, no spells while raging, magic arrows (AppTester-02), damage-type tooltip over the roll sheet.
+// Run: node tools/test/combat.js (after node tools/build.js), or as part of bash tools/test.sh sheets. Uses the built
+// claude.ai sheets in dist/claude through lib.js; prints PASS/FAIL per check and exits non-zero on a failure.
+// Each part runs at phone (390 px) and desktop (1400 px) width. Dice are random, so checks compare totals with
+// what was rolled rather than fixed numbers.
 const { check, withBrowser, openSheet, wait, shot } = require('./lib');
+// The rider keys (extra damage options) offered on the open roll sheet's damage step.
 const riders = p => p.evaluate(() => [...document.querySelectorAll('#dock [data-act="rider"]')].map(b => b.dataset.k));
+// Closes any open roll, then attacks with the named weapon in the given mode (adv / norm / dis) and rolls damage.
 async function attack(p, weapon, mode){
   await p.evaluate(() => { if (typeof closeRoll === 'function' && cur) closeRoll(); }); await p.waitForTimeout(600);
   await p.evaluate(w => attackSetup(w), weapon); await p.waitForTimeout(400);
@@ -11,7 +17,9 @@ async function attack(p, weapon, mode){
 withBrowser(async browser => {
   for (const width of [390, 1400]) {
     const at = '@'+width+' ';
-    // ---- Henry: Rogue + Battle Master riders
+    // ── Henry: Rogue + Battle Master riders ────────────────────────────────────────────────────────────────
+    // Steady Aim is named on the advantage choice; Sneak Attack and Menacing are offered with advantage, the total
+    // adds up, a superiority die is spent and comes back when Menacing is removed; no Sneak Attack with disadvantage.
     let p = await openSheet(browser, 'henry', width);
     await p.evaluate(() => attackSetup('Shortbow')); await p.waitForTimeout(400);
     check(at+'Henry (Rogue 3): Steady Aim named on the advantage choice', /Steady Aim/.test(await p.evaluate(() => document.querySelector('#dock .atkopt.adv').innerText)));
@@ -29,7 +37,8 @@ withBrowser(async browser => {
     check(at+'Henry: removing Menacing gives the die back', await p.evaluate(() => S.sd) === sd0);
     await attack(p, 'Shortbow', 'dis');
     check(at+'Henry: no Sneak Attack with disadvantage', !(await riders(p)).includes('sneak'));
-    // Precision Attack on the hit step: spends a die, adds it to the roll, and then Menacing isn't offered on that attack
+    // Precision Attack on the hit step: spends a die, adds it to the roll, and then Menacing isn't offered on that
+    // attack (one maneuver per attack)
     await p.evaluate(() => closeRoll()); await p.waitForTimeout(700);
     await p.evaluate(() => attackSetup('Shortbow')); await p.waitForTimeout(400);
     await p.click('#dock .atkopt.norm'); await wait(p);
@@ -42,7 +51,9 @@ withBrowser(async browser => {
     check(at+'Henry: no Menacing on an attack that used Precision', !(await riders(p)).includes('menacing'));
     check(at+'Henry: no page errors', !p.errs.length, p.errs); await p.close2();
 
-    // ---- AppTester-02: Rage, Smite, Colossus Slayer, GWF, Frenzy
+    // ── AppTester-02: Rage, Smite, Colossus Slayer, GWF, Frenzy ────────────────────────────────────────────
+    // Rage spends a use and adds itself; Frenzy, Smite, Hunter's Mark and Colossus Slayer are offered; Great Weapon
+    // Fighting counts 1s and 2s as 3s; Smite spends the right slot and gives it back when swapped; no spells while raging.
     p = await openSheet(browser, 'tester2', width);
     await p.evaluate(() => document.querySelector('#res').scrollIntoView());
     await p.click('[data-act="reson"][data-k="rage"]'); await p.waitForTimeout(600);
@@ -62,7 +73,8 @@ withBrowser(async browser => {
     check(at+'No spells while raging', /can’t cast spells while raging/.test(await p.evaluate(() => document.querySelector('#dock').innerText)));
     await p.click('#dock [data-act="resoff"]'); await p.waitForTimeout(500);
     check(at+'Rage ends', await p.evaluate(() => !S.active.rage));
-    // Sacred Weapon (Channel Divinity button): +1 to hit with melee weapons, shown as an on state; Reckless Attack on the setup
+    // Sacred Weapon (Channel Divinity button): +1 to hit with melee weapons, shown as an on state; Reckless Attack on
+    // the setup
     await p.evaluate(() => document.querySelector('#res').scrollIntoView());
     await p.click('[data-act="resbtn"][data-k="cd"][data-i="0"]'); await p.waitForTimeout(500);
     check(at+'Sacred Weapon: a Channel Divinity use spent, switched on, strip on the Combat tab', await p.evaluate(() => S.active.sacred && S.cd === 2 && !!document.querySelector('.activebar')));
@@ -87,10 +99,10 @@ withBrowser(async browser => {
     const fo = await riders(p);
     check(at+'Flurry hit offers Stunning Strike and Open Hand', fo.includes('stun') && fo.includes('openhand'), fo);
     await p.click('#dock [data-act="close"]'); await p.waitForTimeout(500);
-    // Lay on Hands pool
+    // Lay on Hands pool: −5 takes 5 points and lands on the change list
     await p.click('[data-pool="loh"][data-d="-5"]'); await p.waitForTimeout(200);
     check(at+'Lay on Hands −5 → 7 points left, on the change list', await p.evaluate(() => S.loh === 13 && changes().some(c => /^Lay on Hands 12 → 7/.test(c.t))));
-    // magic arrows
+    // magic arrows: picking +2 arrows adds +2 to hit and damage and spends one of them, not a plain arrow
     const plain0 = await p.evaluate(() => arrowsLeft());
     await p.evaluate(() => attackSetup('Longbow, +1')); await p.waitForTimeout(400);
     await p.click('#dock [data-act="ammo"][data-n="Arrows, +2"]'); await p.waitForTimeout(300);
@@ -101,7 +113,8 @@ withBrowser(async browser => {
     check(at+'+2 arrows: +7 damage', await p.evaluate(() => cur.dmg.flat === 7));
     check(at+'AppTester-02: no page errors', !p.errs.length, p.errs); await p.close2();
 
-    // ---- damage-type tooltip sits above the roll sheet (AppTester-01, a spell attack)
+    // ── AppTester-01: damage-type tooltip ──────────────────────────────────────────────────────────────────
+    // The damage-type tooltip opens on top of the roll sheet, not behind it (AppTester-01, a spell attack).
     p = await openSheet(browser, 'tester', width);
     await p.evaluate(() => { ui.mode = 'norm'; castSpell('Shocking Grasp'); }); await p.waitForTimeout(500);
     for (let i = 0; i < 4; i++) { const nx = await p.$('#dock [data-act="rolldmg"], #dock .atkopt.norm'); if (!nx) break; await nx.click(); await wait(p); }

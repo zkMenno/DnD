@@ -1,5 +1,10 @@
 #!/bin/bash
-# Local dev server: fresh database (with "reset"), migrations, hooks, serving dist/web. Pid in /tmp/pb.pid.
+# Local dev server for the web tests: PocketBase on 127.0.0.1:8090 with this repo's migrations and hooks, serving
+# dist/web. usage: bash tools/devserver.sh [reset]   ("reset" starts from an empty database)
+# Needs the official PocketBase binary at /home/claude/pbbin/pocketbase; works in /home/claude/pbtest and copies
+# from /home/claude/sheetapp (the repo checkout). Run node tools/build.js first.
+# Stops the previous server (pid in /tmp/pb.pid), migrates, makes the test superuser admin@example.test, and
+# starts serving in the background (log in /tmp/pb.log). Prints the health answer when it is up.
 cd /home/claude/pbtest || exit 1
 [ -f /tmp/pb.pid ] && kill "$(cat /tmp/pb.pid)" 2>/dev/null; sleep 1
 rm -rf pb_migrations pb_hooks && cp -r /home/claude/sheetapp/server/pb_migrations /home/claude/sheetapp/server/pb_hooks .   # fresh copies: no stale files

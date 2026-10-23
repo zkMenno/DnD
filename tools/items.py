@@ -1,8 +1,14 @@
-# Build data/items.json: the SRD 5.2 item catalogue (2024 rules), compact, for ➕ Add item.
+# Builds data/items.json: the SRD 5.2 item catalogue (2024 rules), compact, for ➕ Add item.
 # Source: dnd5eapi.co /api/2024 (5e-bits), data from the System Reference Document 5.2 by Wizards of the Coast,
-# licensed CC-BY-4.0. usage: python3 tools/items.py [equipment.json magic.json]  (downloads if not given)
+# licensed CC-BY-4.0 (the licence line is written into the file too; Privacy & terms credits it as well).
+# usage: python3 tools/items.py [equipment.json magic.json]   (downloads every item if not given; ~1 request each)
+# Run it from the repo root: it writes data/items.json relative to the current directory. Then node tools/build.js.
+# Short keys keep the file small: n name, k kind, c cost, w weight, d description; weapons: cat (1 simple, 2 martial),
+# at (1 melee, 2 ranged), dmg, dt, p properties, r/lr range; armour: ac, arm (1 light … 4 shield), sd (stealth
+# disadvantage), str (minimum); magic: mk, rar, att, b bonus, gen (needs a base item); q quantity, has pack contents.
 import json, re, sys, urllib.request, concurrent.futures as cf
 B = 'https://www.dnd5eapi.co'
+# The equipment and magic-item lists, from the two files given or fetched from the API (8 at a time).
 def load():
     if len(sys.argv) > 2: return json.load(open(sys.argv[1])), json.load(open(sys.argv[2]))
     get = lambda u: json.load(urllib.request.urlopen(B+u, timeout=30))
@@ -11,12 +17,17 @@ def load():
         M = list(ex.map(lambda r: get(r['url']), get('/api/2024/magic-items')['results']))
     return E, M
 E, M = load()
+# Joins description paragraphs into one line, cut at about n characters (at a sentence end when there is one in
+# the second half) and marked with " …".
 def txt(parts, n=560):
     t = ' '.join(p.strip() for p in parts if p and p.strip()).replace('\n', ' ')
     t = re.sub(r'\s+', ' ', t)
     if len(t) > n: cut = t[:n]; e = cut.rfind('. '); t = (cut[:e+1] if e > n*.5 else cut) + ' …'
     return t
+# "10 gp" from the API's cost object ('' if none).
 cost = lambda c: (str(c['quantity'])+' '+c['unit']) if c else ''
+# ── Equipment ───────────────────────────────────────────────────────────────────────────────────────────────
+# Each piece of equipment gets a kind (weapon, armor, ammo, tool, pack, potion, gear) and the numbers the sheet uses.
 out = []
 for x in E:
     cats = {c['index'] for c in x['equipment_categories']}
@@ -49,6 +60,7 @@ for x in E:
     if not d and x.get('utilize'): d = txt(['Utilize: ' + '; '.join(u['name'] + (' (DC '+str(u['dc']['dc_value'])+')' if u.get('dc') else '') for u in x['utilize']) + '.'])
     if d: it['d'] = d
     out.append({k: v for k, v in it.items() if v not in (None, '', [])})
+# ── Magic items ─────────────────────────────────────────────────────────────────────────────────────────────
 have = {o['n'] for o in out}
 MK = {'Wondrous Items':'Wondrous item','Weapons':'Weapon','Armor':'Armor','Rings':'Ring','Potions':'Potion','Wands':'Wand','Staffs':'Staff'}
 for x in M:
@@ -63,10 +75,12 @@ for x in M:
     it['d'] = txt(desc[1:] if re.match(r'^(Wondrous|Weapon|Armor|Ring|Potion|Wand|Staff|Rod|Scroll)', first) else desc)
     if it['mk'] == 'Potion': it['k'] = 'potion'; it['magic'] = 1
     out.append(it)
-# "Potions of Healing" is one SRD entry with a table: split it into the four potions people actually buy
+# "Potions of Healing" is one SRD entry with a table: drop it and add the three bigger potions (the plain Potion of
+# Healing is already in the list as gear).
 out = [i for i in out if i['n'] != 'Potions of Healing']
 for n, rar, dice in [('Potion of Greater Healing','Uncommon','4d4 + 4'),('Potion of Superior Healing','Rare','8d4 + 8'),('Potion of Supreme Healing','Very Rare','10d4 + 20')]:
     out.append({'n': n, 'k': 'potion', 'magic': 1, 'rar': rar, 'w': 0.5, 'd': 'As a Bonus Action, drink it or give it to a creature within 5 feet: it regains '+dice+' Hit Points.'})
+# ── Write ───────────────────────────────────────────────────────────────────────────────────────────────────
 out.sort(key=lambda i: i['n'].lower())
 json.dump({'v': 1, 'source': 'System Reference Document 5.2, Wizards of the Coast LLC, CC-BY-4.0 (via 5e-bits dnd5eapi.co)', 'items': out},
           open('data/items.json', 'w'), separators=(',', ':'), ensure_ascii=False)

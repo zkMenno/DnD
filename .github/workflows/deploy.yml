@@ -1,6 +1,8 @@
 # From AppInfra's templates/app-deploy.yml, set up for the D&D app (service dnd, image dnd-tracker).
-# On every push to main: test natively on GitHub's Arm runner, build an Arm image there too, push it to
-# GHCR, then tell the server to pull and restart just this app.
+# On every push to main (live) or staging (staging copy), or when run by hand: test natively on GitHub's Arm runner,
+# build an Arm image there too, push it to GHCR, then tell the server to pull and restart just this app, and wait
+# for its /health to answer. Jobs run in order: test → build → deploy; one deploy at a time (concurrency group).
+# The garden/PostGIS/worker parts come from the shared template and are switched off for dnd (see env).
 # Repository secrets needed: SSH_HOST, SSH_USER, SSH_KEY, SSH_KNOWN_HOSTS (same values as the infra repo).
 #
 # Images are tagged with the commit sha only (no `latest`): the server's .env names the exact build it runs.
@@ -29,13 +31,13 @@ env:
   # dnd: "https://dungeontracker.com".
   PUBLIC_URL: ${{ github.ref_name == 'staging' && 'https://staging.dungeontracker.com' || 'https://dungeontracker.com' }}
   TEST_POSTGIS: "false"                    # start a throwaway PostGIS for the tests
-  # the image name must match infra/compose.yml (garden-app / dnd-tracker / french-app); it's lower-cased below
 concurrency: { group: deploy, cancel-in-progress: false }
 permissions: {}                            # per job below
 jobs:
   test:
     # Natively on Arm, like the server: the tests exercise the same arm64 builds of Node, esbuild/rolldown,
-    # numpy/scipy/rasterio/GDAL and PostGIS that production runs, not their x86 twins.
+    # numpy/scipy/rasterio/GDAL and PostGIS that production runs, not their x86 twins. For dnd this is only
+    # `npm run check` (build + lint); the DATABASE_URL values below are the template's and unused here.
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     permissions:
