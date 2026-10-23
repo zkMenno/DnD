@@ -6,17 +6,17 @@
 // http://127.0.0.1:8090 (tools/devserver.sh). Prints PASS/FAIL per check and exits non-zero on a failure.
 // Uses fresh email addresses, so it can run more than once on the same server.
 const fs = require('fs'), { chromium } = require('playwright'), watch = require('./watch');
-const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt';
+const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = watch.MAIL;
 (async () => {
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   // As the test superuser (made by tools/devserver.sh): point the server's mail at tools/mailsink.py.
   const su = await (await fetch(B+'/api/collections/_superusers/auth-with-password', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({identity:'admin@example.test', password:'TestPass-12345'}) })).json();
-  await fetch(B+'/api/settings', { method:'PATCH', headers:{'content-type':'application/json', Authorization: su.token}, body: JSON.stringify({ meta:{ senderName:'Character sheets', senderAddress:'sheets@example.test' }, smtp:{ enabled:true, host:'127.0.0.1', port:2525, tls:false } }) });
+  await fetch(B+'/api/settings', { method:'PATCH', headers:{'content-type':'application/json', Authorization: su.token}, body: JSON.stringify({ meta:{ senderName:'Character sheets', senderAddress:'sheets@example.test' }, smtp:{ enabled:true, host:'127.0.0.1', port:watch.MAIL_PORT, tls:false } }) });
   // The newest code mailed to an address, from the plain-text "code: 123456" line (polls for up to 10 s).
   const codeFor = async to => { for (let i = 0; i < 40; i++) { const t = fs.existsSync(MAIL) ? fs.readFileSync(MAIL, 'utf8') : ''; const parts = t.split('=== TO ').filter(x => x.startsWith(to)); const m = parts.length && parts[parts.length-1].match(/code: (\d{6})/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; };
   fs.writeFileSync(MAIL, '');
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: watch.CHROMIUM });
   const p = await (await b.newContext({ viewport:{width:390, height:844} })).newPage(); p.setDefaultTimeout(15000);
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const email = 'acct'+Date.now()+'@example.test', email2 = 'new'+Date.now()+'@example.test';

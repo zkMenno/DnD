@@ -10,7 +10,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
 const api = async (path, opt={}) => { const r = await fetch(B+path, {...opt, headers:{'content-type':'application/json', ...(opt.headers||{})}}); return r.json(); };
 (async () => {
   const su = (await api('/api/collections/_superusers/auth-with-password', {method:'POST', body: JSON.stringify({identity:'admin@example.test', password:'TestPass-12345'})})).token;
-  const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+  const b = await chromium.launch({executablePath: watch.CHROMIUM});
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   // A player in their own browser context: signs up, adds the character at link and waits for its first save.
@@ -41,6 +41,6 @@ const api = async (path, opt={}) => { const r = await fetch(B+path, {...opt, hea
   await h.fill('#note-text', 'Henry: bought rope'); await h.click('[data-act="addnote"]'); await h.waitForTimeout(2500);
   await a.click('[data-act="notescope"][data-k="party"]'); await a.waitForTimeout(1500);
   ok('Wick\'s player sees Henry\'s reply live', /bought rope/.test(await a.textContent('#notelist')));
-  await a.screenshot({path:'/tmp/partylog.png'});
+  await a.screenshot({path: watch.shot('partylog.png')});
   { const bad = [a.errs, h.errs].flat(); ok('no page errors or CSP blocks' + (bad.length ? ': ' + JSON.stringify(bad) : ''), !bad.length); } await b.close();
 })();

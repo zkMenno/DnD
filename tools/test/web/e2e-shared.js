@@ -11,7 +11,7 @@ const api = async (path, opt={}) => (await fetch(B+path, {...opt, headers:{'cont
   // Prints PASS/FAIL for one check (with the detail on a failure) and marks the run failed if it didn't pass.
   const ok = (n, c, d) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n + (c || d === undefined ? '' : '  → '+JSON.stringify(d))); };
   const su = (await api('/api/collections/_superusers/auth-with-password', {method:'POST', body: JSON.stringify({identity:'admin@example.test', password:'TestPass-12345'})})).token;
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: watch.CHROMIUM });
   const t = Date.now();
   // A player in their own browser context: signs up and adds the character at link. p.cid is the character record
   // id, p.path its sheet address, p.errs the page errors and CSP blocks.
@@ -50,6 +50,6 @@ const api = async (path, opt={}) => (await fetch(B+path, {...opt, headers:{'cont
   // the owner's tracker on the server is untouched by the viewer
   const rec = await api('/api/collections/play/records?filter='+encodeURIComponent('character="'+h.cid+'"'), {headers:{Authorization: htok}});
   ok('server copy still the owner\'s (12)', rec.items && rec.items[0] && rec.items[0].state.hp === 12);
-  await a.screenshot({path:'/tmp/sheet-tests/shared-view.png'});
+  await a.screenshot({path: watch.shot('shared-view.png')});
   { const bad = [a.errs, h.errs].flat(); ok('no page errors or CSP blocks' + (bad.length ? ': ' + JSON.stringify(bad) : ''), !bad.length); } await b.close();
 })();

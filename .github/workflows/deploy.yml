@@ -1,5 +1,6 @@
 # From AppInfra's templates/app-deploy.yml, set up for the D&D app (service dnd, image dnd-tracker).
-# On every push to main (live) or staging (staging copy), or when run by hand: test natively on GitHub's Arm runner,
+# On every push to main (live) or staging (staging copy), or when run by hand: test natively on GitHub's Arm runner
+# (dnd: build + lint, then the server rules and web browser tests against a fresh PocketBase built from server/),
 # build an Arm image there too, push it to GHCR, then tell the server to pull and restart just this app, and wait
 # for its /health to answer. Jobs run in order: test → build → deploy; one deploy at a time (concurrency group).
 # The garden/PostGIS/worker parts come from the shared template and are switched off for dnd (see env).
@@ -24,9 +25,12 @@ env:
   # <app>-worker, service <app>-worker in compose.yml). Leave empty for apps without one.
   WORKER_CONTEXT: ""
   # Tests. Empty TEST_CMD runs `npm run check` and `npm test` if the package has them (garden).
-  # dnd: TEST_CMD "npm run check" and TEST_POSTGIS "false" (it's PocketBase, no Postgres; its full browser and
-  # server suites need a PocketBase binary and Chromium and run before each push, not here).
+  # dnd: TEST_CMD "npm run check" (build + lint) and TEST_POSTGIS "false" (it's PocketBase, no Postgres). WEB_TESTS
+  # "true" then runs `bash tools/test.sh web` (server rules, web e2e, headers + limits) on a PocketBase built from
+  # server/ and Playwright's Chromium, with saved D&D Beyond answers (tools/test/fixtures/ddb): never dndbeyond.com.
+  # The claude.ai sheet tests (tools/test.sh sheets) still run before each push, not here.
   TEST_CMD: "npm run check"
+  WEB_TESTS: "true"
   # The app's public address for the health check after deploying. Empty: https://<APP>.<DOMAIN variable>.
   # dnd: "https://dungeontracker.com".
   PUBLIC_URL: ${{ github.ref_name == 'staging' && 'https://staging.dungeontracker.com' || 'https://dungeontracker.com' }}
@@ -36,8 +40,8 @@ permissions: {}                            # per job below
 jobs:
   test:
     # Natively on Arm, like the server: the tests exercise the same arm64 builds of Node, esbuild/rolldown,
-    # numpy/scipy/rasterio/GDAL and PostGIS that production runs, not their x86 twins. For dnd this is only
-    # `npm run check` (build + lint); the DATABASE_URL values below are the template's and unused here.
+    # numpy/scipy/rasterio/GDAL and PostGIS that production runs, not their x86 twins. For dnd: `npm run check`
+    # (build + lint), then the web tests (WEB_TESTS); the DATABASE_URL values below are the template's and unused here.
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     permissions:
@@ -79,6 +83,56 @@ jobs:
             npm run check --if-present
             npm test --if-present
           fi
+      # ── dnd web tests (WEB_TESTS): PocketBase from source, Chromium, the fake mail server, then tools/test.sh web ──
+      # Go version from server/go.mod (as the Dockerfile's golang image); module + build cache keyed on go.sum.
+      - if: env.WEB_TESTS == 'true'
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with: { go-version-file: server/go.mod, cache-dependency-path: server/go.sum }
+      - name: PocketBase (from server/, like the Dockerfile)
+        if: env.WEB_TESTS == 'true'
+        working-directory: server
+        run: CGO_ENABLED=0 go build -trimpath -o "$RUNNER_TEMP/pocketbase" . && "$RUNNER_TEMP/pocketbase" --version
+      # Playwright's Chromium, cached per Playwright version (package-lock.json); --with-deps adds its system libraries.
+      - if: env.WEB_TESTS == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+      - name: Chromium for Playwright
+        if: env.WEB_TESTS == 'true'
+        run: |
+          npx playwright install --with-deps chromium
+          echo "CHROMIUM=$(node -p "require('playwright').chromium.executablePath()")" >> "$GITHUB_ENV"
+      # the fake mail server (tools/mailsink.py) for the sign-in code tests needs aiosmtpd
+      - if: env.WEB_TESTS == 'true'
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with: { python-version: "3.12" }
+      - if: env.WEB_TESTS == 'true'
+        run: pip install aiosmtpd
+      # HTTPS_PROXY points nowhere, so a fetch from the server that skipped the fixtures fails the tests instead of
+      # calling dndbeyond.com (the tests themselves only talk plain http to 127.0.0.1).
+      - name: Web tests (server rules, web e2e, headers + limits)
+        if: env.WEB_TESTS == 'true'
+        env:
+          PB_BIN: ${{ runner.temp }}/pocketbase
+          PB_WORK: ${{ runner.temp }}/pb
+          PB_PID: ${{ runner.temp }}/pb.pid
+          PB_LOG: ${{ runner.temp }}/pb.log
+          DDB_FIXTURES: ${{ github.workspace }}/tools/test/fixtures/ddb
+          OUT: ${{ runner.temp }}/sheet-tests
+          MAILSINK: ${{ runner.temp }}/mailsink.txt
+          HTTPS_PROXY: http://127.0.0.1:9
+          https_proxy: http://127.0.0.1:9
+        run: bash tools/test.sh web
+      - name: Screenshots and server log (on failure)
+        if: failure() && env.WEB_TESTS == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: web-tests
+          path: |
+            ${{ runner.temp }}/sheet-tests
+            ${{ runner.temp }}/pb.log
+          retention-days: 7
       # the worker's queue and job tests against the same PostGIS (WhiteboxTools tests run in the image's test stage)
       - if: env.WORKER_CONTEXT != ''
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0

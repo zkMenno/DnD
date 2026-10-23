@@ -6,7 +6,7 @@
 const {chromium} = require('playwright'), watch = require('./watch');
 const B = process.argv[2] || 'http://127.0.0.1:8090';
 (async () => {
-  const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+  const b = await chromium.launch({executablePath: watch.CHROMIUM});
   const ctx = await b.newContext({viewport:{width:390,height:844}, colorScheme:'dark'});
   const p = await ctx.newPage(); const errs = []; watch(p, errs); p.setDefaultTimeout(20000);
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
@@ -21,7 +21,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const hp0 = await p.evaluate(() => S.hp);
   await p.evaluate(() => { S.hp -= 7; save(); paintVitals(); }); await p.waitForTimeout(1500);
   await p.evaluate(() => { notesStore.add({text:'Met the Bluff harbourmaster', kind:'story', done:false, at:Date.now(), session:1}); }); await p.waitForTimeout(1500);
-  await p.screenshot({path:'/tmp/e2e-sheet.png'});
+  await p.screenshot({path: watch.shot('e2e-sheet.png')});
   await p.reload(); await p.waitForSelector('#vitals'); await p.waitForTimeout(2500);
   ok('tracker change kept after reload (from the server)', await p.evaluate(h => S.hp === h - 7, hp0));
   ok('note kept after reload', await p.evaluate(() => NOTES.some(n => /harbourmaster/.test(n.text))));

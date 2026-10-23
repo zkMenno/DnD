@@ -8,7 +8,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
 (async () => {
   // Prints PASS/FAIL for one check (with the detail on a failure) and marks the run failed if it didn't pass.
   const ok = (n, c, d) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n + (c || d === undefined ? '' : '  → '+JSON.stringify(d))); };
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: watch.CHROMIUM });
   const ctx = await b.newContext({ viewport:{width:390, height:844} }); const p = await ctx.newPage(); p.setDefaultTimeout(30000);
   p.errs = []; watch(p, p.errs);
   // Online first: sign up, add Wick, open the home list and the sheet so the service worker saves both.

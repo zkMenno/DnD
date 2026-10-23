@@ -9,7 +9,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
 (async () => {
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }), errs = [];
+  const b = await chromium.launch({ executablePath: watch.CHROMIUM }), errs = [];
   // a new browser context with errors and CSP blocks collected in errs
   const page = async () => { const p = await (await b.newContext({ viewport: { width: 390, height: 900 } })).newPage(); watch(p, errs); p.setDefaultTimeout(30000); return p; };
   // signs up <who>@example.test with a password, ending on the home page

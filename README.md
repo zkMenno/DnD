@@ -24,6 +24,12 @@ One engine, two ways to run it:
     bash tools/test.sh web               # fresh local server: rules, web e2e (incl. CSP watch), move, headers + rate limits
     node tools/refresh.js henry henry.html 170557047   # pull fresh D&D Beyond data into data/henry.json
     bash tools/devserver.sh reset        # needs the pocketbase binary at /home/claude/pbbin/pocketbase
+    bash tools/devserver.sh reset fixtures   # same, but D&D Beyond answers come from tools/test/fixtures/ddb (no network)
+    DDB_FIXTURES=tools/test/fixtures/ddb PB_BIN=/path/to/pocketbase bash tools/test.sh web   # what CI runs
+Paths and ports are environment variables with this machine's values as defaults (PB_BIN, APP_DIR, PB_WORK, PB_PORT,
+CHROMIUM, OUT, MAILSINK, MAILSINK_PORT: see the top of `tools/devserver.sh` and `tools/test.sh`). The fixtures are raw
+D&D Beyond answers for the characters the tests use (170557047, 165157421, 172559988); to refresh one:
+`curl -s "https://character-service.dndbeyond.com/character/v5/character/<id>?includeCustomItems=true" > tools/test/fixtures/ddb/<id>.json`.
 
 ## How to add a look (☰ → Theme)
 1. Copy a file in `src/looks/` to the next number with the new key (`08-<key>.js`; the key becomes `<html data-skin>`) and
@@ -38,7 +44,8 @@ One engine, two ways to run it:
 ## Deploy (shared server via AppInfra)
 The live app runs at **dungeontracker.com** (www.dungeontracker.com and dnd.menno.vg redirect there) on the shared Hetzner server, managed by **github.com/zkMenno/AppInfra** (one Docker
 Compose project `apps`, shared Caddy for HTTPS, service `dnd` behind profile `dnd`). This repo only builds the image.
-- A push to `main` runs `.github/workflows/deploy.yml` (from AppInfra's `templates/app-deploy.yml`): tests, builds the arm64
+- A push to `main` runs `.github/workflows/deploy.yml` (from AppInfra's `templates/app-deploy.yml`): tests (build + lint, then
+  `tools/test.sh web` on a PocketBase built from `server/`, with the saved D&D Beyond answers), builds the arm64
   image `ghcr.io/zkmenno/dnd-tracker:<sha>` from `Dockerfile`, pushes it to GHCR, and runs `deploy dnd <sha>` on the server.
 - The image: PocketBase + hooks + migrations + the built web app. Port 3000, `GET /health` → 200, data in the volume at
   `/pb/pb_data` (also PocketBase's nightly backups, 03:15, 7 kept), read-only filesystem except `/tmp`, `APP_URL` or `ORIGIN`.
