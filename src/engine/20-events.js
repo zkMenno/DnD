@@ -4,7 +4,7 @@
 // Read-only (a shared sheet): what a viewer may still do — look things up, move around, change their own view prefs
 const VIEW_OK = new Set(['close','rollview','tipclose','tabprev','tabnext','tabl','tabr','reload','spfav','cbfav','fav','qrfav','trf','trs','trall','spf','spe',
   'restclose','rollboxclose','hpclose','menu','menuview','diceset','dsprev','diceedit','dsmove','dsgmove','jump','jumpto','jumpedit','secmove','atkedit','wmove',
-  'notescope','notefilter','copychanges','concopen','diceask','diceaskno','skinpick','skinmode']);
+  'notescope','notefilter','copychanges','concopen','diceask','diceaskno','skinpick','skinmode','feedback']);
 const viewAllowed = el => !!(el.dataset.term || el.dataset.tab || VIEW_OK.has(el.dataset.act) || el.closest('.bubble') && !el.dataset.act && !el.dataset.pip);
 let viewNoteT = null;
 // a short note at the bottom when a viewer taps something that would change the tracker
@@ -126,6 +126,7 @@ document.addEventListener('click', e => {
     case 'hpclose': return closeHpMenu();
     case 'sync': case 'pull': return window.SHEET ? syncWindow() : pull();
     case 'syncwin': return syncWindow();
+    case 'feedback': if (menuOpen) { menuOpen = false; paintMenu(); } return window.openFeedback && window.openFeedback('bug');
     case 'moveout': return moveOut();
     case 'movein': return moveIn();
     case 'push': return push();

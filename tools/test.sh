@@ -28,7 +28,7 @@ elif [ -x /home/claude/pbbin/pocketbase ]; then
   step "server (fresh database)"; bash tools/devserver.sh reset >/dev/null && echo started
   step "server rules"; python3 tools/test/web/apitest.py | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1
   pgrep -f tools/mailsink.py >/dev/null || (python3 tools/mailsink.py >/dev/null 2>&1 &); sleep 1   # fake mail server for the login codes
-  for t in e2e e2e-items e2e-party e2e-codes e2e-shared e2e-offline e2e-move e2e-verify e2e-links e2e-account e2e-legal; do step "web $t"; node tools/test/web/$t.js | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
+  for t in e2e e2e-items e2e-party e2e-codes e2e-shared e2e-offline e2e-move e2e-verify e2e-links e2e-account e2e-feedback e2e-legal; do step "web $t"; node tools/test/web/$t.js | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
   step "headers and rate limits (last: uses up this IP's sign-in allowance)"; python3 tools/test/web/limits.py | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1
 else echo; echo "(web tests skipped: no PocketBase binary)"; fi
 

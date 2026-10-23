@@ -264,7 +264,7 @@ async function renderHome() {
       <p class="small muted">The character must be public on D&amp;D Beyond (Character Settings → Character Privacy → Public). Dungeon Tracker only reads it.</p></section>
     </div>
     <div class="htab" data-tab="party"><section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + '</div>'
-    + '<div class="htab" data-tab="account">' + (auto ? '' : nameCard(me)) + looksCard() + secCard(me) + '</div><div class="htab" data-tab="data">' + dataCard() + '</div>';
+    + '<div class="htab" data-tab="account">' + (auto ? '' : nameCard(me)) + looksCard() + secCard(me) + helpCard() + '</div><div class="htab" data-tab="data">' + dataCard() + '</div>';
   const showTab = k => { document.querySelectorAll('.htab').forEach(t => { t.hidden = t.dataset.tab !== k; });
     document.querySelectorAll('[data-hometab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.hometab === k))); try { localStorage.setItem('home-tab', k); } catch (_) {} };
   document.querySelectorAll('[data-hometab]').forEach(b => b.onclick = () => showTab(b.dataset.hometab));
@@ -478,6 +478,10 @@ function bindLooks() {
     box.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { K.set(K.skin(), b.dataset.mode); paint(); }); };
   paint();
 }
+// Account tab → Help & feedback: the 🐞 box (web/feedback.js opens it for any [data-feedback])
+const helpCard = () => `<section class="card"><h2>Help &amp; feedback</h2>
+    <p class="muted">Something broken, confusing or missing? Tell Menno, who builds Dungeon Tracker. Every message gets read.</p>
+    <div class="row"><button class="btn" type="button" data-feedback="bug">🐞 Report a bug</button><button class="btn" type="button" data-feedback="idea">💡 Share an idea</button></div></section>`;
 // Your data: download everything, and (in the danger zone) delete the account
 const dataCard = () => `<section class="card"><h2>Your data</h2>
     <p class="small muted">Everything this app keeps about you, stored in the EU.</p>

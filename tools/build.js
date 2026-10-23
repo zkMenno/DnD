@@ -43,7 +43,7 @@ const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<titl
     .replace(/<link rel="preconnect"[^>]*>\n?/g, '').replace(/<link href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/fonts/fonts.css">')
   + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96"><link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">'
   + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css"><link rel="stylesheet" href="/engine/skins.css">'
-  + '<script src="/sw-register.js"></script>';   // offline (web/sw.template.js); no inline scripts (CSP)
+  + '<script src="/sw-register.js"></script><script src="/feedback.js" defer></script>';   // offline (web/sw.template.js) · 🐞 feedback box; no inline scripts (CSP)
 // sheet pages: the tumbling background dice (the same ones as the home page, throwable via home-anim.js) and a
 // loading card with a gold bar while the character and the engine load
 const DICE_DEFS = (R('src/landing.html').match(/<svg width="0" height="0"[\s\S]*?<\/svg>/) || [''])[0];
@@ -59,7 +59,7 @@ fs.writeFileSync(out+'/web/try.html', sheetFrame('Try Dungeon Tracker', '<script
 // the site's header and footer, shared by the home page and Privacy & terms
 const SITE_FOOT = '<footer class="foot"><p>Made with 🎲 by <a href="https://github.com/zkMenno" target="_blank" rel="noopener">Menno</a></p>'
   + '<p class="small">This is an unofficial fan project. Dungeon Tracker is not affiliated with Wizards of the Coast or D&amp;D Beyond.</p>'
-  + '<p class="small"><a href="/legal.html">Privacy &amp; Terms</a> · Hosted by Hetzner in Germany.</p></footer>\n';
+  + '<p class="small"><a href="#" data-feedback="bug">🐞 Report a bug or share an idea</a> · <a href="/legal.html">Privacy &amp; Terms</a> · Hosted by Hetzner in Germany.</p></footer>\n';
 // home: the public front page (src/landing.html, signed out) and the app's own screens (#main, drawn by web/index.js)
 fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyond character at the table')
   + '<meta name="description" content="Dungeon Tracker turns your D&amp;D Beyond character into a quick play sheet: every roll one tap away, HP, spell slots and uses tracked as you play. Read-only, free, hosted in the EU.">\n'

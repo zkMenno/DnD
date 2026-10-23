@@ -62,6 +62,8 @@ function paintMenu(){
     + '<div style="height:8px"></div>'
     + '<button class="menulink'+(diceOpen?' open':'')+'" data-act="menuview" data-v="dice" aria-expanded="'+diceOpen+'">'+sw(DICE_SETS[cur]).replace('class="dsw"','class="dsw one"')+'<span class="dst"><b>Dice Sets</b><span>'+esc(DICE_SETS[cur].name)+'</span></span>'+chev(diceOpen)+'</button>'
     + (diceOpen ? diceBody : '')
+    // web app: report a bug or share an idea (web/feedback.js opens the box)
+    + (window.SHEET && window.openFeedback && !diceEdit ? '<div style="height:8px"></div><button class="menulink" data-act="feedback"><span class="mico" aria-hidden="true">🐞</span><span class="dst"><b>Report a bug or share an idea</b><span>Goes straight to Menno, who builds Dungeon Tracker</span></span></button>' : '')
     + (diceEdit ? '' : done);
 }
 // web app: ☰ → Theme — eight looks (web/sw-register.js: window.Skin) and light / dark / follow the device
