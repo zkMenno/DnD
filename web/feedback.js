@@ -15,8 +15,7 @@
   let V = ''; try { V = new URL(document.currentScript.src).searchParams.get('v') || ''; } catch (_) {}
   // adds the dialog's stylesheet once, with the same ?v= build tag as this script
   const css = () => { if (document.getElementById('fbcss')) return;
-    const v = V;
-    const l = document.createElement('link'); l.id = 'fbcss'; l.rel = 'stylesheet'; l.href = '/feedback.css' + (v ? '?v=' + v : ''); document.head.appendChild(l); };
+    const l = document.createElement('link'); l.id = 'fbcss'; l.rel = 'stylesheet'; l.href = '/feedback.css' + (V ? '?v=' + V : ''); document.head.appendChild(l); };
   // Opens the dialog; kind ('bug' | 'idea' | 'other') preselects the kind. Does nothing if it's already open.
   function openFeedback(kind) {
     css(); if (document.getElementById('fbpop')) return;

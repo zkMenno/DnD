@@ -272,7 +272,7 @@ async function signOut(force) {
     else if (/-play-.*-dirty$/.test(k) && +localStorage.getItem(k)) unsent += 1; }); } catch (_) {}
   if (unsent && !force && !await askYes('Sign out with unsent changes?', unsent + ' change' + (unsent === 1 ? '' : 's') + ' on this device haven’t reached the server yet (made offline). Go online and open the sheet first to send them, or sign out and lose them.', 'Sign out anyway')) return;
   pb.authStore.clear();
-  try { Object.keys(localStorage).filter(k => /^(sheet-cache-|sheet-at-|note-queue-|sheet-list$|last-sheet$|has-password-|pw-later-|dt-pw-emails$)/.test(k) || /-play-|-notes-/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+  try { Object.keys(localStorage).filter(k => /^(sheet-cache-|sheet-at-|note-queue-|sheet-list$|last-sheet$|note-failed-|pw-later-|dt-pw-emails$)/.test(k) || /-play-|-notes-/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (_) {}
   msg(''); history.replaceState(null, '', '/'); showLanding();
 }
 
@@ -334,7 +334,7 @@ const sheetLink = c => '/' + c.handle + '/' + c.ddb_id;
 
 // Your username: it's in every sheet link. New accounts get player-xxxxx; the card sits on top until it's changed.
 function nameCard(me) {
-  const auto = /^player-[a-z0-9]{5}$/.test(me.username || '');
+  const auto = isAuto(me.username);
   return `<form id="uname" class="card"><h2>Your username</h2>
       <p class="small muted">Your sheet links look like <code>${esc(location.host)}/<b id="unpv">${esc(me.username || 'name')}</b>/123456789</code>${auto ? ' — pick your own before you share any.' : '. Changing it changes those links.'}</p>
       <div class="row"><input name="u" value="${esc(me.username || '')}" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="20" pattern="[a-zA-Z0-9][a-zA-Z0-9_\-]{1,18}[a-zA-Z0-9]" aria-label="Username" required>
