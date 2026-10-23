@@ -8,7 +8,7 @@
 (() => {
   const $ = s => document.querySelector(s), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const store = { get: k => { try { return localStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} } };
-  if (!$('#landing')) return;
+  // (also on Privacy & terms: the background dice; the front-page parts below find nothing there and skip)
 
   // ── reveal on scroll ────────────────────────────────────────────────────────────────────────────────
   if (!still && 'IntersectionObserver' in window) {

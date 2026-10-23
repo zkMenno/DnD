@@ -51,6 +51,10 @@ fs.mkdirSync(out+'/web/trial', {recursive:true});
 for (const t of ['trial-brute','trial-mage']) fs.copyFileSync(path.join(__dirname,'..','data',t+'.json'), out+'/web/trial/'+t+'.json');
 fs.writeFileSync(out+'/web/try.html', head('Try Dungeon Tracker') + '<meta name="robots" content="noindex"><link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/sheet.css">\n'
   + '<div id="app"><div class="boot"><p>Loading…</p></div></div>\n<script src="/try-boot.js"></script>\n</body></html>');
+// the site's header and footer, shared by the home page and Privacy & terms
+const SITE_FOOT = '<footer class="foot"><p>Made with 🎲 by <a href="https://github.com/zkMenno" target="_blank" rel="noopener">Menno</a></p>'
+  + '<p class="small">This is an unofficial fan project. Dungeon Tracker is not affiliated with Wizards of the Coast or D&amp;D Beyond.</p>'
+  + '<p class="small"><a href="/legal.html">Privacy &amp; Terms</a> · Hosted by Hetzner in Germany.</p></footer>\n';
 // home: the public front page (src/landing.html, signed out) and the app's own screens (#main, drawn by web/index.js)
 fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyond character at the table')
   + '<meta name="description" content="Dungeon Tracker turns your D&amp;D Beyond character into a quick play sheet: every roll one tap away, HP, spell slots and uses tracked as you play. Read-only, free, hosted in the EU.">\n'
@@ -73,7 +77,10 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
 { const site = JSON.parse(R('src/site.json'));
   for (const [k, v] of Object.entries(site)) if (/^\[.*\]$/.test(String(v))) console.warn('⚠️  src/site.json: "' + k + '" is still a placeholder (' + v + '): fill it in before inviting players');
   fs.writeFileSync(out+'/web/legal.html', head('Privacy & terms') + '<link rel="stylesheet" href="/home.css">\n'
-    + R('src/legal.html').replace(/<!--[\s\S]*?-->\n?/, '').replace(/\{\{(\w+)\}\}/g, (m, k) => (k in site ? site[k] : m)) + '\n</body></html>'); }
+    + R('src/bgdice.html') + '<header class="top"><a class="brand" href="/"><svg class="brand-d20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><span>Dungeon Tracker</span></a><span id="who"><a class="btn login toplogin" href="/">‹ Back</a></span></header>\n'
+    + R('src/legal.html').replace(/<!--[\s\S]*?-->\n?/, '').replace(/\{\{(\w+)\}\}/g, (m, k) => (k in site ? site[k] : m)) + '\n' + SITE_FOOT
+    + (R('src/landing.html').match(/<svg width="0" height="0"[\s\S]*?<\/svg>/) || [''])[0]   // the dice shapes (<symbol>s)
+    + '<script src="/home-anim.js" defer></script>\n</body></html>'); }
 // Cache-busting: each page asks for this build's copy of its scripts and stylesheets (?v=<hash of the build's files>).
 // The service worker serves files from its saved copy first, so without this a fresh page could run with the previous
 // build's CSS or engine for one visit after every deploy. sheet-boot.js passes the same tag to what it loads itself.

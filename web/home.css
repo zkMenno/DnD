@@ -506,3 +506,28 @@ body > #msg:empty{display:none}
 .addrow input{border:1.5px solid color-mix(in srgb,var(--brass) 75%,transparent)} .addrow input:focus{border-color:var(--brass)}
 .auth .btn.primary:hover,.onb .btn.primary:hover,.addrow .btn.primary:hover,.secbox .btn.primary:hover,.pwprompt .btn.primary:hover{border-color:var(--brass);filter:brightness(1.08)}
 .sec .btn.primary,.secbox .btn.primary,.pwprompt .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--sea-ink,#0c141c)}
+
+/* ── Privacy & terms (23 Oct): same frame as the account page — site header, dice behind, cards, folding rows ───── */
+.legalmain{max-width:760px}
+.legalmain .eyebrow{margin:8px 0 2px}
+.pagetitle{font-family:var(--f-display);font-size:2.2rem;margin:0 0 6px}
+.legal{padding:20px 22px}
+.legal > p:first-child{font-size:1.02rem;line-height:1.6;margin-top:0}
+.legal details{border:1px solid var(--line);border-radius:12px;padding:0;margin:10px 0 0;background:var(--raised)}
+.legal details:first-of-type{border-top:1px solid var(--line)}
+.legal summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;font-size:1.02rem;transition:background .15s,color .15s}
+.legal summary::-webkit-details-marker{display:none}
+.legal summary::after{content:"";width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:-4px 4px 0 0;transition:transform .2s;flex:none;color:var(--muted)}
+.legal details[open] summary::after{transform:rotate(-135deg);margin-top:4px}
+.legal summary:hover{background:color-mix(in srgb,var(--brass) 8%,transparent);color:var(--brass)}
+.legal details[open] summary{border-bottom:1px solid var(--line);border-radius:12px 12px 0 0}
+.legal details > :not(summary){margin-left:14px;margin-right:14px}
+.legal details > :last-child{margin-bottom:14px}
+.legal details > p:first-of-type,.legal details > table:first-of-type{margin-top:12px}
+.legal table{display:block;overflow-x:auto} .legal th{color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.legal a{color:var(--brass)}
+.legal table{display:table;width:calc(100% - 28px)}
+@media (max-width:600px){ .legal table{display:block;overflow-x:auto} }
+.legalmain .pagetitle{margin-top:12px}
+/* the read-only note under the link box: a bigger book, centred beside both lines */
+.ql-note{display:flex;align-items:center;gap:12px} .ql-note .qlico{font-size:1.6rem;line-height:1;flex:none}
