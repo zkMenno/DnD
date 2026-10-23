@@ -2,7 +2,7 @@
 // Runs once at load, top to bottom. Reads the page's data script (<script id="<PACK.id>-data">), upgrades and
 // compacts it into DATA, merges items added in the app, and derives D (read-only sheet numbers).
 // Defines: DATA, DATA_V, DATA_OLD, D, MODS, RES (every tracked resource: module ones, automatic counters, spell
-//   slots, free casts), SPELL, THEME, SKIN, WORD, FIRST_NAME, INITIALS, and helpers used everywhere: esc, sgn, $, ls,
+//   slots, free casts), SPELL, THEME, SKIN, WORD, FIRST_NAME, INITIALS, AVATAR, and helpers used everywhere: esc, sgn, $, ls,
 //   itemKey, ddbQty, keepAdded, mergeAdded, fillTpl, spellBy, spellStats, resBy, resWord, srcTag.
 // Uses: PACK (#pack), THEMES (#themes), compact(), derive(), activeModules(), ABIL, slug (§1),
 //   ftText() (§8b, a function declaration, so hoisted).
@@ -173,6 +173,11 @@ const FIRST_NAME = DATA.name.split(/\s+/)[0];
 const INITIALS = DATA.name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
 // HTML-escape anything that came from data
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));   // safe in text and in quoted attributes
+// The D&D Beyond portrait for the crest (§13): DATA.avatar when it is an https link on dndbeyond.com or one of its
+// subdomains, else ''. Web app only (window.SHEET): a claude.ai artifact's CSP may not allow images from other
+// sites, so those sheets keep the initials. A portrait that fails to load shows the initials too (bindCrest, §13).
+const AVATAR = (() => { if (!window.SHEET || !DATA.avatar) return '';
+  try { const u = new URL(String(DATA.avatar)); return u.protocol === 'https:' && /(^|\.)dndbeyond\.com$/i.test(u.hostname) ? u.href : ''; } catch(_) { return ''; } })();
 // the theme's confirm tick gets a gentle pulse (same rhythm as the next-step arrows); WORD.ok is HTML from here on
 WORD.ok = esc(WORD.ok).replace(/\s*(✓|✔)\s*$/, ' <span class="okmk">$1</span>');
 // +n / −n

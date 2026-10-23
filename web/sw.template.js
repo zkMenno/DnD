@@ -12,7 +12,8 @@ const CACHE = 'sheets-' + VERSION;   // fonts are self-hosted (/fonts), so they'
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 // activate: delete older builds' caches and control the open pages
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('sheets-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
-// fetch: only GETs to this site, outside /api/ and /_/ (the PocketBase dashboard)
+// fetch: only GETs to this site, outside /api/ and /_/ (the PocketBase dashboard). Other sites (the D&D Beyond
+// portraits in the crest and the character lists) are left to the browser and its own cache.
 self.addEventListener('fetch', e => {
   const r = e.request, u = new URL(r.url);
   if (r.method !== 'GET') return;

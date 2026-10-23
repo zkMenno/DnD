@@ -1,5 +1,5 @@
-// Privacy & terms and "Your data": the legal page and its links, nothing loaded from any other site (GDPR claim on
-// the page), download my data, delete my account (and everything in it).
+// Privacy & terms and "Your data": the legal page and its links, nothing loaded from any other site but the D&D
+// Beyond portraits (GDPR claim on the page), download my data, delete my account (and everything in it).
 // Run: node tools/test/web/e2e-legal.js [server URL], or as part of bash tools/test.sh web. Default server:
 // http://127.0.0.1:8090 (tools/devserver.sh). Prints PASS/FAIL per check and exits non-zero on a failure.
 // Uses a fixed account (leaver@example.test) and deletes it at the end, so it can run again.
@@ -11,8 +11,10 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const b = await chromium.launch({ executablePath: watch.CHROMIUM }), errs = [], outside = new Set();
   const ctx = await b.newContext({ viewport: { width: 390, height: 900 }, acceptDownloads: true });
   const p = await ctx.newPage(); watch(p, errs); p.setDefaultTimeout(30000);
-  // every request to another site is noted (the page promises none)
-  p.on('request', r => { const u = new URL(r.url()); if (/^https?:$/.test(u.protocol) && u.origin !== B) outside.add(u.host); });
+  // every request to another site is noted (the page promises none, except the D&D Beyond portrait pictures:
+  // images from www.dndbeyond.com/avatars/, named on the page)
+  p.on('request', r => { const u = new URL(r.url()); if (/^https?:$/.test(u.protocol) && u.origin !== B
+    && !(r.resourceType() === 'image' && u.origin === 'https://www.dndbeyond.com' && u.pathname.startsWith('/avatars/'))) outside.add(u.host); });
 
   // The legal page: sections, hosting and SRD licence named, no unfilled {{placeholders}}.
   await p.goto(B + '/legal.html');
@@ -29,7 +31,8 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   await p.evaluate(() => notesStore.add({ text: 'A note to take home', kind: 'story', done: false, at: Date.now(), session: 1 })); await p.waitForTimeout(1200);
   await p.evaluate(() => { menuOpen = true; paintMenu(); });
   ok('the sheet\'s ☰ menu has a Back to all characters row (Privacy & terms is only in the home footer)', !!(await p.$('#menubox a.homelink[href="/"]')) && !(await p.$('#menubox a[href="/legal.html"]')));
-  ok('nothing loads from another site (fonts, scripts: all from this server)', outside.size === 0 || console.log('   outside:', [...outside]));
+  ok('nothing loads from another site but the D&D Beyond portrait (fonts, scripts: all from this server)', outside.size === 0 || console.log('   outside:', [...outside]));
+  ok('the privacy page names the D&D Beyond portraits', await (await fetch(B + '/legal.html')).text().then(t => /Character portraits:/.test(t)));
 
   // Download my data: one JSON with the account, characters, trackers and notes.
   await p.goto(B + '/'); await p.click('[data-hometab=data]'); await p.waitForSelector('#export');

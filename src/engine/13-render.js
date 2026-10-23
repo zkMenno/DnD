@@ -1,7 +1,7 @@
 /* ============================================================================
    §13 RENDER — the whole page, built once; panels repaint themselves after that
-   Defines: TABS ([key, label]) and TAB_EMO, CORE_PANELS, panelFn(), PANEL_ORDER, render().
-   Relies on: PACK, DATA, D, VIEW, INITIALS, esc, $ (§2–§3), ui (§3), autoCombos (§9), every panel builder (§8b–§11,
+   Defines: TABS ([key, label]) and TAB_EMO, CORE_PANELS, panelFn(), PANEL_ORDER, crestHtml(), bindCrest(), render().
+   Relies on: PACK, DATA, D, VIEW, INITIALS, AVATAR, esc, $ (§2–§3), ui (§3), autoCombos (§9), every panel builder (§8b–§11,
    §17) and, inside render(), the binders and painters of §4 and §10–§19. The tab list is fixed as this file loads,
    so autoCombos() runs here once. render() runs at start-up (end of §21) and again whenever the whole page changes.
    ============================================================================ */
@@ -24,13 +24,26 @@ const panelFn = k => k === 'combos' ? combosPanel : (PACK.panels && PACK.panels[
 // layout), then every other tab (spells, traits, pack tabs) in tab order
 const PANEL_ORDER = ['combat','combos','notes','stats','gear'].filter(k => TABS.some(t=>t[0]===k) || k==='stats')
   .concat(TABS.map(t=>t[0]).filter(k => !['combat','combos','notes','stats','gear'].includes(k)));
+// ── Crest ──────────────────────────────────────────────────────────────────────────────────────────────────
+// What the round crest holds: the initials, with the D&D Beyond portrait on top when there is one (AVATAR, web app
+// only). The theme's ring is drawn over the picture (.crest.pic::after in app.css).
+const crestHtml = () => '<span class="crestini">'+esc(INITIALS)+'</span>'
+  + (AVATAR ? '<img class="crestpic" src="'+esc(AVATAR)+'" alt="" decoding="async" referrerpolicy="no-referrer">' : '');
+// A portrait that can't load is taken out, so the initials show. Bound after each render: the CSP forbids inline
+// onerror handlers. An image that already failed (complete, no size) is dropped at once.
+function bindCrest(){
+  document.querySelectorAll('.crestpic').forEach(img => {
+    const drop = () => { const c = img.closest('.crest'); img.remove(); if (c) c.classList.remove('pic'); };
+    if (img.complete && !img.naturalWidth) drop(); else img.addEventListener('error', drop, {once:true});
+  });
+}
 // Build the whole page into #app: header (name, Rest, ☰, vitals, drawers, tabs), the desktop sidebars, every panel,
 // the ↕ Sections button and the roll dock; then bind and paint the live parts. msg = an optional line under the
 // header (#syncmsg). Later updates repaint parts in place; this runs again only when the whole page changes.
 function render(msg){
   document.body.classList.toggle('viewonly', VIEW);
   $('#app').innerHTML =
-    '<header class="top"><div class="wrap"><div class="idrow"><button class="crest" data-act="reload" aria-label="Reload the sheet" title="Reload">'+esc(INITIALS)+'</button><div class="who"><h1><button class="namebtn" data-act="reload" title="Tap to reload">'+esc(DATA.name)+'</button></h1><button class="sub subbtn" data-act="reload" title="Tap to reload">'+esc(DATA.race.name)+' · '+esc(D.line)+' · Level '+D.totalLevel+' · PB '+sgn(D.pb)+'</button></div>'
+    '<header class="top"><div class="wrap"><div class="idrow"><button class="crest'+(AVATAR?' pic':'')+'" data-act="reload" aria-label="Reload the sheet" title="Reload">'+crestHtml()+'</button><div class="who"><h1><button class="namebtn" data-act="reload" title="Tap to reload">'+esc(DATA.name)+'</button></h1><button class="sub subbtn" data-act="reload" title="Tap to reload">'+esc(DATA.race.name)+' · '+esc(D.line)+' · Level '+D.totalLevel+' · PB '+sgn(D.pb)+'</button></div>'
     + '<div class="sync"><div class="hbtns"><button class="btn" data-act="rest" aria-expanded="false" id="restbtn">⛺ Rest</button><button class="btn menubtn" id="menubtn" data-act="menu" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div></div></div>'
     + '<div id="restbox" class="restbox" hidden></div><div id="menubox" class="restbox" hidden></div><div id="syncmsg" '+(msg?'':'hidden')+' class="syncmsg">'+(msg||'')+'</div>'
     + '<div class="vitals" id="vitals">'+vitalsHtml()+'</div><div id="hpedit" class="hpmenu" hidden></div><div id="rollbox" class="restbox" hidden></div>'
@@ -44,7 +57,7 @@ function render(msg){
     + PANEL_ORDER.map(k => '<div class="panel" data-panel="'+k+'">'+(panelFn(k) ? panelFn(k)() : '')+'</div>').join('')
     + '<nav class="pager" id="pager" aria-label="Previous and next section"></nav>'
     + '</div></div></div></main><button id="jumpbtn" class="jumpbtn" data-act="jump" aria-expanded="false" aria-label="Jump to a section" hidden>↕ Sections</button><div id="jumpmenu" class="jumpmenu" hidden></div><div id="dock" class="dock" hidden></div>';
-  bindTabs(); paintRes(); showTab(ui.tab); paintNotes(); paintRest(); paintCoins(); bindTraits(); bindListDrags(); fitDock();
+  bindCrest(); bindTabs(); paintRes(); showTab(ui.tab); paintNotes(); paintRest(); paintCoins(); bindTraits(); bindListDrags(); fitDock();
   document.querySelectorAll('main .panel, main aside').forEach(r => { linkify(r); decorate(r); });
   applyAllSecOrder();
 }
