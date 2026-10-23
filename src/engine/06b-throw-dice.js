@@ -12,7 +12,10 @@
 // Defines: FEATURES, previewHost, throwOn, throwWanted, rollStyleRow, setRollStyle, throwDice.
 // Uses: THREE, D3, d3Ready, d3Die, d3Shape, diceSet, dice3d, DICE_PREVIEW (§6); ui, saveUi (§3); reduceMotion (§4);
 //   paintMenu, dicePromptMaybe (§18); dicePromptAfterRoll (§4). Styles: the "Throw it yourself" block at the end of
-//   src/app.css. Not part of the front page's dice bundle (tools/build.js builds that from §6 alone).
+//   src/app.css.
+// Also built into the front page's dice (tools/build.js → web/home-dice.js, after §6), where only throwDice() is
+// called (the dice tray's test rolls; styles in web/home.css). The rest of this file (the menu row, the setting) is
+// never called there, and the dice prompt is checked with typeof first, so it needs no other part of the sheet.
 
 // ── Feature switch ─────────────────────────────────────────────────────────────────────────────────────────
 // Staging and live run the same build, so features that aren't released yet are switched on by the address the app

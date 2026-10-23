@@ -1,5 +1,6 @@
-// The front page's window.HomeDice (used by web/home-anim.js). tools/build.js puts this after src/themes.js and
-// src/engine/06-3d-dice.js inside one closure, so it uses the sheet's own dice code: DICE_SETS, d3Ready, d3Die, dice3d.
+// The front page's window.HomeDice (used by web/home-anim.js). tools/build.js puts this after src/themes.js,
+// src/engine/06-3d-dice.js and src/engine/06b-throw-dice.js inside one closure, so it uses the sheet's own dice code:
+// DICE_SETS, d3Ready, d3Die, dice3d (the automatic throw) and throwDice (the visitor throws them).
 // The sets in menu order, grouped like ☰ → Dice Sets: [[group label, [keys]], …]
 const homeOrder = () => {
   const g = THEME.diceGroups || {}, keys = Object.keys(DICE_SETS);
@@ -54,5 +55,8 @@ function homePick(){
 }
 const HOME = homePick();
 Object.assign(DICE_SETS, HOME.sets);   // so d3Die / dice3d find the picked sets by their keys
+// roll: the dice throw themselves (the first-view demo); throw: they wait for the visitor (a tapped set, Roll again),
+// both (dice, done) and falling back to the automatic throw, or to just done(), by themselves. d3: the 3D scene, for
+// the front-page test (tools/test/home-dice.js), which reads the face each die shows.
 window.HomeDice = { sets: HOME.sets, order: HOME.order, total: HOME.total, def: HOME.order[0][1][0], use: k => { ui.dice = k; },
-  roll: dice3d, ready: d3Ready, fonts: homeFontsReady, thumb: homeThumb };
+  roll: dice3d, throw: throwDice, ready: d3Ready, fonts: homeFontsReady, thumb: homeThumb, d3: D3 };

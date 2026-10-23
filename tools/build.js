@@ -105,11 +105,15 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: the easiest way t
 // Front page dice (web/home-anim.js): the sheet's own 3D dice (src/engine/06-3d-dice.js) with the theme's dice sets,
 // in one closure so its names don't meet web/index.js. three.js is loaded by home-anim.js when it's needed, so the
 // line that loads it in the sheet is left out (the build stops if that line changes, rather than shipping two loaders).
+// "Throw it yourself" (src/engine/06b-throw-dice.js) comes along for the tray's test rolls: the front page calls only
+// its throwDice(). The few sheet names §6 and §6b read get small stand-ins here: ui (the chosen set), diceFx (no
+// WebGL: the result just shows) and reduceMotion (the visitor's own setting).
 { const d3 = R('src/engine/06-3d-dice.js'), loader = /^\(function\(\)\{ try \{ const s = document\.createElement\('script'\);.*\n/m;
   if (!loader.test(d3)) throw new Error('home-dice: the three.js loader line in src/engine/06-3d-dice.js changed; update tools/build.js');
-  fs.writeFileSync(out+'/web/home-dice.js', '// Built by tools/build.js from src/themes.js + src/engine/06-3d-dice.js + src/home-dice-api.js. Do not edit.\n(function(){\n' + inject(R('src/themes.js'), 'SKIN_DICE', LOOKS.dice, 'src/themes.js')
+  fs.writeFileSync(out+'/web/home-dice.js', '// Built by tools/build.js from src/themes.js + src/engine/06-3d-dice.js + src/engine/06b-throw-dice.js + src/home-dice-api.js. Do not edit.\n(function(){\n' + inject(R('src/themes.js'), 'SKIN_DICE', LOOKS.dice, 'src/themes.js')
     + '\nconst THEME = THEMES.pirate || THEMES[Object.keys(THEMES)[0]];\nconst ui = { dice: null };\nconst diceFx = (dice, done) => done();   // no WebGL: the result just shows\n'
-    + d3.replace(loader, '') + '\n' + R('src/home-dice-api.js') + '})();\n'); }
+    + 'const reduceMotion = () => matchMedia(\'(prefers-reduced-motion: reduce)\').matches;\n'
+    + d3.replace(loader, '') + '\n' + R('src/engine/06b-throw-dice.js') + '\n' + R('src/home-dice-api.js') + '})();\n'); }
 // ── Web app: Privacy & terms ───────────────────────────────────────────────────────────────────────────────
 // Privacy & terms: src/legal.html with the operator details from src/site.json filled in for {{key}}. Values still
 // in [brackets] are placeholders: the build warns but carries on.

@@ -4,9 +4,10 @@
 // "reduce motion" on the page stays still (rolls just show the number).
 //   reveal:  cards and steps fade up as they scroll into view (html.anim turns it on)
 //   bgdice:  pick up a background die and throw it; it bounces off the edges and knocks the others
-//   tray:    the sheet's dice sets, grouped, as pictures of each set's 3D d20; tap one to throw three random dice of it
-//            (window.HomeDice: src/home-dice-api.js + the sheet's 3D dice, built into home-dice.js by tools/build.js).
-//            three.js (600 KB) loads only when the tray comes near.
+//   tray:    the sheet's dice sets, grouped, as pictures of each set's 3D d20; tap one and three random dice of it
+//            appear resting on screen for the visitor to throw, as in the app ("Throw it yourself", with "Roll for
+//            me"); a result card with the numbers follows (window.HomeDice: src/home-dice-api.js + the sheet's 3D
+//            dice, built into home-dice.js by tools/build.js). three.js (600 KB) loads only when the tray comes near.
 //   demo:    the first time the tray is in view and the visitor pauses, three dice are thrown for them (once per visit)
 // Everything is inside one closure: no globals.
 (() => {
@@ -174,7 +175,9 @@
 
   // ── Dice tray ────────────────────────────────────────────────────────────────────────────────────────────
   // Swatches grouped like the sheet's ☰ → Dice Sets. Each starts as a flat d20 shape in the set's colours and becomes a
-  // picture of that set's real 3D d20 once three.js is here. Tap a set: it's chosen and throws three random dice of it.
+  // picture of that set's real 3D d20 once three.js is here. Tap a set: it's chosen and three random dice of it wait
+  // on screen to be thrown (flick, drag, tap, Enter; "Roll for me" throws them automatically); once they land, the
+  // result card shows the numbers. With reduced motion or without 3D the card shows straight away.
   // The chosen set is remembered on this device (dt-front-dice). Pages without home-dice.js stop here.
   const D = window.HomeDice; if (!D) return;
   const keys = D.order.flatMap(g => g[1]), tray = $('#tray'), sw = $('#swatches');
@@ -216,17 +219,64 @@
   // a fair random whole number from 1 to n
   const rnd = n => { const a = new Uint32Array(1); crypto.getRandomValues(a); return 1 + (a[0] % n); };
   const SIZES = [4, 6, 8, 10, 12, 20];
-  // Throw dice ([{s: sides, v: value}]) in the current set. One throw at a time; none with reduced motion.
-  async function roll(dice){
-    if (rolling || still) return; rolling = rolled = true;
-    if (!(await loadThree())) { rolling = false; return; }
-    D.use(cur); D.roll(dice, () => { rolling = false; });
+  // Throw dice ([{s: sides, v: value}]) in the current set. One throw at a time. own: the visitor throws them (a tapped
+  // set, Roll again) and the result card follows; otherwise they roll by themselves with no card (the demo, which
+  // never runs with reduced motion). With reduced motion, or when three.js can't load, the card shows at once.
+  async function roll(dice, own){
+    if (rolling) return; closeCard();
+    if (still && !own) return;
+    rolling = rolled = true;
+    // when the dice have landed (or straight away): ready for the next throw, and the numbers
+    const landed = () => { rolling = false; if (own) openCard(dice); };
+    if (still || !(await loadThree())) return landed();
+    await D.fonts();   // the numerals' fonts, so no face is drawn (and cached) in a fallback font
+    D.use(cur); (own ? D.throw : D.roll)(dice, landed);
   }
   // three different dice (never two d20s): shuffle the six shapes, take three
-  const three3 = () => { const z = SIZES.slice(); for (let i = z.length - 1; i > 0; i--) { const j = rnd(i + 1) - 1; [z[i], z[j]] = [z[j], z[i]]; }
-    roll(z.slice(0, 3).map(s => ({ s, v: rnd(s) }))); };
-  // tap a swatch: choose that set and throw
-  sw.addEventListener('click', e => { const b = e.target.closest('.sw'); if (!b) return; pick(b.dataset.k); three3(); });
+  const three3 = own => { const z = SIZES.slice(); for (let i = z.length - 1; i > 0; i--) { const j = rnd(i + 1) - 1; [z[i], z[j]] = [z[j], z[i]]; }
+    roll(z.slice(0, 3).map(s => ({ s, v: rnd(s) })), own); };
+  // tap a swatch: choose that set and get three of its dice to throw
+  sw.addEventListener('click', e => { const b = e.target.closest('.sw'); if (!b) return; pick(b.dataset.k); three3(true); });
+
+  // ── Dice tray: the result card ───────────────────────────────────────────────────────────────────────────
+  // After a test roll: a card like the app's roll sheet (the pirate parchment, .diceresult in web/home.css) with the
+  // set's name, each die and its value, the total, a line about the app and Roll again. On wide screens it sits in the
+  // tray's empty right side (inside #tray, so it scrolls with it); on smaller ones it docks on the bottom edge like
+  // the app's roll sheet. It never blocks the page: ×, Escape or a tap anywhere else closes it, and tapping a set or
+  // Roll again replaces it with a new throw.
+  let card = null;
+  const wide = matchMedia('(min-width: 1000px)');   // the same width as the .tray > .diceresult rules in web/home.css
+  // the result card for dice ([{s, v}]): built, shown and focused (without scrolling) so Enter rolls again
+  const openCard = dice => {
+    closeCard();
+    const s = D.sets[cur], total = dice.reduce((a, d) => a + d.v, 0), d20 = dice.find(d => d.s === 20);
+    const img = sw.querySelector('.sw[data-k="' + cur + '"] img');   // the set's own 3D d20 picture, once drawn
+    const icon = img ? '<img class="rdie" src="' + img.src + '" alt="" width="34" height="34">' : '<svg class="rdie" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg>';
+    const flag = !d20 ? '' : d20.v === 20 ? '<span class="flag">⚓ Natural 20</span>' : d20.v === 1 ? '<span class="flag">☠️ Natural 1</span>' : '';
+    card = document.createElement('div'); card.className = 'diceresult'; card.tabIndex = -1;
+    card.setAttribute('role', 'dialog'); card.setAttribute('aria-labelledby', 'diceresult-t');
+    card.innerHTML = '<div class="head">' + icon + '<span class="title" id="diceresult-t">' + s.name + '</span>'
+      + '<button type="button" class="x" aria-label="Close">×</button></div>'
+      + '<div class="nums"><span class="n">' + total + '<small>total</small></span>' + flag + '</div>'
+      + '<div class="rdice">' + dice.map(d => '<span class="rd" data-s="' + d.s + '" data-v="' + d.v + '">d' + d.s + ' <b class="die">' + d.v + '</b></span>').join('') + '</div>'
+      + '<p class="rnote">Like the dice? Every theme has its own sets in the app.</p>'
+      + '<div class="rbtns"><button type="button" class="btn small again">🎲 Roll again</button></div>';
+    (wide.matches ? tray : document.body).appendChild(card);
+    try { card.querySelector('.again').focus({ preventScroll: true }); } catch (_) {}
+  };
+  // removes the result card, if any; focus inside it goes back to the chosen set
+  const closeCard = () => {
+    if (!card) return; const had = card.contains(document.activeElement); card.remove(); card = null;
+    if (had) { const b = sw.querySelector('.sw.on'); if (b) try { b.focus({ preventScroll: true }); } catch (_) {} }
+  };
+  // × closes, Roll again throws three new dice of the same set; a tap outside the card closes it (a tap on a set
+  // starts a new throw, which replaces it)
+  document.addEventListener('click', e => {
+    if (!card) return;
+    if (!card.contains(e.target)) { if (!e.target.closest('.sw')) closeCard(); return; }
+    if (e.target.closest('.x')) closeCard(); else if (e.target.closest('.again')) three3(true);
+  });
+  document.addEventListener('keydown', e => { if (card && e.key === 'Escape') closeCard(); });
   // the set's name in a bubble above it, like the app's tooltips: on mouse hover and keyboard focus (on touch the
   // name already shows under the tray when you tap)
   let tip = null;
@@ -260,7 +310,7 @@
       clearTimeout(timer);
       let seen = false; try { seen = !!sessionStorage.getItem('dt-demo'); } catch (_) {}
       if (!e.isIntersecting || still || rolled || seen) return;
-      timer = setTimeout(() => { if (rolled) return; try { sessionStorage.setItem('dt-demo', '1'); } catch (_) {} demo.disconnect(); three3(); }, 900);
+      timer = setTimeout(() => { if (rolled) return; try { sessionStorage.setItem('dt-demo', '1'); } catch (_) {} demo.disconnect(); three3(false); }, 900);
     }), { threshold: 0.6 });
     demo.observe(tray);
   } else thumbs();

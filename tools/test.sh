@@ -11,7 +11,7 @@
 #   MAILSINK, MAILSINK_PORT  the fake mail server's file and port (default /tmp/mailsink.txt, 2525)
 # The server always serves this checkout (APP_DIR, default: the folder this script is in).
 #   bash tools/test.sh          everything (about 10 minutes)
-#   bash tools/test.sh sheets   build, lint, the claude.ai sheet tests (about 5 minutes)
+#   bash tools/test.sh sheets   build, lint, the claude.ai sheet tests and the front page's dice tray (about 5 minutes)
 #   bash tools/test.sh web      build, lint, server rules, web e2e, limits (about 2 minutes)
 #   bash tools/test.sh lint     build + lint only (seconds; what CI runs before building the image: npm run check)
 # Order: build first (lint and every test use dist/); limits.py last, because it uses up this IP's sign-in allowance.
@@ -38,7 +38,8 @@ node tools/css-check.js || fail=1
 [ "$part" = lint ] && { echo; [ $fail = 0 ] && echo "ALL GREEN (build + lint)" || echo "SOMETHING FAILED"; exit $fail; }
 
 # ── claude.ai sheet tests ───────────────────────────────────────────────────────────────────────────────────
-[ "$part" = web ] || for t in smoke combat items spells throw; do step "$t"; node tools/test/$t.js | grep -v '^PASS' ; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
+# (home-dice: the front page's dice tray, which shares the sheet's dice code; it serves dist/web itself, no PocketBase)
+[ "$part" = web ] || for t in smoke combat items spells throw home-dice; do step "$t"; node tools/test/$t.js | grep -v '^PASS' ; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
 
 # ── Web app tests ───────────────────────────────────────────────────────────────────────────────────────────
 # The service worker across two builds: needs no PocketBase (it serves copies of dist/web itself).
