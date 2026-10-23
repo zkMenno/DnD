@@ -1,14 +1,24 @@
-/* ============================================================================
-   §18 MENU, RESTS AND QUICK ROLL — ☰ menu: sync and settings
-   ============================================================================ */
+// ── §18 Menu, rests and Quick roll ─────────────────────────────────────────────────────────────────────────
+// The three drawers on the top bar: ☰ menu (sync, theme, dice sets, feedback), 🎲 Quick roll (any check, save, skill
+// or tool, with favourites) and the rest window (short rest with hit dice, long rest). Also bindDragList(), the
+// drag-to-reorder helper that §10 uses for its favourite lists too, and autoCloseRoll() for confirmation sheets.
+// Only one drawer is open at a time: each opener closes the others. On desktop (deskFine) they open as windows.
+// Uses: S, save, ui, saveUi (§3); RES, D, DATA, WORD, esc (§2); DICE_SETS, DICE_GROUPS, DICE_LOOK, DICE_PREVIEW (§6);
+//   fx, fxBusy (§5); showRoll, closeRoll, fitDock, deskFine, r (§4); G (§16); window.Skin (web/sw-register.js),
+//   window.SHEET (web app).
+// State: menuOpen, menuView ('main' | 'sync' | 'dice' | 'skin'), diceEdit, restMode, rollBoxOpen, restLog, restSpent.
+
+// ── ☰ Menu ─────────────────────────────────────────────────────────────────────────────────────────────────
 let menuOpen = false;
 let menuView = 'main';
-// ☰ menu contents (main view or dice-set submenu)
+// Draws the ☰ menu: back to your characters (web app), Sync, Theme, Dice sets, Feedback. Sections fold open in place
+// (menuView); diceEdit swaps the dice list for up/down arrows. Closing empties the box and resets the view.
 function paintMenu(){
   const box = $('#menubox'), btn = $('#menubtn'); if (!box) return;
   fitDock();
   box.hidden = !menuOpen; if (btn) btn.setAttribute('aria-expanded', String(menuOpen));
   if (!menuOpen) { box.innerHTML = ''; menuView = 'main'; diceEdit = false; return; }
+  // sw(set): a small d20 + d6 swatch in the set's colours, with a CSS hint of its texture (wood grain, frost…)
   const cur = DICE_SETS[ui.dice] ? ui.dice : DEFAULT_DICE, sw = s => { const bg = (s.tex === 'wood' ? 'repeating-linear-gradient(12deg,rgba(110,62,28,.28) 0 1px,transparent 1px 4px),' : s.tex === 'bone' ? 'radial-gradient(circle at 70% 30%,rgba(120,12,10,.6) 0 2px,transparent 3px),radial-gradient(circle at 30% 75%,rgba(120,12,10,.45) 0 1.5px,transparent 2.5px),'
       : s.tex === 'tar' ? 'radial-gradient(ellipse at 30% 25%,rgba(255,255,255,.22),transparent 55%),repeating-linear-gradient(8deg,rgba(255,255,255,.05) 0 1px,transparent 1px 5px),'
       : s.tex === 'hammered' ? 'radial-gradient(ellipse at 30% 25%,rgba(255,255,255,.35),transparent 55%),repeating-linear-gradient(0deg,rgba(255,255,255,.12) 0 1px,transparent 1px 3px),'
@@ -29,8 +39,10 @@ function paintMenu(){
   const done = '<div class="mode menufoot" style="justify-content:flex-end;margin-top:10px"><button class="btn done" data-act="menu">'+WORD.ok+'</button></div>';
   // sections fold open in place (one at a time); tapping an open one folds it again
   const chev = open => '<span class="chev mchev'+(open?' open':'')+'" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+  // last sync time and the number of differences from D&D Beyond (the change list)
   const when = new Date(DATA.syncedAt).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}), pend = changes().length;
   const syncOpen = menuView === 'sync', diceOpen = menuView === 'dice', skinOpen = menuView === 'skin';
+  // one sync option button (disabled while a sync runs)
   const opt = (act, ico, t, sub, off) => '<button class="dsopt syncopt" id="'+act+'btn" data-act="'+act+'"'+(off||syncing?' disabled':'')+'><span class="mico" aria-hidden="true">'+ico+'</span><span class="dst"><b data-label="'+t+'">'+(syncing?'Working…':t)+'</b><span>'+sub+'</span></span></button>';
   const syncBody = '<div class="msub"><div class="diceset">'
     + opt('pull', '⬇️', 'Pull from D&amp;D Beyond', 'D&amp;D Beyond → this app. Works on any device.')
@@ -40,6 +52,7 @@ function paintMenu(){
     + (!window.SHEET ? opt('moveout', '📦', 'Move to the web app', 'Copy this tracker and your notes as a code to paste there.')
       : !VIEW && !window.SHEET.trial ? opt('movein', '📥', 'Bring over from claude.ai', 'Paste the code from the claude.ai sheet.') : '')
     + '</div></div>';
+  // the dice-set list, grouped; in edit mode each group and set gets ↑ ↓ buttons
   const diceBody = '<div class="msub"><div class="jumprow dshint" style="margin:0 0 6px"><span class="small muted">'+(diceEdit?'Move groups or sets up and down.':'Tap a set to see it roll · tick the circle to use it.')+'</span><button class="btn small'+(diceEdit?' done':'')+'" data-act="diceedit">'+(diceEdit?''+WORD.ok+'':'↕ Reorder')+'</button></div>'
       + diceGroups().map(([gl, keys, gk], gi, groups) => (gl ? (diceEdit && gk
             ? '<div class="dsgh jumprow"><h4 class="menuh" style="margin:0">'+esc(gl)+'</h4><span class="jarrows"><button class="btn small" data-act="dsgmove" data-g="'+gk+'" data-d="-1"'+(gi?'':' disabled')+' aria-label="Move group up">▲</button><button class="btn small" data-act="dsgmove" data-g="'+gk+'" data-d="1"'+(gi<groups.filter(x=>x[2]).length-1?'':' disabled')+' aria-label="Move group down">▼</button></span></div>'
@@ -50,6 +63,7 @@ function paintMenu(){
             : '<div class="dsopt dsrow'+(k===cur?' on':'')+'"><button class="dsprev" data-act="dsprev" data-k="'+k+'" aria-label="Preview '+esc(s.name)+'">'+sw(s)
               + '<span class="dst"><b>'+esc(s.name)+'</b><span>'+esc(s.desc)+'</span></span><span class="dsroll" aria-hidden="true">🎲</span></button>'
               + '<button class="dspick'+(k===cur?' on':'')+'" data-act="diceset" data-k="'+k+'" aria-pressed="'+(k===cur)+'" aria-label="'+(k===cur?'In use: ':'Use ')+esc(s.name)+'">'+(k===cur?'✓':'')+'</button></div>'; }).join('')+'</div>').join('') + '</div>';
+  // web app: one Sync row that opens its own window (§21); claude.ai sheets fold the options open instead
   const webSync = window.SHEET && !VIEW
     ? '<button class="menulink" data-act="syncwin"><span class="mico" aria-hidden="true">🔄</span><span class="dst"><b>Sync with D&amp;D Beyond</b><span>Last synced '+esc(when)+(pend ? ' · '+pend+' difference'+(pend===1?'':'s') : '')+(DATA_OLD && !window.SHEET.trial ? ' · sync for new details' : '')+'</span></span><span class="mchev" aria-hidden="true">›</span></button>'
     : null;
@@ -66,7 +80,8 @@ function paintMenu(){
     + (window.SHEET && window.openFeedback && !diceEdit ? '<div style="height:8px"></div><button class="menulink" data-act="feedback"><span class="mico" aria-hidden="true">🐞</span><span class="dst"><b>Report a bug or share an idea</b><span>Goes straight to Menno, who builds Dungeon Tracker</span></span></button>' : '')
     + (diceEdit ? '' : done);
 }
-// web app: ☰ → Theme — eight looks (web/sw-register.js: window.Skin) and light / dark / follow the device
+// Web app: ☰ → Theme. Eight looks (web/sw-register.js: window.Skin) and light / dark / follow the device.
+// Empty on claude.ai sheets.
 function skinRow(open, chev){
   const K = window.Skin; if (!K || !window.SHEET) return '';
   const cur = K.skin(), mode = K.mode(), it = K.list.find(x => x[0] === cur) || K.list[0], ML = {auto:'Auto', light:'Light', dark:'Dark'};
@@ -76,16 +91,17 @@ function skinRow(open, chev){
         + '<div class="skinmode" role="group" aria-label="Light or dark">'+['auto','light','dark'].map(m => '<button data-act="skinmode" data-m="'+m+'" aria-pressed="'+(m===mode)+'">'+(m==='auto'?'🖥️ ':m==='light'?'☀️ ':'🌙 ')+ML[m]+'</button>').join('')+'</div>'
         + '<p class="small muted" style="margin:6px 2px 0">Saved on this device. Auto follows your phone or computer’s light/dark setting.</p></div>' : '');
 }
+// picks a look; a different look reloads the page (theme words and dice sets are read at load)
 function skinPick(k){ const K = window.Skin; if (!K) return; const was = K.skin(); K.set(k, K.mode()); if (k !== was) location.reload(); }
+// light / dark / auto: no reload needed (CSS only)
 function skinMode(m){ const K = window.Skin; if (!K) return; K.set(K.skin(), m); paintMenu(); }
-// open / close the ☰ menu
-// desktop windows (rest, menu) leave the way they arrived: fade, lift and shrink a touch
+// Desktop windows (rest, menu, Quick roll) leave the way they arrived: fade, lift and shrink a touch; then done().
 function winOut(box, done){
   box.getAnimations && box.getAnimations().forEach(x => x.cancel());
   const an = box.animate([{opacity:1, transform:'translate(-50%,0) scale(1)'}, {opacity:0, transform:'translate(-50%,-10px) scale(.97)'}], {duration:180, easing:'cubic-bezier(.4,0,1,1)', fill:'forwards'});
   an.onfinish = () => { done(); an.cancel(); };
 }
-// open or close the ☰ menu
+// Opens or closes the ☰ menu. Opening closes the rest window, Quick roll and the HP drawer.
 function toggleMenu(){
   const mb = $('#menubox');
   if (menuOpen && deskFine() && mb && !mb.hidden && !reduceMotion() && mb.animate) { menuOpen = false; return winOut(mb, () => { mb.hidden = true; paintMenu(); }); }
@@ -93,26 +109,28 @@ function toggleMenu(){
   if (menuOpen) { if (restMode) closeRest(); if (rollBoxOpen) closeRollBox(); if (drawerKind && !$('#hpedit').hidden) closeDrawer(); }
   paintMenu();
 }
-// Dice sets in this device's order (ui.diceOrder), any new sets appended in the theme's order
+// ── Dice sets in the menu ──────────────────────────────────────────────────────────────────────────────────
+// diceEdit: the dice list shows ↑ ↓ arrows to reorder instead of picking
 let diceEdit = false;
-// all dice sets in this device's order (new sets appended)
+// Dice set keys in this device's order (ui.diceOrder), any new sets appended in the theme's order.
 function diceKeys(){
   const all = Object.keys(DICE_SETS), saved = (ui.diceOrder || []).filter(k => all.includes(k));
   return saved.concat(all.filter(k => !saved.includes(k)));
 }
-// Sets grouped by style (DICE_GROUPS order: the pirate groups, or the look's own), each group in this device's order: [[label, keys], …]
+// Sets grouped by style (DICE_GROUPS: the pirate groups, or the look's own), each group in this device's order.
+// Returns [[label, keys, groupKey], …]; sets without a known group come last under "Other" (no groupKey).
 function diceGroups(){
   const keys = diceKeys(), labels = DICE_GROUPS, out = [];
   diceGroupKeys().forEach(g => { const ks = keys.filter(k => DICE_SETS[k].group === g); if (ks.length) out.push([labels[g], ks, g]); });
   const rest = keys.filter(k => !labels[DICE_SETS[k].group]); if (rest.length) out.push([out.length ? 'Other' : '', rest]);
   return out;
 }
-// group order: this device's (ui.diceGroupOrder), new groups appended in the theme's order
+// Group order: this device's (ui.diceGroupOrder), new groups appended in the theme's order.
 function diceGroupKeys(){
   const all = Object.keys(DICE_GROUPS), saved = (ui.diceGroupOrder || []).filter(g => all.includes(g));
   return saved.concat(all.filter(g => !saved.includes(g)));
 }
-// move a dice-set group up or down in the picker
+// moves a dice-set group up (d = -1) or down (d = 1) in the picker
 function moveDiceGroup(g, d){
   const gs = diceGroupKeys(), i = gs.indexOf(g), j = i + d; if (i < 0 || j < 0 || j >= gs.length) return;
   [gs[i], gs[j]] = [gs[j], gs[i]]; ui.diceGroupOrder = gs; saveUi(); paintMenu();
@@ -123,8 +141,7 @@ function moveDiceSet(k, d){
   if (a < 0 || b < 0 || b >= same.length) return;
   const i = keys.indexOf(k), j = keys.indexOf(same[b]); [keys[i], keys[j]] = [keys[j], keys[i]]; ui.diceOrder = keys; saveUi(); paintMenu();
 }
-// choose a dice set (remembered on this device)
-// preview a set: a sample throw in it, without selecting it
+// Previews a set: a sample throw (a d20 and two random other dice) in it, without selecting it.
 function previewDiceSet(k){
   // a short press flash on the card, only on a real tap (never while scrolling the list)
   const row = document.querySelector('.dsprev[data-k="'+k+'"]'); const card = row && row.closest('.dsrow');
@@ -135,8 +152,8 @@ function previewDiceSet(k){
   fx(null, () => { DICE_PREVIEW = null; }, [20].concat(others).map(sd => ({s:sd, v:r(sd)})));
   if (!fxBusy) DICE_PREVIEW = null;   // reduced motion: nothing was thrown
 }
-// select a set (no throw; preview is the row itself)
-// after a new player's first 3D throw (with the random set they were given): a small note offering the dice picker, once
+// After a new player's first 3D throw (with the random set they were given): a small note offering the dice picker,
+// once per device. It goes away by itself after 15 s.
 function dicePromptMaybe(){
   if (!ui.diceAuto || ui.dicePrompted || VIEW) return;
   ui.dicePrompted = true; saveUi();
@@ -145,13 +162,17 @@ function dicePromptMaybe(){
     + '<span class="diceaskbtns"><button class="btn small" data-act="diceask">Choose dice</button><button class="btn small ghost" data-act="diceaskno">Keep these</button></span>';
   document.body.appendChild(el); setTimeout(() => el.remove(), 15000);
 }
+// removes that note
 function closeDiceAsk(){ const el = document.querySelector('.diceask'); if (el) el.remove(); }
+// Selects a set (no throw: the row's preview does that). Remembered on this device, per look (ui.diceBySkin).
 function pickDiceSet(k){
   if (!DICE_SETS[k]) return; ui.dice = k; ui.diceAuto = false; ui.diceBySkin = Object.assign({}, ui.diceBySkin, { [DICE_LOOK]: k }); saveUi(); paintMenu();
   const b = document.querySelector('.dspick.on'); if (b && b.animate && !reduceMotion()) b.animate([{transform:'scale(.6)'},{transform:'scale(1.15)'},{transform:'scale(1)'}], {duration:260, easing:'cubic-bezier(.2,.8,.2,1)'});
 }
+// ── Rest window: open and close ────────────────────────────────────────────────────────────────────────────
+// restMode: null (closed), 'choose', 'short', 'long' or 'done'; restLog: lines about what this rest did
 let restMode = null, restLog = [];
-// rest drawer: short or long rest
+// Opens the rest window in a mode (falsy closes it). Phones: it grows open from the top bar; desktop: a window.
 function openRest(mode){
   if (!mode) return closeRest();
   if (drawerKind && !$('#hpedit').hidden) closeDrawer();
@@ -170,7 +191,7 @@ function openRest(mode){
   box.animate([{height:'0px', opacity:0, transform:'translateY(-8px)', paddingTop:'0px', paddingBottom:'0px', marginTop:'0px'},
                {height:h+'px', opacity:1, transform:'translateY(0)'}], {duration:240, easing:'cubic-bezier(.2,.8,.2,1)'});
 }
-// close the rest drawer
+// Closes the rest window. dir 'left' / 'right' slides it out that way (a swipe); otherwise it folds up.
 function closeRest(dir){
   const box = $('#restbox'); if (!box || box.hidden) { restMode = null; restLog = []; return paintRest(); }
   const done = () => { restMode = null; restLog = []; box.style.transform = box.style.opacity = box.style.transition = ''; paintRest(); };
@@ -186,9 +207,9 @@ function closeRest(dir){
                           {height:'0px', opacity:0, transform:'translateY(-12px)', paddingTop:'0px', paddingBottom:'0px', marginTop:'0px'}], {duration:200, easing:'ease-in'});
   an.onfinish = done;
 }
-/* ---- Quick Roll drawer: rerolls, mode, sneak and every signature roll, in one place ---- */
+// ── Quick roll drawer ──────────────────────────────────────────────────────────────────────────────────────
 let rollBoxOpen = false;
-// Quick Roll drawer: search any check, save or skill
+// Opens Quick roll (or closes it when it's open). Closes the menu, the rest window and the HP drawer.
 function openRollBox(){
   const box = $('#rollbox'); if (!box) return;
   if (drawerKind && !$('#hpedit').hidden) closeDrawer();
@@ -205,7 +226,7 @@ function openRollBox(){
   box.animate([{height:'0px', opacity:0, transform:'translateY(-8px)', paddingTop:'0px', paddingBottom:'0px', marginTop:'0px'},
                {height:h+'px', opacity:1, transform:'translateY(0)'}], {duration:240, easing:'cubic-bezier(.2,.8,.2,1)'});
 }
-// close Quick Roll
+// Closes Quick roll; dir 'left' / 'right' slides it out that way (a swipe).
 function closeRollBox(dir){
   const box = $('#rollbox'); if (!box || box.hidden) { rollBoxOpen = false; return paintRollBox(); }
   const done = () => { rollBoxOpen = false; box.style.transform = box.style.opacity = box.style.transition = ''; paintRollBox(); };
@@ -221,7 +242,8 @@ function closeRollBox(dir){
                           {height:'0px', opacity:0, transform:'translateY(-12px)', paddingTop:'0px', paddingBottom:'0px', marginTop:'0px'}], {duration:200, easing:'ease-in'});
   an.onfinish = done;
 }
-// Quick Roll: search or pick any check, save or skill; tap the name for what it does, tap 🎲 to roll it
+// The Quick roll rows by section: [[title, rows, kind], …] with Favourites first. Each row is
+// {term, label, bonus, sub, q}; q is the lower-case text the search box matches against.
 function qrRows(){
   const tag = (s) => s.exp ? 'expertise' : s.prof ? 'proficient' : '';
   const row = (term, label, bonus, sub, q) => ({term, label, bonus, sub, q:(label+' '+sub+' '+(q||'')).toLowerCase()});
@@ -238,28 +260,33 @@ function qrRows(){
   const all = [].concat(skills, saves, checks, tools), fav = qrFavs().map(l => all.find(r => r.label === l)).filter(Boolean);
   return [['⭐ Favourites', fav, 'fav'], ['Skills', skills], ['Saving throws', saves], ['Ability checks', checks], ['Tools', tools]];
 }
-// Quick Roll favourites (labels). Starts with the old "most used" set until the player changes it.
+// Quick roll favourites (labels). Starts with the old "most used" set until the player changes it.
 const qrFavs = () => Array.isArray(ui.qrFav) ? ui.qrFav : ['Initiative','Perception','Stealth','Insight','Investigation','Athletics','Acrobatics'];
-// star or unstar a Quick roll row and repaint the list in place
+// Stars or unstars a Quick roll row and repaints the list in place (search text and scroll positions kept).
 function toggleQrFav(l){
   const f = qrFavs().slice(), i = f.indexOf(l); if (i < 0) f.push(l); else f.splice(i, 1); ui.qrFav = f; saveUi();
   const box = $('#rollbox'), q = ($('#qrsearch')||{}).value || '', top = box ? box.scrollTop : 0, lt = box && box.querySelector('.qrlist') ? box.querySelector('.qrlist').scrollTop : 0;
   paintRollBox(); const inp = $('#qrsearch'); if (inp && q) { inp.value = q; inp.dispatchEvent(new Event('input')); }
   if (box) { box.scrollTop = top; const ql = box.querySelector('.qrlist'); if (ql) ql.scrollTop = lt; }
 }
+// ── Drag to reorder ────────────────────────────────────────────────────────────────────────────────────────
 // Drag to reorder a list. Mouse: press and drag. Touch: hold ~0.35 s, then drag (a quick swipe still scrolls).
-// root: an element that stays on the page (listeners are bound once); rowSel: the draggable rows inside it;
-// keyOf(row) → its key; done(order) gets the new order of keys; skip() → true pauses dragging. A drag never counts as a tap.
+// root: an element that stays on the page (listeners are bound once per name); name: which list on that root;
+// rowSel: the draggable rows inside it; keyOf(row) → its key; done(order) gets the new order of keys;
+// skip() → true pauses dragging. A drag never counts as a tap (the click after it is swallowed).
 function bindDragList(root, name, rowSel, keyOf, done, skip){
   if (!root || (root._drags = root._drags || {})[name]) return; root._drags[name] = true;
   let d = null;
+  // the visible sibling rows of a row
   const rowsNow = row => [...row.parentElement.children].filter(r => r.matches(rowSel) && !r.hidden);
+  // the drag starts: measure the rows once, lift the row
   const begin = () => {
     if (!d) return; d.armed = true; d.rows = rowsNow(d.row); d.i = d.rows.indexOf(d.row); d.to = d.i;
     d.tops = d.rows.map(r => r.getBoundingClientRect().top); d.hs = d.rows.map(r => r.getBoundingClientRect().height);
     d.row.classList.add('dragging'); root.classList.add('dragmode'); d.rows.forEach(r => { if (r !== d.row) r.style.transition = 'transform .15s ease'; });
     if (d.touch && navigator.vibrate) try { navigator.vibrate(12); } catch(_){}
   };
+  // follow the pointer; rows between the old and new place shift by the dragged row's height (plus the gap)
   const move = y => {
     const dy = y - d.y0; d.row.style.transform = 'translateY('+dy+'px)';
     const mid = d.tops[d.i] + d.hs[d.i]/2 + dy;
@@ -270,6 +297,7 @@ function bindDragList(root, name, rowSel, keyOf, done, skip){
       const shift = (d.i < d.to && j > d.i && j <= d.to) ? -h : (d.i > d.to && j >= d.to && j < d.i) ? h : 0;
       r.style.transform = shift ? 'translateY('+shift+'px)' : ''; });
   };
+  // drop: reset styles, swallow the next click, report the new order if it changed
   const finish = () => {
     if (!d) return; clearTimeout(d.timer); const was = d; d = null;
     if (!was.armed) return;
@@ -299,7 +327,7 @@ function bindDragList(root, name, rowSel, keyOf, done, skip){
   root.addEventListener('selectstart', e => { if (e.target.closest && e.target.closest(rowSel) || (e.target.parentElement && e.target.parentElement.closest(rowSel))) e.preventDefault(); });
   ['pointerup','pointercancel'].forEach(t => root.addEventListener(t, e => { if (d && e.pointerId === d.pid) finish(); }));
 }
-// Quick roll favourites
+// Makes Quick roll's favourites draggable (paused while searching); repaints with scroll positions kept.
 function bindQrDrag(box){
   bindDragList(box, 'qr', '.qrfav .qrrow', r => r.querySelector('.qrgo').dataset.l, order => {
     ui.qrFav = order.concat(qrFavs().filter(l => !order.includes(l))); saveUi();
@@ -307,7 +335,8 @@ function bindQrDrag(box){
     paintRollBox(); box.scrollTop = top; const q2 = box.querySelector('.qrlist'); if (q2) q2.scrollTop = lt;
   }, () => ($('#qrsearch')||{}).value);
 }
-// Quick Roll list, filtered by the search box
+// Draws Quick roll: pinned title and search, then the sections. The search hides rows that don't match and shows
+// each match once.
 function paintRollBox(){
   const box = $('#rollbox'), btn = $('#rollbtn'); if (!box) return;
   bindQrDrag(box);
@@ -334,21 +363,24 @@ function paintRollBox(){
     const h = box.querySelector('.qrhint'); if (h) { h.hidden = !!q; h.closest('.qrsec').hidden = !!q; }
   });
 }
-// roll from Quick Roll
+// rolls a check from Quick roll (closes the drawer first)
 function quickRoll(label, bonus){ closeRollBox(); closeTip(); rollCheck(label, bonus); }
+// ── Rests ──────────────────────────────────────────────────────────────────────────────────────────────────
 // hit dice left for a class
 function hdLeft(h){ return h.total - (S.hd[h.cls]||0); }
-// hit-dice pips for the short rest drawer
+// hit-dice pips for the short rest window (tap to spend or undo one rolled with real dice)
 function diePips(h, label){
   const left = hdLeft(h);
   return '<div class="pipwrap"><div class="pips">'+pipMask('hd:'+h.cls, h.total, h.total - left).map((u,i)=>{ const ready = !u;
       return '<button class="pip '+(ready?'ready':'used')+'" data-act="hdpip" data-cls="'+esc(h.cls)+'" data-i="'+i+'" data-r="'+(ready?1:0)+'" aria-label="'+esc(h.cls)+' '+h.die+' '+(i+1)+(ready?' (ready, tap when rolled)':' (rolled, tap to undo)')+'">'+(ready?'✓':'✕')+'</button>'; }).join('')+'</div>'
     + '<span class="piplbl'+(left?'':' none')+'">'+(label?label+' · ':'')+(left?left+' of '+h.total+' left':'all used')+'</span></div>';
 }
+// hit dice spent during this short rest, per class (for the summary)
 let restSpent = {};
-// What a short rest gives back (text for the restore button)
+// What a short rest gives back, as text: "Action Surge", "all Ki points", "2 Superiority Dice"
 const restBackList = () => RES.filter(r => r.short).map(r => r.max === 1 ? r.name : r.short === 'all' ? 'all '+r.unit[1] : r.short+' '+resWord(r, r.short));
-// "Restore: Action Surge, 3 Superiority Dice, 1 Second Wind" with the counts that will actually come back; each is a tappable term
+// "Restore: Action Surge, 3 Superiority Dice, 1 Second Wind" with the counts that will actually come back; each is a
+// tappable term. Says what's already full when nothing needs restoring.
 function restNote(){
   const t = (term, label) => '<button type="button" class="term" data-term="'+esc(term)+'">'+esc(label)+'</button>';
   const parts = RES.filter(r => r.short && S[r.key] > 0).map(r => { const n = shortBack(r);
@@ -360,7 +392,7 @@ function restNote(){
 }
 // Short rest: give back the abilities (its own animation and a small result sheet). Done does it silently if you forgot.
 let restRestored = false;
-// short rest: give back what returns for free (quiet = no summary)
+// Gives back what a short rest returns for free, once per rest. quiet: no animation or result sheet.
 function restoreShort(quiet){
   if (restRestored) return; restRestored = true;
   const back = RES.filter(r => r.short), before = Object.fromEntries(back.map(r => [r.key, S[r.key]]));
@@ -374,7 +406,8 @@ function restoreShort(quiet){
     + back.map(r => ln((r.emoji ? r.emoji+' ' : '')+esc(r.label||r.name), (r.max-before[r.key])+' → <b>'+(r.max-S[r.key])+'</b> / '+r.max+(r.die?' '+r.die:''))).join('')
     + '</div><div class="nextrow"><button class="btn done" data-act="close">'+WORD.ok+'</button></div>', false, 'next') || autoCloseRoll());
 }
-// Drawers that don't fit get a "scroll for more" strip until you reach the bottom
+// Drawers that don't fit get a "scroll for more" strip until you reach the bottom (and a top one once scrolled).
+// Binds its scroll and resize listeners once per box.
 function markScroll(box){
   if (!box) return;
   const upd = () => {
@@ -385,7 +418,7 @@ function markScroll(box){
   if (!box.dataset.scrollhint) { box.dataset.scrollhint = '1'; box.addEventListener('scroll', upd, {passive:true}); window.addEventListener('resize', upd); }
   requestAnimationFrame(upd);
 }
-// End of a rest: close the drawer, play the rest animation, then a summary sheet
+// The summary sheet at the end of a rest: lines of [label, html]; closes itself after 5 s.
 function restSummary(title, lines){
   const ln = (lb, t) => '<div class="ln"><span class="lb">'+lb+'</span>'+t+'</div>';
   showRoll('<span hidden data-heal></span><div class="head"><span class="title">'+title+'</span><button class="x" data-act="close" aria-label="Close">×</button></div>'
@@ -395,7 +428,7 @@ function restSummary(title, lines){
 // Confirmation sheets (rests, restore, healing) close themselves after a few seconds: a thin bar runs out,
 // then the sheet slides away. Touching the sheet keeps it open.
 const AUTOCLOSE_MS = 4000;   // restore and healing sheets; rest summaries pass 5000
-// close the roll sheet after a moment, unless the pointer is over it
+// Closes the roll sheet after ms (default AUTOCLOSE_MS), unless it's touched (then it stays) or hovered (paused).
 function autoCloseRoll(ms){
   ms = ms || AUTOCLOSE_MS;
   const card = $('#dock .roll'); if (!card) return; let keep = false;
@@ -408,7 +441,7 @@ function autoCloseRoll(ms){
   card.addEventListener('mouseleave', () => { if (keep || !card.classList.contains('paused')) return; card.classList.remove('paused'); go(); });
   if (card.matches(':hover')) { card.classList.add('paused'); } else go();
 }
-// end the short rest: summary of what came back
+// Ends the short rest: restores anything not yet restored, closes the window, then the summary.
 function finishShortRest(){
   const hp = S.hp, spent = Object.entries(restSpent).filter(([,n]) => n), wasRestored = restRestored;
   restoreShort(true); restSpent = {}; restRestored = false; closeRest();
@@ -418,7 +451,7 @@ function finishShortRest(){
     restBackList().length && ['⚡ Abilities', wasRestored ? 'restored' : esc(restBackList().join(', '))+' back']
   ].filter(Boolean)));
 }
-// long rest: full HP, all hit dice and uses back, concentration ends
+// Long rest: full HP, all hit dice and uses back, temporary HP and concentration end; then the summary.
 function finishLongRest(){
   const hp = S.hp;
   RES.forEach(r => { S[r.key] = 0; }); S.conc = null; S.hp = D.hpMax; S.temp = 0; Object.keys(S.hd).forEach(k => S.hd[k] = 0); save(); paintRes();
@@ -431,8 +464,9 @@ function finishLongRest(){
 }
 // Short rest: roll one hit die in the app. Sheet first, then the animation and dice, then the result is written in;
 // the die is ticked off and the healing added to HP at that moment (so the HP tile changes with the reveal).
+// hdBusy: a hit-die roll is under way (ignore taps until it lands)
 let hdBusy = false;
-// spend and roll one hit die of a class during a short rest
+// Spends and rolls one hit die of a class during a short rest (heals d + CON, at least 0).
 function rollHitDie(cls){
   const h = D.hitDice.find(x=>x.cls===cls); if (!h || hdLeft(h) <= 0 || hdBusy) return;
   hdBusy = true; cur = null; checkRoll = null;
@@ -451,7 +485,7 @@ function rollHitDie(cls){
     flipKeys.add('hd'); if (!$('#dock').hidden) showRoll(card(false), true); flipKeys.clear();   // stays until you tap Aye: easy to miss otherwise
   }, [{s:sides, v}]));
 }
-// short rest: spend a hit die rolled with real dice (healing is added by hand on the HP tile)
+// Short rest: spend a hit die rolled with real dice (healing is added by hand on the HP tile).
 function spendHitDie(cls){
   const h = D.hitDice.find(x=>x.cls===cls); if (!h || hdLeft(h) <= 0) return;
   S.hd[cls] = (S.hd[cls]||0) + 1; restSpent[cls] = (restSpent[cls]||0) + 1; save(); paintRes(); paintRest();
@@ -461,16 +495,15 @@ function unspendHitDie(cls){
   if (!((S.hd[cls]||0) > 0)) return;
   S.hd[cls] = Math.max(0, (S.hd[cls]||0) - 1); if (restSpent[cls] > 0) restSpent[cls]--; save(); paintRes(); paintRest();
 }
-// repaint the rest drawer
-// Long rest tooltips: a glossary key for each resource (its own entry, or one made from its description),
-// plus plain entries for hit points, hit dice, spell slots and Pact Magic when the pack has none
+// Long rest tooltips: the glossary key for a resource (its own entry, or one made from its description and added
+// to G).
 function resTerm(r){
   const k = [r.name, ...(r.terms||[]), r.label].find(x => x && G[x]); if (k) return k;
   const txt = String(r.desc||'').replace(/<\/?b>/g, '**').replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
   G[r.name] = [r.short ? 'Short rest' : 'Long rest', txt || ('**'+r.max+' use'+(r.max>1?'s':'')+'.**')];
   return r.name;
 }
-// glossary entries for the rest screens (hit points, hit dice, rests)
+// Glossary entries for the rest screens (hit points, hit dice, spell slots, Pact Magic), added only when G has none.
 function lrTerms(){
   const put = (k, v) => { if (!G[k]) G[k] = v; };
   put('Hit points', ['Health', '**'+D.hpMax+' at full.** At 0 you fall unconscious and make death saves.\n• A long rest heals you to full\n• Temporary HP go first and end on a long rest']);
@@ -478,7 +511,7 @@ function lrTerms(){
   put('Spell slots', ['Spellcasting', '**Spend one to cast a spell of that level or lower.**\n• A higher slot often makes the spell stronger\n• Cantrips never use a slot\n• All come back on a long rest']);
   put('Pact Magic', ['Spellcasting', '**Warlock slots, all the same level.**\n• Every Pact Magic spell is cast at that level\n• All come back on a short or long rest']);
 }
-// the rest window: choose, then the short or long rest screen
+// Draws the rest window for restMode: choose, short rest (free restores + hit dice), long rest (what comes back), done.
 function paintRest(){
   const box = $('#restbox'), btn = $('#restbtn'); if (!box) return;
   fitDock();

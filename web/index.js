@@ -1,27 +1,36 @@
-// Dungeon Tracker home (/). Three states, drawn into #main:
+// ── Dungeon Tracker home (/) ───────────────────────────────────────────────────────────────────────────────
+// The front page, sign-in and the signed-in home, drawn into #main (index.html is built by tools/build.js). States:
 //   signed out  → the front page (#landing, static HTML from src/landing.html) and, on "Get started" or #signin, the sign-in card
 //   new player  → onboarding: ① add your D&D Beyond character (how to make it public, read-only promise), ② pick a username
-//   returning   → your characters, shared with you, account (username, your data, sign out)
+//   returning   → tabs: Characters (yours, add, invite) · Party (shared with you) · Account (username, theme,
+//                 sign-in & security, help) · Your data (download, delete the account)
 // Sign-in: an emailed code (new emails get an account on the way), Google / Microsoft / Apple when set up in the
 // dashboard (OAuth2; only providers that are filled in show), or email + password, folded away.
+// Uses: PocketBase (web/pocketbase.umd.js, loaded first), window.Skin (web/sw-register.js), the account routes in
+// server/pb_hooks/account.pb.js, the verify routes in ddb.pb.js. The 🐞 buttons are opened by web/feedback.js.
+// A plain script (no modules): its top-level names are globals on this page. No inline handlers in the HTML (CSP):
+// every handler is bound here after its HTML is drawn.
 const pb = new PocketBase(location.origin);
+// first element matching a selector
 const $ = s => document.querySelector(s);
 // HTML-escape a value
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+// tracker visibility values → their labels
 const VIS = { private: 'Only me', party: 'My party can see', public: 'Anyone signed in' };
 const PENDING = 'pending-ddb';   // a character link pasted on the front page, added right after sign-in (this tab only)
 const isAuto = u => /^player-[a-z0-9]{5}$/.test(u || '');   // the name every new account starts with
 
-// status line under the header (bad = shown as an error)
-// a short note in a pop-up at the top of the screen: gone after a few seconds (problems stay longer), or tap it away.
-// Something still in progress ("Sending a code…", ending in …) stays until the next message replaces it.
+// ── Messages and small pop-ups ─────────────────────────────────────────────────────────────────────────────
+// A short note in a pop-up at the top of the screen (#msg; bad = shown as an error): gone after a few seconds
+// (problems stay longer), or tap it away. Something still in progress ("Sending a code…", ending in …) stays until
+// the next message replaces it. msg('') clears it.
 let msgTimer = 0;
 function msg(t, bad) {
   const m = $('#msg'); clearTimeout(msgTimer);
   m.textContent = t || ''; m.className = 'msg' + (bad ? ' bad' : '') + (t ? ' show' : '');
   if (t && !/…$/.test(t)) msgTimer = setTimeout(() => { m.classList.remove('show'); setTimeout(() => { if (!m.classList.contains('show')) m.textContent = ''; }, 250); }, bad ? 12000 : 3500);
 }
-// a short centred pop-up for things that should feel finished (a password saved): a big ✓, gone after a moment or a tap
+// A short centred pop-up for things that should feel finished (a password saved): a big ✓, gone after 3 s or a tap.
 function done(title, text) {
   const old = $('#donepop'); if (old) old.remove();
   const p = document.createElement('div'); p.id = 'donepop'; p.className = 'donepop'; p.setAttribute('role', 'status');
@@ -30,16 +39,20 @@ function done(title, text) {
   const bye = () => { p.classList.remove('show'); setTimeout(() => p.remove(), 250); };
   p.onclick = bye; setTimeout(bye, 3200);
 }
-// emails that have a password, as far as this device knows: the sign-in page opens the password box for them
+// ── Small helpers ──────────────────────────────────────────────────────────────────────────────────────────
+// Emails that have a password, as far as this device knows (the last 5, lower-case): the sign-in page opens the
+// password box for them. Only a convenience: nothing is decided by it.
 const PWK = 'dt-pw-emails';
 const pwKnown = em => { try { return (JSON.parse(localStorage.getItem(PWK) || '[]')).includes(String(em || '').trim().toLowerCase()); } catch (_) { return false; } };
 const pwRemember = em => { try { const l = JSON.parse(localStorage.getItem(PWK) || '[]'), e = String(em || '').trim().toLowerCase();
   if (e && !l.includes(e)) { l.push(e); localStorage.setItem(PWK, JSON.stringify(l.slice(-5))); } } catch (_) {} };
 // a D&D Beyond character id from a link (or a bare number), else null
 const ddbId = t => { const m = String(t || '').match(/characters\/(\d{4,12})/) || String(t || '').match(/^\s*(\d{4,12})\s*$/); return m ? +m[1] : null; };
+// sessionStorage that never throws (this tab only): get → null on failure, set(k, null) removes
 const ss = { get: k => { try { return sessionStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (_) {} } };
 
-// ── Signed out: the front page ──────────────────────────────────────────────────────────────────────
+// ── Signed out: the front page ─────────────────────────────────────────────────────────────────────────────
+// Shows the front page (#landing) and the top bar's button. The front page always wears the pirate look (Skin.front).
 function showLanding() {
   const l = $('#landing'); l.hidden = false; $('#main').innerHTML = '';
   // signed in: the front page is still there to look at (logo or /#front); the button leads back to your characters
@@ -48,12 +61,13 @@ function showLanding() {
   if (pb.authStore.isValid) $('#tohome').onclick = e => { e.preventDefault(); history.replaceState(null, '', '/'); renderHome(); window.scrollTo(0, 0); };
   document.body.classList.add('front'); window.Skin && window.Skin.front(true);
 }
+// tap the message pop-up to dismiss it
 $('#msg').addEventListener('click', () => msg(''));
-// clicks on "Get started" / "Sign in" anywhere on the page
+// Clicks on "Get started" / "Sign in" ([data-go]) anywhere on the page: the sign-in card, or home when signed in.
 document.addEventListener('click', e => { const a = e.target.closest('[data-go]'); if (!a) return; e.preventDefault();
   if (pb.authStore.isValid) { history.replaceState(null, '', '/'); renderHome(); window.scrollTo(0, 0); return; }   // signed in: Get started = your characters
   renderLogin(a.dataset.go); });
-// "Have your character link ready?": keep it for after sign-in
+// "Have your character link ready?": keep it (this tab only) for after sign-in, or add it now when signed in.
 // (the same box is in the hero and in How it works, step II)
 document.querySelectorAll('form.quicklink').forEach(f => f.addEventListener('submit', e => {
   e.preventDefault();
@@ -62,8 +76,11 @@ document.querySelectorAll('form.quicklink').forEach(f => f.addEventListener('sub
   ss.set(PENDING, String(id)); if (pb.authStore.isValid) signedIn(); else renderLogin('signup');   // signed in: add it straight away
 }));
 
-// ── Sign in ─────────────────────────────────────────────────────────────────────────────────────────
+// ── Sign in ────────────────────────────────────────────────────────────────────────────────────────────────
+// otpId: the pending email-code request (set once a code is sent); providers: OAuth2 providers, fetched once
 let otpId = null, otpEmail = '', providers = null;
+// Draws the sign-in card. mode: 'signin', 'signup' (the password box offers "new account") or 'signup-pw' (opens
+// the password box). Redraws itself after a code is sent, to show the code box. Binds every button on the card.
 async function renderLogin(mode) {
   $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(false); $('#who').innerHTML = '';
   if (location.hash !== '#signin') history.replaceState(null, '', '/#signin');
@@ -107,7 +124,7 @@ async function renderLogin(mode) {
       <div class="authfoot"><a class="btn" href="/" id="tofront">← Roll back to home</a></div>
     </form>`;
   const back = $('#otpback'); if (back) back.onclick = e => { e.preventDefault(); otpId = null; renderLogin(mode); };
-  // the password box: sign in with one, or make a new account with it (asked twice)
+  // the password box: sign in with one ('in'), or make a new account with it ('up', asked twice)
   const pwMode = m => { document.querySelectorAll('[data-pwmode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pwmode === m))); $('#pwforgot').hidden = m === 'up';
     $('#pw2box').hidden = m !== 'up'; $('#authpw').autocomplete = m === 'up' ? 'new-password' : 'current-password';
     $('#authpw').placeholder = m === 'up' ? 'At least 8 characters' : 'Your password';
@@ -115,6 +132,7 @@ async function renderLogin(mode) {
   document.querySelectorAll('[data-pwmode]').forEach(b => b.onclick = () => { pwMode(b.dataset.pwmode); $('#authpw').focus(); });
   if (mode === 'signup') pwMode('up');
   // Forgot your password? Sign in with an emailed code instead; the home page then asks for a new password
+  // (the pw-reset flag in this tab makes pwPrompt say "Choose a new password")
   $('#pwforgot').onclick = () => {
     if (!$('#authemail').value.trim()) { $('#authemail').focus(); fieldErr($('.pwpanel'), 'Type your email first, then press Forgot your password? again.'); return; }
     ss.set('pw-reset', '1'); fieldErr($('.pwpanel'), '');
@@ -126,11 +144,14 @@ async function renderLogin(mode) {
   em.addEventListener('input', pwOpen); em.addEventListener('change', pwOpen); pwOpen();
   if (otpId) { const c = document.querySelector('[name=code]'); if (c) c.focus(); }
   $('#tofront').onclick = e => { e.preventDefault(); history.replaceState(null, '', '/'); msg(''); showLanding(); };
+  // OAuth2: PocketBase opens the provider in a pop-up and resolves when it's done
   document.querySelectorAll('[data-oauth]').forEach(b => b.onclick = async () => {
     msg('Opening ' + b.textContent.replace('Continue with ', '') + '…');
     try { await pb.collection('users').authWithOAuth2({ provider: b.dataset.oauth }); msg(''); signedIn(); }
     catch (err) { msg('That sign-in didn’t finish. Try again, or use your email.', true); }
   });
+  // One submit handler for every button (e.submitter.value): code / resend → email a code; otp → sign in with it;
+  // in / up → sign in with a password, or make the account first. Errors stay vague on purpose (no "no such email").
   $('#login').addEventListener('submit', async e => {
     e.preventDefault();
     const f = e.target, go = e.submitter && e.submitter.value, email = f.email.value.trim();
@@ -168,7 +189,8 @@ async function renderLogin(mode) {
   });
 }
 
-// Just signed in: back to where you came from, or add the character pasted on the front page, or onboarding, or home
+// Just signed in: back to where you came from (?next=, same site only), or add the character pasted on the front
+// page, or onboarding (no characters yet), or home.
 async function signedIn() {
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   const next = new URLSearchParams(location.search).get('next');
@@ -181,7 +203,8 @@ async function signedIn() {
   return count ? renderHome() : renderOnboarding();
 }
 
-// ── New player: ① add your character ──────────────────────────────────────────────────────────────────
+// ── New player: ① add your character ───────────────────────────────────────────────────────────────────────
+// The signed-in top bar (@username · Sign out); leaves the front page and points the logo at /#front.
 function header() {
   const me = pb.authStore.record;
   $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(false);
@@ -189,6 +212,7 @@ function header() {
   const brand = document.querySelector('.top .brand'); if (brand) brand.setAttribute('href', '/#front');   // the logo shows the front page
   $('#out').onclick = e => { e.preventDefault(); signOut(); };
 }
+// Step 1 of 2: paste your D&D Beyond link, with how to make the character public.
 function renderOnboarding() {
   header();
   $('#main').innerHTML = `
@@ -209,7 +233,9 @@ function renderOnboarding() {
   const u = $('#add [name=url]'); if (u) u.focus();
 }
 
-// ── New player: ② a username (it's in every sheet link) ─────────────────────────────────────────────
+// ── New player: ② a username (it's in every sheet link) ────────────────────────────────────────────────────
+// Step 2 of 2 (c: the character just added): pick a username, with a live preview of the sheet link, then open
+// the sheet. The server checks the name (ddb_utils.js checkUsername) and its message is shown as is.
 function renderUsernameStep(c) {
   header();
   const me = pb.authStore.record;
@@ -236,8 +262,9 @@ function renderUsernameStep(c) {
   });
 }
 
-// Sign out: forget the login and everything this device kept for offline use (sheets, list, unsent notes),
-// so the next person on a shared phone or laptop can't read them (the app files themselves stay cached)
+// Sign out: forget the login and everything this device kept for offline use (sheets, list, trackers, notes, unsent
+// notes), so the next person on a shared phone or laptop can't read them (the app files themselves stay cached).
+// force: skip the unsent-changes question (after deleting the account).
 async function signOut(force) {
   // changes this device hasn't sent yet (notes written offline, tracker changes) would be lost: ask first
   let unsent = 0; try { Object.keys(localStorage).forEach(k => {
@@ -249,7 +276,9 @@ async function signOut(force) {
   msg(''); history.replaceState(null, '', '/'); showLanding();
 }
 
-// ── Returning player: your characters, shared with you, account ─────────────────────────────────────
+// ── Returning player: the home tabs ────────────────────────────────────────────────────────────────────────
+// Draws the signed-in home: the username card on top while it's still player-xxxxx, then the four tabs. Binds
+// every card, then loads the character lists.
 async function renderHome() {
   header();
   const me = pb.authStore.record, auto = isAuto(me.username);
@@ -265,6 +294,7 @@ async function renderHome() {
     </div>
     <div class="htab" data-tab="party"><section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + '</div>'
     + '<div class="htab" data-tab="account">' + (auto ? '' : nameCard(me)) + looksCard() + secCard(me) + helpCard() + '</div><div class="htab" data-tab="data">' + dataCard() + '</div>';
+  // shows one tab and remembers it on this device
   const showTab = k => { document.querySelectorAll('.htab').forEach(t => { t.hidden = t.dataset.tab !== k; });
     document.querySelectorAll('[data-hometab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.hometab === k))); try { localStorage.setItem('home-tab', k); } catch (_) {} };
   document.querySelectorAll('[data-hometab]').forEach(b => b.onclick = () => showTab(b.dataset.hometab));
@@ -277,12 +307,15 @@ async function renderHome() {
   await loadLists();
 }
 
+// ── Characters tab: invite, last sheet, username ───────────────────────────────────────────────────────────
 // Invite your party: the front page's address with a short note, through the phone's share sheet or the clipboard.
 // No referral codes or tracking: the link is the plain front page.
 const INVITE = 'Hey! I found an awesome new way to track my D&D Beyond character, check it out!';
+// the invite card's HTML
 const inviteCard = () => `<section class="card invite"><h2>Invite your party</h2>
     <p class="small muted">Playing with friends who use D&amp;D Beyond? Send them the link. Once their characters are in the same campaign, you can share trackers and a party log.</p>
     <div class="row saverow"><button class="btn" id="invcopy">🔗 Copy link</button><button class="btn primary" id="invshare">✉️ Share invite</button></div></section>`;
+// Copy puts note + link on the clipboard; Share uses the share sheet where there is one, else copies.
 function bindInvite() {
   const url = location.origin + '/';
   const copy = async () => { try { await navigator.clipboard.writeText(INVITE + ' ' + url); msg('Copied. Paste it in your group chat.'); } catch (_) { msg('Copy this link: ' + url); } };
@@ -292,8 +325,8 @@ function bindInvite() {
   };
 }
 
-// "Continue with …": the last sheet opened on this device, if it's still in one of your lists
-// sits in that character's row, on the right: 🎲 Continue →
+// The id of the last sheet opened on this device (sheet-boot.js saves it), or null. If it's still in one of your
+// lists, that character's row gets a 🎲 Continue → button on the right.
 function lastSheetId() { try { const l = JSON.parse(localStorage.getItem('last-sheet')); return l && l.id; } catch (_) { return null; } }
 
 // a sheet's address: /<username>/<D&D Beyond id>
@@ -307,6 +340,7 @@ function nameCard(me) {
       <div class="row"><input name="u" value="${esc(me.username || '')}" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="20" pattern="[a-zA-Z0-9][a-zA-Z0-9_\-]{1,18}[a-zA-Z0-9]" aria-label="Username" required>
       <button class="btn${auto ? ' primary' : ''}">Save</button></div></form>`;
 }
+// Saves a new username (the server checks it); the session record is updated so the page shows it at once.
 async function saveName(e) {
   e.preventDefault();
   const me = pb.authStore.record, u = e.target.u.value.trim().toLowerCase();
@@ -315,8 +349,9 @@ async function saveName(e) {
   catch (err) { msg((err && err.response && err.response.data && err.response.data.username && err.response.data.username.message) || (err && err.message) || 'Couldn’t save that username.', true); }
 }
 
-// Your data (GDPR, see /legal.html): download everything this app keeps about you, or delete it all
-// 👁 show/hide on every password field on screen (added once per field)
+// ── Passwords ──────────────────────────────────────────────────────────────────────────────────────────────
+// 👁 show/hide on every password field on screen (added once per field). A MutationObserver on #main runs it after
+// every redraw, so new fields get one too.
 function peek() {
   document.querySelectorAll('input[type=password]:not([data-peek])').forEach(inp => {
     inp.dataset.peek = '1'; const w = document.createElement('span'); w.className = 'pwwrap'; inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
@@ -326,8 +361,8 @@ function peek() {
   });
 }
 new MutationObserver(() => peek()).observe(document.getElementById('main'), { childList: true, subtree: true });
-// ── Passwords ───────────────────────────────────────────────────────────────────────────────────────
 // Errors about a password show right under its boxes (not as a pop-up at the top or bottom of the page).
+// fieldErr(box, '') hides it.
 function fieldErr(box, text) {
   let p = box.querySelector('.pwerr');
   if (!p) { p = document.createElement('p'); p.className = 'pwerr'; p.setAttribute('role', 'alert');
@@ -335,9 +370,11 @@ function fieldErr(box, text) {
   p.textContent = text || ''; p.hidden = !text;
   if (text) msg('');
 }
+// the server's message for a failed request, or a general one
 const apiErr = e => (e && e.response && e.response.message) || (e && e.message) || 'That didn’t work. Try again.';
+// POST to an account route (server/pb_hooks/account.pb.js) as the signed-in user
 const account = (path, body) => pb.send('/api/account/' + path, { method: 'POST', body: body || {} });
-// the two password boxes of a pair: the typed password, or an error for under the boxes
+// The two password boxes of a pair: {pw} (8–72 characters, both the same), or {err} for under the boxes.
 function readPair(a, b) {
   const pw = a.value;
   if (pw.length < 8) return { err: 'Passwords are at least 8 characters.' };
@@ -345,12 +382,14 @@ function readPair(a, b) {
   if (b.value !== pw) return { err: 'The two passwords aren’t the same. Type them again (👁 shows what you typed).' };
   return { pw };
 }
-// a fresh token after a password or email change (the server ends the old sessions): keep this device signed in
+// A fresh token after a password or email change (the server ends the old sessions): keep this device signed in.
+// r: the route's answer {token, record, email}.
 function keepSignedIn(r) { if (r && r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email })); }
 
 // "Save a password for next time" on the Characters tab: for accounts made with an emailed code, or after "Forgot your
 // password?" on the sign-in page (then it says "Choose a new password"). Right after a code sign-in it's just the two
-// boxes; later the server wants a fresh code first, asked for right here in the card.
+// boxes; later the server wants a fresh code first ("fresh-code-needed"), asked for right here in the card.
+// "Not now" hides it on this device (pw-later-<id>).
 function pwPrompt(me) {
   const reset = ss.get('pw-reset') === '1'; ss.set('pw-reset', null);
   let skip = false; try { skip = !!localStorage.getItem('pw-later-' + me.id); } catch (_) {}
@@ -383,6 +422,7 @@ function pwPrompt(me) {
     }
   };
 }
+// ── Account tab ────────────────────────────────────────────────────────────────────────────────────────────
 // Account tab → Sign-in & security: change email · set, change or remove the password · sign out on other devices
 const secCard = me => `<section class="card sec"><h2>Sign-in &amp; security</h2>
     <div class="secrow"><div><b>Email</b><span class="muted" id="secemail">${esc(me.email || '')}</span></div><button class="btn xbtn" type="button" id="secem" aria-expanded="false">Change email <span class="xchev" aria-hidden="true"></span></button></div>
@@ -390,9 +430,13 @@ const secCard = me => `<section class="card sec"><h2>Sign-in &amp; security</h2>
     <div class="secrow"><div><b>Password</b><span class="muted" id="secpwtxt"></span></div><div class="row secbtns"><button class="btn danger small" type="button" id="secpwrm" hidden>Remove</button><button class="btn xbtn" type="button" id="secpw" aria-expanded="false"><span id="secpwlbl"></span> <span class="xchev" aria-hidden="true"></span></button></div></div>
     <div class="secbox" id="secpwbox" hidden></div>
     <div class="secrow"><div><b>Other devices</b><span class="muted">Lost a phone, or signed in on someone else’s computer? End those sessions.</span></div><button class="btn" type="button" id="secout">Sign out everywhere else</button></div></section>`;
+// Binds the security card. Email and password each fold open a box (one at a time): ask for code(s) first, then
+// confirm. Remove password and Sign out elsewhere ask yes/no first. Every change keeps this device signed in.
 function bindSec() {
+  // folds a box open (filled with html) or shut, closing the other; returns whether it's now open
   const toggle = (box, html, other) => { $(other).hidden = true; const b = $(box); b.hidden = !b.hidden; if (!b.hidden) b.innerHTML = html;
     $('#secem').setAttribute('aria-expanded', String(!$('#secembox').hidden)); $('#secpw').setAttribute('aria-expanded', String(!$('#secpwbox').hidden)); return !b.hidden; };
+  // folds a box shut
   const close = (box, btn) => { $(box).hidden = true; $(btn).setAttribute('aria-expanded', 'false'); };
   // the password row says whether there is one, and offers Set or Change (+ Remove)
   const paintPw = () => { const has = !!(pb.authStore.record && pb.authStore.record.pw_set);
@@ -455,7 +499,7 @@ function bindSec() {
     catch (e) { msg(apiErr(e), true); }
   };
 }
-// a small yes/no box in the page's style (no browser pop-ups): resolves true for yes
+// A small yes/no box in the page's style (no browser pop-ups): resolves true for yes; Escape or a tap outside is no.
 function askYes(title, text, yes) {
   return new Promise(res => {
     const p = document.createElement('div'); p.className = 'donepop askpop'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-modal', 'true');
@@ -466,8 +510,10 @@ function askYes(title, text, yes) {
     document.addEventListener('keydown', key); document.body.appendChild(p); requestAnimationFrame(() => p.classList.add('show')); p.querySelector('[data-a="1"]').focus();
   });
 }
-// Theme: the same eight looks and light/dark as ☰ → Theme on a sheet (web/sw-register.js: window.Skin), saved on this device
+// Theme: the same eight looks and light/dark as ☰ → Theme on a sheet (web/sw-register.js: window.Skin), saved on
+// this device.
 const looksCard = () => `<section class="card looks"><h2>Theme</h2><p class="small muted">How Dungeon Tracker and your sheets look on this device.</p><div id="looks"></div></section>`;
+// Draws the look and light/dark buttons; a tap applies it straight away (no reload: the home page has no dice sets).
 function bindLooks() {
   const K = window.Skin, box = $('#looks'); if (!K || !box) return;
   const ML = { auto: '🖥️ Auto', light: '☀️ Light', dark: '🌙 Dark' };
@@ -482,6 +528,7 @@ function bindLooks() {
 const helpCard = () => `<section class="card"><h2>Help &amp; feedback</h2>
     <p class="muted">Something broken, confusing or missing? Tell Menno, who builds Dungeon Tracker. Every message gets read.</p>
     <div class="row"><button class="btn" type="button" data-feedback="bug">🐞 Report a bug</button><button class="btn" type="button" data-feedback="idea">💡 Share an idea</button></div></section>`;
+// ── Your data tab (GDPR, see /legal.html) ──────────────────────────────────────────────────────────────────
 // Your data: download everything, and (in the danger zone) delete the account
 const dataCard = () => `<section class="card"><h2>Your data</h2>
     <p class="small muted">Everything this app keeps about you, stored in the EU.</p>
@@ -490,6 +537,8 @@ const dataCard = () => `<section class="card"><h2>Your data</h2>
     <p class="small muted">Deleting your account removes your characters, trackers and notes for good. Download your data first if you want a copy.</p>
     <div class="row"><button class="btn danger xbtn" id="delacct" aria-expanded="false">Delete my account <span class="xchev" aria-hidden="true"></span></button></div>
     <div id="delbox" hidden></div></section>`;
+// Downloads everything this app keeps about you as one JSON file: the account, your characters, their trackers and
+// the notes you wrote (own and party log).
 async function exportData() {
   const me = pb.authStore.record, mine = { m: me.id };
   msg('Collecting your data…');
@@ -508,7 +557,8 @@ async function exportData() {
     msg('Downloaded: your account, ' + characters.length + ' character' + (characters.length === 1 ? '' : 's') + ', trackers and ' + notes.length + ' note' + (notes.length === 1 ? '' : 's') + '.');
   } catch (e) { msg('Couldn’t collect your data. Try again in a moment.', true); }
 }
-// delete: say exactly what goes, ask for the username typed out (with or without quotes), then one last yes/no
+// Delete: say exactly what goes, ask for the username typed out (with or without quotes), then one last yes/no.
+// The server's cascade deletes take the characters, trackers and notes with the account.
 function askDelete() {
   const me = pb.authStore.record, box = $('#delbox'); box.hidden = false; $('#delacct').setAttribute('aria-expanded', 'true');
   box.innerHTML = `<div class="claim delclaim"><p><b>Delete your account?</b> Your account, all your characters, trackers and notes (party log posts too)
@@ -531,7 +581,9 @@ function askDelete() {
   };
 }
 
-// fill both character lists, with visibility and verify controls on your own
+// ── Character lists ────────────────────────────────────────────────────────────────────────────────────────
+// Fills both character lists (Characters: yours; Party: shared with you), with visibility and verify controls on
+// your own. The list is saved on this device, so it still shows offline.
 async function loadLists() {
   const me = pb.authStore.record.id;
   let list = [];
@@ -550,6 +602,7 @@ async function loadLists() {
     try { list = JSON.parse(localStorage.getItem('sheet-list')) || []; } catch (_) { list = []; }
     msg(navigator.onLine ? 'Couldn’t load your characters.' : '📴 Offline: showing the sheets saved on this device.', navigator.onLine); }
   const lastId = lastSheetId();
+  // one character row: ⭐, the link, race · classes · campaign, Verify, visibility, the ⋯ menu, Continue
   const card = c => {
     const cont = c.id === lastId && !c.archived ? `<a class="btn primary small contbtn" href="${esc(sheetLink(c))}" title="Open ${esc(c.name || 'this character')} again"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Continue <span aria-hidden="true">→</span></a>` : '';
     const d = c.data || {}, cls = (d.classes || []).map(k => k.name + ' ' + k.level).join(' / ');
@@ -582,10 +635,12 @@ async function loadLists() {
   }));
 }
 
-// your list's tools: ⭐ playing now, move up/down, archive, remove (with a confirm that says what goes and what stays)
 // a ⋯ menu closes when you tap anywhere outside it (or open another one)
 document.addEventListener('click', e => { document.querySelectorAll('details.chmore[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }); });
+// Your list's tools: ⭐ playing now, move up/down, archive, remove (with a confirm that says what goes and what
+// stays). Each change saves the character record and redraws the lists.
 function bindListTools(active) {
+  // update one character, then show `done` (if any) and reload the lists
   const save = async (id, data, done) => { try { await pb.collection('characters').update(id, data); if (done) msg(done); loadLists(); } catch (e) { msg('Couldn’t save that. Try again.', true); } };
   document.querySelectorAll('[data-pin]').forEach(b => b.onclick = () => save(b.dataset.pin, { pinned: b.getAttribute('aria-pressed') !== 'true' }));
   document.querySelectorAll('[data-arch]').forEach(b => b.onclick = () => { const c = active.find(x => x.id === b.dataset.arch);
@@ -612,7 +667,9 @@ function bindListTools(active) {
   });
 }
 
+// ── Verify and add ─────────────────────────────────────────────────────────────────────────────────────────
 // Optional: prove this account can edit the D&D Beyond sheet. Unlocks party sharing and the party log.
+// Gets a code (POST /api/claim/<id>), says where to paste it, and Check asks the server to read the sheet.
 async function startClaim(id) {
   const box = document.getElementById('claim-' + id); box.hidden = false; box.innerHTML = '<p class="small muted">Getting a code…</p>';
   try {
@@ -633,16 +690,16 @@ async function startClaim(id) {
   } catch (e) { box.innerHTML = '<p class="small muted">Couldn’t get a code. Try again.</p>'; }
 }
 
-// add a character by D&D Beyond link (the server checks it is public and fills name and campaign)
+// Add a character by D&D Beyond link (the server checks it is public and fills name and campaign). Submit handler
+// for both the onboarding form and the Characters tab.
 function addCharacter(e) {
   e.preventDefault();
   const id = ddbId(e.target.url.value);
   if (!id) return msg('That doesn’t look like a D&D Beyond character link. It looks like dndbeyond.com/characters/12345678.', true);
   return addById(id, !!document.querySelector('form.onb'));
 }
-// first = during onboarding: go on to the username step (if the name is still player-xxxxx), else straight to the sheet
-// a short "reading your character" overlay while the import runs (a spinning d20; still with reduce-motion), then
-// a brief ✓ with the name, under a second in all
+// A short "reading your character" overlay while the import runs (a spinning d20; still with reduce-motion), then
+// a brief ✓ with the name, under a second in all. state: 'on' | 'done' (resolves after 450 ms) | 'off'.
 function importFx(state, name) {
   let el = $('#importfx');
   if (state === 'off') { if (el) el.remove(); return Promise.resolve(); }
@@ -652,6 +709,8 @@ function importFx(state, name) {
     : '<div class="ifbox"><svg class="ifd20" viewBox="0 0 100 100" aria-hidden="true"><use href="#d20"/></svg><p>Reading your character from D&amp;D Beyond…</p></div>';
   return new Promise(r => setTimeout(r, state === 'done' ? 450 : 0));
 }
+// Adds the character, then opens it. first = during onboarding: go on to the username step (if the name is still
+// player-xxxxx). Already in your list: back home with a note. Other errors: the server's D&D Beyond message, or a hint.
 async function addById(id, first) {
   msg(''); importFx('on');
   try {
@@ -668,12 +727,15 @@ async function addById(id, first) {
   }
 }
 
-// #signin in the address (a link, or Back/Forward): the sign-in card, if signed out
+// ── Start ──────────────────────────────────────────────────────────────────────────────────────────────────
+// #signin in the address (a link, or Back/Forward): the sign-in card, if signed out; #front shows the front page.
 window.addEventListener('hashchange', () => {
   if (location.hash === '#signin' && !pb.authStore.isValid) renderLogin('signin');
   if (location.hash === '#front' && pb.authStore.isValid) { showLanding(); window.scrollTo(0, 0); }
 });
 
+// First paint: refresh a saved login and go home (or to ?next=); signed out, the sign-in card for #signin or ?next=,
+// else the front page.
 (async () => {
   // signed in (offline too: keep the saved login; the list comes from this device's last copy)
   if (pb.authStore.isValid) {
