@@ -1,5 +1,6 @@
-// The hit → damage flow and its extras: Sneak Attack / Menacing (Henry), Rage / Smite / Colossus Slayer / Frenzy,
-// Flurry, Lay on Hands, no spells while raging, magic arrows (AppTester-02), damage-type tooltip over the roll sheet.
+// The hit → damage flow and its extras: Sneak Attack / Menacing / Precision (the Rogue / Fighter fixture), Rage /
+// Smite / Colossus Slayer / Frenzy, Flurry, Lay on Hands, no spells while raging, magic arrows (AppTester-02),
+// damage-type tooltip over the roll sheet.
 // Run: node tools/test/combat.js (after node tools/build.js), or as part of bash tools/test.sh sheets. Uses the built
 // claude.ai sheets in dist/claude through lib.js; prints PASS/FAIL per check and exits non-zero on a failure.
 // Each part runs at phone (390 px) and desktop (1400 px) width. Dice are random, so checks compare totals with
@@ -17,39 +18,39 @@ async function attack(p, weapon, mode){
 withBrowser(async browser => {
   for (const width of [390, 1400]) {
     const at = '@'+width+' ';
-    // ── Henry: Rogue + Battle Master riders ────────────────────────────────────────────────────────────────
+    // ── Rogue / Fighter (fixture: Rogue 3, Battle Master 3): Rogue + Battle Master riders ──────────────────
     // Steady Aim is named on the advantage choice; Sneak Attack and Menacing are offered with advantage, the total
     // adds up, a superiority die is spent and comes back when Menacing is removed; no Sneak Attack with disadvantage.
-    let p = await openSheet(browser, 'henry', width);
+    let p = await openSheet(browser, 'rogue-fighter', width);
     await p.evaluate(() => attackSetup('Shortbow')); await p.waitForTimeout(400);
-    check(at+'Henry (Rogue 3): Steady Aim named on the advantage choice', /Steady Aim/.test(await p.evaluate(() => document.querySelector('#dock .atkopt.adv').innerText)));
+    check(at+'Rogue/Fighter (Rogue 3): Steady Aim named on the advantage choice', /Steady Aim/.test(await p.evaluate(() => document.querySelector('#dock .atkopt.adv').innerText)));
     await p.click('#dock [data-act="close"]'); await p.waitForTimeout(500);
     await attack(p, 'Shortbow', 'adv');
-    check(at+'Henry: Sneak Attack and Menacing offered with advantage', JSON.stringify(await riders(p)) === '["sneak","menacing"]', await riders(p));
+    check(at+'Rogue/Fighter: Sneak Attack and Menacing offered with advantage', JSON.stringify(await riders(p)) === '["sneak","menacing"]', await riders(p));
     const sd0 = await p.evaluate(() => S.sd);
     await p.click('#dock [data-act="rider"][data-k="sneak"]'); await p.waitForTimeout(1500);
     await p.click('#dock [data-act="rider"][data-k="menacing"]'); await p.waitForTimeout(1800);
     const r = await p.evaluate(() => ({ tot: curDmg(), sum: sum(cur.dmg.wd) + cur.dmg.flat + Object.values(cur.dmg.rid).reduce((t,x) => t + sum(x.vals), 0), n: cur.dmg.rid.sneak.vals.length, sd: S.sd }));
     const crit = await p.evaluate(() => curCrit());
-    check(at+'Henry: total adds up, 2d6 sneak (4d6 on a crit), one superiority die spent', r.tot === r.sum && r.n === (crit ? 4 : 2) && r.sd === sd0 + 1, r);
-    await shot(p, 'henry-damage-'+width);
+    check(at+'Rogue/Fighter: total adds up, 2d6 sneak (4d6 on a crit), one superiority die spent', r.tot === r.sum && r.n === (crit ? 4 : 2) && r.sd === sd0 + 1, r);
+    await shot(p, 'rogue-fighter-damage-'+width);
     await p.click('#dock [data-act="rider"][data-k="menacing"]'); await p.waitForTimeout(400);
-    check(at+'Henry: removing Menacing gives the die back', await p.evaluate(() => S.sd) === sd0);
+    check(at+'Rogue/Fighter: removing Menacing gives the die back', await p.evaluate(() => S.sd) === sd0);
     await attack(p, 'Shortbow', 'dis');
-    check(at+'Henry: no Sneak Attack with disadvantage', !(await riders(p)).includes('sneak'));
+    check(at+'Rogue/Fighter: no Sneak Attack with disadvantage', !(await riders(p)).includes('sneak'));
     // Precision Attack on the hit step: spends a die, adds it to the roll, and then Menacing isn't offered on that
     // attack (one maneuver per attack)
     await p.evaluate(() => closeRoll()); await p.waitForTimeout(700);
     await p.evaluate(() => attackSetup('Shortbow')); await p.waitForTimeout(400);
     await p.click('#dock .atkopt.norm'); await wait(p);
     const hit0 = await p.evaluate(() => ({ hit: curHit(), sd: S.sd, opts: [...document.querySelectorAll('#dock [data-act="rider"][data-kind="hit"]')].map(b => b.dataset.k) }));
-    check(at+'Henry: Precision Attack offered on the hit step', hit0.opts.includes('precision'), hit0);
+    check(at+'Rogue/Fighter: Precision Attack offered on the hit step', hit0.opts.includes('precision'), hit0);
     await p.click('#dock [data-act="rider"][data-k="precision"]'); await p.waitForTimeout(1500);
     const hit1 = await p.evaluate(() => ({ hit: curHit(), sd: S.sd, die: cur.hrid.precision.vals[0] }));
-    check(at+'Henry: Precision adds its die and spends one', hit1.hit === hit0.hit + hit1.die && hit1.sd === hit0.sd + 1, { hit0, hit1 });
+    check(at+'Rogue/Fighter: Precision adds its die and spends one', hit1.hit === hit0.hit + hit1.die && hit1.sd === hit0.sd + 1, { hit0, hit1 });
     await p.click('#dock [data-act="rolldmg"]'); await wait(p);
-    check(at+'Henry: no Menacing on an attack that used Precision', !(await riders(p)).includes('menacing'));
-    check(at+'Henry: no page errors', !p.errs.length, p.errs); await p.close2();
+    check(at+'Rogue/Fighter: no Menacing on an attack that used Precision', !(await riders(p)).includes('menacing'));
+    check(at+'Rogue/Fighter: no page errors', !p.errs.length, p.errs); await p.close2();
 
     // ── AppTester-02: Rage, Smite, Colossus Slayer, GWF, Frenzy ────────────────────────────────────────────
     // Rage spends a use and adds itself; Frenzy, Smite, Hunter's Mark and Colossus Slayer are offered; Great Weapon

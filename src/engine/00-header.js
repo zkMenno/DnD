@@ -31,7 +31,7 @@
      dispatches on data-act and a few other data-* attributes. Roll results show in #dock as cards.
 
    EXTENDING
-     New character: a pack (packs/<name>.js, see henry.js's header) + that character's data. Most characters need no
+     New character: a pack (packs/<name>.js, see bare.js's header) + that character's data. Most characters need no
      pack of their own (packs/bare.js). New class or species rules: a CLASS_MODULES entry (src/classes.js) can add
        derive(x)      numbers merged into D (attacksPerAction takes the highest, so Extra Attack never stacks)
        resources(D)   trackers: pips (default), a points pool, an on/off toggle (Rage) and quick buttons (Focus)

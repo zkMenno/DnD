@@ -1,36 +1,4 @@
 {
- "henry": {
-  "ac": 14,
-  "hp": [
-   45,
-   48
-  ],
-  "speedM": 9,
-  "init": 4,
-  "pb": 3,
-  "attacks": 1,
-  "saves": "str+2 dex+6* con+2 int+2* wis+0 cha+1",
-  "weapons": [
-   "Shortbow +8 1d6+3 Vex",
-   "Dagger +6 1d4+3 Nick",
-   "Spear +5 1d6+2 Sap",
-   "Shortsword +6 1d6+3 Vex"
-  ],
-  "res": [
-   "sw 0/2",
-   "as 0/1",
-   "sd 0/4"
-  ],
-  "spells": 0,
-  "combos": [
-   "steady",
-   "vex",
-   "surge",
-   "hide",
-   "buddy",
-   "duel"
-  ]
- },
  "tester": {
   "ac": 14,
   "hp": [
@@ -119,33 +87,83 @@
    "auto-smite"
   ]
  },
- "wick": {
-  "ac": 13,
+ "trial-brute": {
+  "ac": 14,
   "hp": [
-   34,
-   45
+   111,
+   111
   ],
-  "speedM": 9,
-  "init": 2,
-  "pb": 3,
-  "attacks": 1,
-  "saves": "str-1 dex+2 con+2 int-1 wis+2* cha+9*",
+  "speedM": 13.5,
+  "init": 1,
+  "pb": 4,
+  "attacks": 2,
+  "saves": "str+7* dex+1 con+7* int-1 wis+0 cha+2",
   "weapons": [
-   "Dagger +5 1d4+2",
-   "Sickle +2 1d4-1"
+   "Greataxe +7 1d12+3 Cleave",
+   "Handaxe +7 1d6+3 Vex",
+   "Javelin +7 1d6+3 Slow"
   ],
   "res": [
-   "x_magical-cunning 0/1",
-   "x_awakened-mind-clairvoyant-combatant 0/1",
-   "x_luck-points 0/3",
-   "pact 0/2",
-   "sp_misty-step 0/1",
-   "sp_beast-bond 0/1"
+   "rage 0/4 toggle",
+   "loh 0/20 pool",
+   "cd 0/2",
+   "large 0/1 toggle",
+   "x_clouds-jaunt-cloud-giant 0/4",
+   "sl1 0/3"
   ],
-  "spells": 17,
+  "spells": 6,
   "combos": [
-   "auto-rider",
-   "auto-b-other"
+   "auto-rage",
+   "auto-smite"
   ]
+ },
+ "trial-mage": {
+  "ac": 13,
+  "hp": [
+   31,
+   31
+  ],
+  "speedM": 9,
+  "init": 4,
+  "pb": 2,
+  "attacks": 1,
+  "saves": "str+0 dex+2 con+2 int+1 wis+2* cha+6*",
+  "weapons": [
+   "Shortsword (pact weapon) +4 1d6+2",
+   "Dagger +4 1d4+2"
+  ],
+  "res": [
+   "x_breath-weapon-lightning 0/2",
+   "x_magical-cunning 0/1",
+   "pact 0/2"
+  ],
+  "spells": 11,
+  "combos": [
+   "auto-rider"
+  ]
+ },
+ "rogue-fighter": {
+  "ac": 14,
+  "hp": [
+   48,
+   48
+  ],
+  "speedM": 9,
+  "init": 3,
+  "pb": 3,
+  "attacks": 1,
+  "saves": "str+1 dex+6* con+2 int+3* wis+1 cha+0",
+  "weapons": [
+   "Shortbow +8 1d6+3 Vex",
+   "Shortsword +6 1d6+3 Vex",
+   "Dagger +6 1d4+3 Nick"
+  ],
+  "res": [
+   "sw 0/2",
+   "as 0/1",
+   "sd 0/4"
+  ],
+  "spells": 0,
+  "combos": []
  }
 }

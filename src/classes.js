@@ -34,7 +34,7 @@
      subs          → the subclass names (or parts of them) this module tracks; any other subclass gets a note
    ============================================================================ */
 const CLASS_MODULES = {
-  // ---- Fighter (Henry: Battle Master) ----
+  // ---- Fighter (Battle Master tracked) ----
   Fighter: {
     subs: ['Battle Master'],   // subclasses with their own tracking (subclassNote, §11); others show as text
     // Second Wind (heal 1d10 + level), Action Surge, superiority dice (d8 → d12 by level), Extra Attack at 5
@@ -85,7 +85,7 @@ const CLASS_MODULES = {
     },
     longRestNote: 'you can swap one Fighter weapon mastery'
   },
-  // ---- Rogue (Henry) ----
+  // ---- Rogue ----
   Rogue: {
     subs: [],   // subclasses with their own tracking (subclassNote, §11); others show as text
     // Sneak Attack dice: 1d6 per two Rogue levels, rounded up

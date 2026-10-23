@@ -47,8 +47,10 @@ window.withV = withV;
   offlineBadge();
 
   // the pack decides the data element's id
-  const packName = /^[a-z0-9-]+$/.test(ch.pack || '') ? ch.pack : 'bare';
-  const packSrc = await (await fetch(withV('/packs/' + packName + '.js'))).text();
+  // (a record can still name a pack that has since been removed: it gets the bare one until the server resets it)
+  let packName = /^[a-z0-9-]+$/.test(ch.pack || '') ? ch.pack : 'bare', packRes = await fetch(withV('/packs/' + packName + '.js'));
+  if (!packRes.ok && packName !== 'bare') { packName = 'bare'; packRes = await fetch(withV('/packs/bare.js')); }
+  const packSrc = await packRes.text();
   const pid = (packSrc.match(/\bid:\s*["']([a-z0-9-]+)["'],\s*theme:/) || [])[1] || 'sheet';
 
   // first open: no compact data yet → hand the engine D&D Beyond's raw JSON, save what it makes of it

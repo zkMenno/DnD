@@ -27,7 +27,7 @@ const TOOL_WORDS = {"Thieves' Tools":'lock trap pick',"Herbalism Kit":'herb plan
 // the save DC of a thrown oil flask (8 + DEX + proficiency), fixed as the page loads
 const oilDC = 8 + D.mod.dex + D.pb;
 // What a piece of kit does, by inventory name: () → {text, roll?: [check label, bonus]}. Texts are built when shown,
-// so bonuses stay current. Healing potions are added by addPotionUses(); packs can read them (henry.js does).
+// so bonuses stay current. Healing potions are added by addPotionUses(); packs can read them.
 const USES = {
   "Thieves' Tools": () => ({text:'Pick a lock (DC 15) or disarm a trap (DC 15). Uses DEX'+(toolProf('Thieves')?'; you’re proficient, so ':', so ')+sgn(toolBonus('dex','Thieves'))+'. Takes your action.', roll:['Thieves’ Tools', toolBonus('dex','Thieves')]}),
   'Dice': () => ({text:'Gaming set. Spot someone cheating (DC 10) or win a game (DC 20). Uses WIS'+(toolProf('Dice')?'; proficient, so ':' without proficiency, so ')+sgn(toolBonus('wis','Dice'))+'. Good for tavern coin and gossip.', roll:['Dice set', toolBonus('wis','Dice')]}),

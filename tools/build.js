@@ -12,7 +12,8 @@ const fs = require('fs'), path = require('path'), { createHash } = require('cryp
 // Reads a repo file (path relative to the repo root) as text.
 const R = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 if (process.argv[2] === '--stamp') { stamp(path.resolve(process.argv[3])); process.exit(0); }
-// The claude.ai sheets (dist/claude). tools/test/lib.js knows four of them by name.
+// The claude.ai sheets (dist/claude). tools/test/lib.js knows them by name (and builds its fixture sheets from
+// trial-brute.html).
 const SHEETS = [   // pack file, data file, page title, output name
   { pack:'henry',  data:'henry',  title:'Henry Gibbs',      out:'henry.html' },
   { pack:'tester', data:'tester', title:'AppTester-01',     out:'apptester.html' },
