@@ -582,6 +582,12 @@ function askDelete() {
 }
 
 // ── Character lists ────────────────────────────────────────────────────────────────────────────────────────
+// A character's D&D Beyond portrait link (data.avatar) if it is safe to show: https on dndbeyond.com or one of its
+// subdomains. Anything else (no portrait, another site, not a link) gives '' and the row shows the initials.
+function avatarSrc(u) {
+  if (!u) return '';
+  try { const url = new URL(String(u)); return url.protocol === 'https:' && /(^|\.)dndbeyond\.com$/i.test(url.hostname) ? url.href : ''; } catch (_) { return ''; }
+}
 // Fills both character lists (Characters: yours; Party: shared with you), with visibility and verify controls on
 // your own. The list is saved on this device, so it still shows offline.
 async function loadLists() {
@@ -589,7 +595,7 @@ async function loadLists() {
   let list = [];
   // two small queries instead of every sheet the rules let you see: your own, then the ones your party shares
   // (party-visible, or open to anyone signed in, in one of your campaigns). Other public sheets are link-only.
-  const F = 'id,name,owner,handle,campaign,visibility,verified,ddb_id,updated,pinned,archived,sort,data.race.name,data.classes,data.campaign';
+  const F = 'id,name,owner,handle,campaign,visibility,verified,ddb_id,updated,pinned,archived,sort,data.race.name,data.classes,data.campaign,data.avatar';
   try { const col = pb.collection('characters');
     const own = await col.getFullList({ sort: 'name', fields: F, filter: pb.filter('owner = {:m}', { m: me }) });
     const camps = [...new Set(own.map(c => c.campaign).filter(Boolean))].slice(0, 20), p = { m: me };
@@ -602,7 +608,7 @@ async function loadLists() {
     try { list = JSON.parse(localStorage.getItem('sheet-list')) || []; } catch (_) { list = []; }
     msg(navigator.onLine ? 'Couldn’t load your characters.' : '📴 Offline: showing the sheets saved on this device.', navigator.onLine); }
   const lastId = lastSheetId();
-  // one character row: ⭐, the link, race · classes · campaign, Verify, visibility, the ⋯ menu, Continue
+  // one character row: ⭐, the link (portrait or initials, name, race · classes · campaign), Verify, visibility, the ⋯ menu, Continue
   const card = c => {
     const cont = c.id === lastId && !c.archived ? `<a class="btn primary small contbtn" href="${esc(sheetLink(c))}" title="Open ${esc(c.name || 'this character')} again"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Continue <span aria-hidden="true">→</span></a>` : '';
     const d = c.data || {}, cls = (d.classes || []).map(k => k.name + ' ' + k.level).join(' / ');
@@ -613,7 +619,9 @@ async function loadLists() {
         ${c.archived ? '' : `<button class="btn small" data-move="${esc(c.id)}" data-d="-1">↑ Move up</button><button class="btn small" data-move="${esc(c.id)}" data-d="1">↓ Move down</button>`}
         <button class="btn small" data-arch="${esc(c.id)}">${c.archived ? '↩︎ Unarchive' : '🗄️ Archive'}</button>
         <button class="btn small danger" data-rm="${esc(c.id)}">Remove…</button></div></details>` : '';
-    return `<div class="ch${c.archived ? ' archived' : ''}${cont ? ' chlast' : ''}">${tools}<a class="open" href="${esc(sheetLink(c))}"><b>${esc(c.name || 'Character')}${own && c.verified ? '<span class="vtick" tabindex="0" aria-label="Verified" data-tip="Verified: you proved this is your D&amp;D Beyond character, so you can share it with your party.">✓</span>' : ''}</b>
+    const pic = avatarSrc(d.avatar), ini = String(c.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+    const face = `<span class="chpic" data-i="${esc(ini)}" aria-hidden="true">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''}</span>`;
+    return `<div class="ch${c.archived ? ' archived' : ''}${cont ? ' chlast' : ''}">${tools}<a class="open" href="${esc(sheetLink(c))}">${face}<b>${esc(c.name || 'Character')}${own && c.verified ? '<span class="vtick" tabindex="0" aria-label="Verified" data-tip="Verified: you proved this is your D&amp;D Beyond character, so you can share it with your party.">✓</span>' : ''}</b>
         <span class="small muted">${esc([d.race && d.race.name, cls].filter(Boolean).join(' · ') || 'Not synced yet')}${camp ? ' · ' + esc(camp) : ''}${!own && c.handle ? ' · @' + esc(c.handle) : ''}</span></a>
       ${own ? `<div class="chctl">${c.verified ? '' : `<button class="btn small" data-claim="${esc(c.id)}">Verify</button>`}
         <select data-vis="${esc(c.id)}" aria-label="Who can see the tracker">${Object.entries(VIS).map(([k, t]) => `<option value="${k}"${c.visibility === k ? ' selected' : ''}${k === 'party' && !c.verified ? ' disabled' : ''}>${t}${k === 'party' && !c.verified ? ' (verify first)' : ''}</option>`).join('')}</select></div>`
@@ -628,6 +636,8 @@ async function loadLists() {
     + (arch.length ? `<details class="archlist"><summary>🗄️ Archived (${arch.length})</summary>${arch.map(card).join('')}</details>` : '');
   bindListTools(active);
   $('#shared').innerHTML = shared.length ? shared.map(card).join('') : '<p class="muted">Nobody has shared a sheet with you yet. Party members can share theirs from their own list.</p>';
+  // a portrait that can't load (offline, gone from D&D Beyond) leaves the initials circle (no inline onerror: CSP)
+  document.querySelectorAll('.chpic img').forEach(img => { if (img.complete && !img.naturalWidth && img.src) img.remove(); else img.addEventListener('error', () => img.remove(), { once: true }); });
   document.querySelectorAll('[data-claim]').forEach(b => b.addEventListener('click', () => startClaim(b.dataset.claim)));
   document.querySelectorAll('[data-vis]').forEach(s => s.addEventListener('change', async () => {
     try { await pb.collection('characters').update(s.dataset.vis, { visibility: s.value }); msg('Saved: ' + VIS[s.value] + '.'); }

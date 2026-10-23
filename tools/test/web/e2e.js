@@ -18,6 +18,10 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421/NuPqJA'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals', {timeout: 30000}); await p.waitForTimeout(1500);
   ok('adding by link opens the sheet', (await p.title()) === 'Wick Softtoppoms');
+  ok('the crest shows the D&D Beyond portrait', await p.evaluate(() => { const i = document.querySelector('.crest.pic .crestpic'); return !!i && /^https:\/\/www\.dndbeyond\.com\/avatars\//.test(i.src) && document.querySelector('.crest .crestini').textContent === 'WS'; }));
+  // a portrait that can't load leaves the initials (an image that fails: the listener bound by bindCrest takes it out)
+  await p.evaluate(() => { document.querySelector('.crestpic').src = 'data:image/png;base64,AAAA'; }); await p.waitForTimeout(500);
+  ok('a portrait that fails to load falls back to the initials', await p.evaluate(() => !document.querySelector('.crestpic') && !document.querySelector('.crest.pic')));
   const hp0 = await p.evaluate(() => S.hp);
   await p.evaluate(() => { S.hp -= 7; save(); paintVitals(); }); await p.waitForTimeout(1500);
   await p.evaluate(() => { notesStore.add({text:'Met the Bluff harbourmaster', kind:'story', done:false, at:Date.now(), session:1}); }); await p.waitForTimeout(1500);
@@ -29,6 +33,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const ctx2 = await b.newContext({viewport:{width:390,height:844}}); const p2 = await ctx2.newPage(); p2.setDefaultTimeout(20000);
   await p2.goto(B + '/#signin'); await p2.fill('input[name=email]', 'menno@example.test'); await p2.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p2.fill('input[name=password]', 'Passw0rd-menno'); await p2.click('button[value=in]');
   await p2.waitForSelector('#mine .ch'); ok('home lists the character with campaign', /The Bluff|Warlock/.test(await p2.textContent('#mine')));
+  ok('the home row has the portrait (initials under it)', await p2.evaluate(() => { const c = document.querySelector('#mine .ch .open .chpic'); return !!c && c.dataset.i === 'WS' && /^https:\/\/www\.dndbeyond\.com\/avatars\//.test((c.querySelector('img') || {}).src || ''); }));
   await p2.click('#mine .ch a'); await p2.waitForSelector('#vitals'); await p2.waitForTimeout(2500);
   ok('another device gets the same HP and notes', await p2.evaluate(h => S.hp === h - 7 && NOTES.some(n => /harbourmaster/.test(n.text)), hp0));
   // pull from D&D Beyond via ☰ (two confirm steps): the data gets a new syncedAt

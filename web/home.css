@@ -303,6 +303,15 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .chmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:grid;gap:6px;min-width:170px;padding:10px;border-radius:12px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
 .chmenu .btn{width:100%;text-align:left}
 .ch.archived > .open,.ch.archived > .chstar,.ch.archived .chctl > :not(.chmore){opacity:.7}   /* faded, but its ⋯ menu stays solid */
+/* the portrait at the start of the link (web/index.js card()): a 40px circle with a brass ring, the D&D Beyond
+   picture or, without one (or if it can't load), the initials from data-i. The name and its line sit to its right,
+   so the phone grid below still sees one .open cell. */
+.ch .open{grid-template-columns:40px minmax(0,1fr);column-gap:10px;align-items:center}
+.ch .open > :not(.chpic){grid-column:2}
+.chpic{grid-column:1;grid-row:1/3;width:40px;height:40px;border-radius:50%;overflow:hidden;display:grid;place-items:center;
+  background:var(--brass-soft);box-shadow:0 0 0 2px var(--brass);color:var(--ink);font-family:var(--f-display,var(--f-body));font-weight:700;font-size:.95rem}
+.chpic::before{content:attr(data-i);grid-area:1/1}
+.chpic img{grid-area:1/1;width:100%;height:100%;object-fit:cover;display:block;position:relative}
 .archlist{margin-top:10px}
 .archlist > summary{cursor:pointer;color:var(--muted);padding:8px 12px;border:1px dashed var(--line);border-radius:12px;list-style:none;display:flex;align-items:center;gap:8px;transition:border-color .15s,color .15s,background .15s}
 .archlist > summary::-webkit-details-marker{display:none}
@@ -729,6 +738,10 @@ body > #msg{font-size:1.02rem;line-height:1.45}
   .ch > .chctl:empty{display:none}
   .ch > .small.muted{grid-column:1/-1}
   .chctl select{flex:1 1 auto;min-width:0;max-width:none}
+  /* with the portrait in the link, Continue → spans columns 3–4 so the narrow ⋯ alone sizes column 4 and the
+     name's column keeps its width (Verify and who-can-see then share columns 1–2) */
+  .ch > .contbtn{grid-column:3/5;justify-self:end}
+  .ch > .chctl{grid-column:1/3}
   /* Sign-in & security: Change and Remove side by side */
   .sec .secrow > .secbtns{display:flex;flex-direction:row-reverse;justify-content:flex-end;flex-wrap:nowrap;align-self:stretch;width:auto}
   .secrow .secbtns > .btn{align-self:auto}
