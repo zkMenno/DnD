@@ -12,7 +12,9 @@ module.exports = {
   line: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="8" viewBox="0 0 24 8"><path d="M0 2h24M4 2l2 5 2-5M14 2l1.5 4 1.5-4" fill="none" stroke="#000" stroke-width="1.3"/></svg>',
   // the roll sheet and tooltip texture, top layer first
   texture: [
-    { noise:{ freq:[.004, .18], octaves:3, alpha:.035, seed:5 } },   // a faint frost; the thick fog only puffs out on open (css below)
+    // scattered frost crystals
+    { svg:'<svg xmlns="http://www.w3.org/2000/svg" width="90" height="90"><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M20 12v14M14 15.5l12 7M14 22.5l12-7" stroke-opacity=".08"/><path d="M66 52v10M61.7 54.5l8.6 5M61.7 59.5l8.6-5" stroke-opacity=".06"/><path d="M40 76v6M37.4 77.5l5.2 3M37.4 80.5l5.2-3" stroke-opacity=".05"/></g></svg>' },
+    { noise:{ freq:[.004, .18], octaves:3, alpha:.05, seed:5 } },   // a faint frost; the thick fog only puffs out on open (css below)
     { noise:{ freq:[.9, .9], octaves:2, alpha:.04 } },
   ],
   // opening a roll sheet is like opening a freezer: a cold fog that clears within a second or so

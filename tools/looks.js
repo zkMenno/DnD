@@ -111,14 +111,16 @@ function skinsCss(looks){
   // small theme symbols float with the background dice: only the current look's set shows (src/bgdice.html)
   css.push('.bdg{display:none}');
   css.push(':root:not([data-skin]) .bdg-pirate,' + looks.map(l => ':root[data-skin="' + l.key + '"] .bdg-' + l.key).join(',') + '{display:block}');
-  // Roll sheet + tooltips: no parchment outside the pirate look. Light mode keeps the dark card (ink on paper,
+  // Roll sheet + tooltips: no parchment outside the pirate look. Every look adds an accent glow top-left and a shade
+  // bottom-right over its texture, so even a quiet texture never reads as a flat colour.
+  // (Original note:) no parchment outside the pirate look. Light mode keeps the dark card (ink on paper,
   // inverted); dark mode gets a dark card too (a lifted, accent-tinted panel with light text) instead of a bright
   // sheet. Done by swapping --ink/--bg inside the card, so everything in it that reads "paper colour / text colour"
   // follows. Per look: the card texture and accent sheen in both modes, then the dark card (panel colour mixed from the
   // dark palette's raised + brass) in dark mode, with chips readable on it.
   for (const s of SK) {
     const sel = ':root[data-skin="' + s.key + '"]', dk = s.dark;
-    css.push(sel + ' #dock .roll,' + sel + ' .bubble{background-image:' + s.texture.map(layer).join(',') + ',linear-gradient(160deg,color-mix(in srgb,var(--brass) 14%,transparent),transparent 50%)!important;background-size:auto!important;background-repeat:repeat!important;border:1px solid color-mix(in srgb,var(--brass) 45%,transparent);box-shadow:0 18px 50px -12px rgba(0,0,0,.55),' + VIG + '}');
+    css.push(sel + ' #dock .roll,' + sel + ' .bubble{background-image:' + s.texture.map(layer).join(',') + ',radial-gradient(130% 85% at 0% 0%,color-mix(in srgb,var(--brass) 20%,transparent),transparent 62%),radial-gradient(120% 90% at 100% 100%,rgba(0,0,0,.26),transparent 60%)!important;background-size:auto!important;background-repeat:repeat!important;border:1px solid color-mix(in srgb,var(--brass) 45%,transparent);box-shadow:0 18px 50px -12px rgba(0,0,0,.55),' + VIG + '}');
     css.push(sel + ' .bubble::after{border:0}');
     const inv = '--ink:' + mix(dk.raised, dk.brass, .10) + ';--bg:' + dk.ink + ';--good:#7FD89C;--roll-hit:#8CC4DC;--roll-on:#1B140C;--roll-accent:#F08F5E;--roll-accent-ink:#F4A07A;box-shadow:0 18px 50px -12px rgba(0,0,0,.7),inset 0 0 0 1px color-mix(in srgb,var(--brass) 30%,transparent),' + VIG;
     css.push('@media (prefers-color-scheme: dark){' + sel + ':not([data-theme="light"]) #dock .roll,' + sel + ':not([data-theme="light"]) .bubble{' + inv + '}}');

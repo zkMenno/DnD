@@ -12,7 +12,9 @@ module.exports = {
   line: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="8" viewBox="0 0 24 8"><path d="M0 6h4V2h4v4h8V2h4v4h4" fill="none" stroke="#000" stroke-width="1.4"/></svg>',
   // the roll sheet and tooltip texture, top layer first
   texture: [
-    { noise:{ freq:[.006, .02], octaves:4, alpha:.12, seed:11, col:'0 0 0' } },
+    // lancet-window tracery, faint, over a wine-red mottle
+    { svg:'<svg xmlns="http://www.w3.org/2000/svg" width="36" height="52"><path d="M4 50V22Q4 6 18 2Q32 6 32 22V50" fill="none" stroke="#fff" stroke-opacity=".05" stroke-width="1.2"/><path d="M18 2V50M4 30H32" stroke="#fff" stroke-opacity=".03"/><circle cx="18" cy="18" r="3.2" fill="none" stroke="#fff" stroke-opacity=".05"/></svg>' },
+    { noise:{ freq:[.006, .02], octaves:4, alpha:.14, seed:11, col:'.55 .1 .18' } },
     { noise:{ freq:[.9, .9], octaves:2, alpha:.06 } },
   ],
   // the few words this look says its own way (left out: plain English)
