@@ -1,7 +1,17 @@
 /* ============================================================================
    §16 GLOSSARY — tappable terms and their bubbles
+   Builds G, the glossary: every tappable term → [category, body, (unused), button html, footer]. Body markup is
+   described at fmtTip(). Built in layers: rule basics, the pack's glossary, abilities, skills and the pack's
+   proficiency notes (each overriding the one before), then spells and engine fallbacks that only fill gaps
+   (header tiles, proficiencies, senses, actions, damage types, coins, tracked features).
+   Defines: SKILL_INFO, G, GA (aliases), GKEYS/GRE (what linkify matches), CORE_PROF, linkify, decorate, fmtB, fmtTip,
+   closeTip, toggleTip. Uses D, DATA, RES, PACK (§02), spellTip (§08b), srcTag (§02), useBlock (§10), invBlock (§11).
+   Order: G is built at load, so it calls lrTerms/resTerm from §18. They are function declarations (hoisted) and only
+   touch G, D and RES, which already exist; anything they use must stay that way.
    ============================================================================ */
 
+// ── Skills and abilities ───────────────────────────────────────────────────────────────────────────────────
+// One plain line per skill: what it's for at the table.
 const SKILL_INFO = {
   'Acrobatics': 'Stay on your feet on ice, ropes or a rocking deck, tumble past enemies, or slip out of a grapple.',
   'Animal Handling': 'Calm, control or read an animal: keep a horse steady, soothe a guard dog, tell if a beast is about to attack.',
@@ -22,7 +32,7 @@ const SKILL_INFO = {
   'Stealth': 'Sneak past without being seen or heard. The Hide action is a Stealth check against DC 15.',
   'Survival': 'Track creatures, forage, find your way in the wild, and read the weather.'
 };
-// glossary entries for each skill, with your bonus and a roll button
+// Glossary entries for each skill: what it's for, your bonus and how it's made up, and a roll button.
 function skillTips(){
   const out = {};
   D.skills.forEach(s => {
@@ -33,11 +43,13 @@ function skillTips(){
   return out;
 }
 
-// normalise curly apostrophes so proficiency names match glossary keys
+// Normalise curly apostrophes so proficiency names ("Thieves’ Tools") match glossary keys.
 const profKey = s => String(s).replace(/[’']/g, "'");
-// Proficiency bubbles (armour, weapons, tools, languages) are character advice, so they live in the pack.
+// The pack's proficiency entries (armour, weapons, tools, languages). They are character advice, so they live in the
+// pack; the engine's plain fallbacks for the rest are added further down.
 const PROF_INFO = () => PACK.profInfo ? PACK.profInfo() : {};
-// glossary entries for each ability: modifier, skills, save, roll buttons
+// Glossary entries for each ability (keyed by its full name): score, modifier, save, the pack's line on what it does
+// for this character, its skills, and Save / Check buttons.
 function abilityTips(){
   const use = PACK.abilityUse ? PACK.abilityUse() : {};   // one line per ability: what it does for this character
   const out = {};
@@ -53,11 +65,11 @@ function abilityTips(){
   return out;
 }
 
-// glossary key for a damage type ("lightning" → "Lightning"); unknown or none → "Damage"
+// ── Building G ─────────────────────────────────────────────────────────────────────────────────────────────
+// The glossary key for a damage type ("lightning" → "Lightning"); empty → "Damage".
 const dmgTerm = t => { const k = String(t||'').trim(); return k ? k.charAt(0).toUpperCase() + k.slice(1).toLowerCase() : 'Damage'; };
-// G: every tappable term → [category, body, (unused), button html, footer]. Body format is documented at fmtTip().
-// Pack glossary first (rules explained for this character), then entries the engine builds from the sheet itself.
-// Rules every sheet needs, whatever the pack says
+// Rules every sheet needs, filled in with this character's numbers: rolling hit dice, Expertise, Proficient.
+// They go into G first, so a pack's own entry of the same name replaces them.
 function ruleTips(){
   const pb = D.pb, L = D.totalLevel, next = [[5,3],[9,4],[13,5],[17,6]].find(([lv]) => lv > L);
   return {
@@ -68,7 +80,10 @@ function ruleTips(){
       + '\n## 🧮 Your bonus\n• +'+pb+' at character level '+L + (next ? '\n## 📈 Progression\n• +'+next[1]+' at level '+next[0] : '')]
   };
 }
+// G: every tappable term → [category, body, (unused), button html, footer]. Later sources overwrite earlier ones here;
+// everything added after this line only fills gaps (if (!G[k])).
 const G = Object.assign({}, ruleTips(), PACK.glossary ? PACK.glossary() : {}, abilityTips(), skillTips(), PROF_INFO());
+// every spell on the sheet: "3rd-level Evocation · Sorcerer" and its spell text
 (DATA.spells||[]).forEach(sp => { if (!G[sp.name]) G[sp.name] = [(sp.level ? ORD(sp.level)+'-level ' : '')+(sp.school||'')+(sp.level ? '' : ' cantrip')+(sp.from && !/^(class|race|feat|item|background)$/.test(sp.from) ? ' · '+[sp.from].concat(sp.alsoFrom||[]).join(' / ') : ''), spellTip(sp)]; });
 // the header tiles (Armour, Speed, Initiative) open these in their drawers; a pack may write richer ones
 if (!G['Armour Class']) { const ua = !D.armor && D.c.mods.some(m => m.type==='set' && m.sub==='unarmored-armor-class' && m.statId) ? D.c.mods.find(m => m.type==='set' && m.sub==='unarmored-armor-class' && m.statId) : null;
@@ -79,9 +94,10 @@ if (!G['Armour Class']) { const ua = !D.armor && D.c.mods.some(m => m.type==='se
 if (!G['Speed']) G['Speed'] = ['Movement', '**'+D.speedM+' m per turn** ('+D.speedFt+' ft, '+(D.speedFt/5)+' squares).\n• Split it before and after your action\n• Dash: move your speed again this turn\n• Difficult terrain: every metre costs 2', 'You.'];
 if (!G['Initiative']) G['Initiative'] = ['Combat', '**d20 '+sgn(D.initiative)+' when a fight starts.** Highest goes first.\n## 🧮 Yours\n• DEX '+sgn(D.mod.dex)
   + (D.initNote ? D.initNote.split(' · ').map(t => '\n• '+t).join('') : ''), null, '<button class="btn primary rollbtn" data-act="rollinit">🎲 Roll</button>'];
-// Proficiencies and senses: a plain explanation for any the pack doesn't describe (every character's sheet taps work)
+// Proficiencies and senses: a plain explanation for any the pack doesn't describe, so every character's taps work.
 const CORE_PROF = new Set();   // proficiency terms added here: tappable in the Proficiencies card, never auto-linked in prose
 (() => {
+  // put(key, entry, prof): add an entry if missing; prof === false keeps it out of CORE_PROF (so it can link in prose)
   const pb = '+'+D.pb, put = (k, v, prof) => { if (!G[k]) { G[k] = v; if (prof !== false) CORE_PROF.add(k); } };
   const ARM = {
     'Light armour': ['Armour', '**Wear it with no penalty: AC = armour + your full DEX.**\n• Padded 11, leather 11, studded leather 12\n• Padded makes Stealth harder'],
@@ -109,7 +125,8 @@ const CORE_PROF = new Set();   // proficiency terms added here: tappable in the 
   put('Passive Investigation', ['Rule', '**'+D.passive.investigation+' = 10 + Investigation.** Working things out without rolling.\n• Hidden compartments, forgeries, clues'], false);
   put('Passive Insight', ['Rule', '**'+D.passive.insight+' = 10 + Insight.** Sensing lies without rolling.\n• The DM compares it to a creature’s Deception'], false);
 })();
-// core rules every sheet links to; a pack may write richer, character-specific ones
+// Core rules every sheet links to (actions, damage types, advantage, rests, boosts, coins, tracked features).
+// A pack may have written richer, character-specific ones already; those are kept.
 (() => {
   const put = (k, v) => { if (!G[k]) G[k] = v; };
   const shortBack = RES.filter(r => r.short).map(r => '• '+(r.label || r.name)).join('\n');
@@ -136,23 +153,33 @@ const CORE_PROF = new Set();   // proficiency terms added here: tappable in the 
   put('Bardic Inspiration', ['Bard', '**Add the bard’s die to a d20 roll you just failed.** It can turn a miss into a hit or a failed save into a success.\n• A bard gives it to you as a Bonus Action; it lasts an hour\n• The die grows with the bard: d6, d8 at level 5, d10 at 10, d12 at 15']);
   put('Tactical Mind', ['Fighter', '**Failed an ability check? Spend a Second Wind use to add a d10.**\n• If you still fail, the use isn’t spent']);
   put('Halfling Luck', ['Species', '**Roll a natural 1 on a d20 test → reroll it.** You must use the new roll.']);
+  // coins (the purse's coin names open these); n, the abbreviation, isn't used in the entry
   const coin = (n, v) => ['Coin', '**'+v+'**'];
   put('Platinum', coin('pp', '1 pp = 10 gp.')); put('Gold', coin('gp', '1 gp = 10 sp = 100 cp. Prices are mostly in gold.'));
   put('Electrum', coin('ep', '1 ep = 5 sp, half a gold piece.')); put('Silver', coin('sp', '1 sp = 10 cp; 10 sp make 1 gp.')); put('Copper', coin('cp', '100 cp make 1 gp.'));
+  // rest-screen terms (§18): hit points, hit dice, spell slots, Pact Magic
   lrTerms(); if (!G['Pact Magic slots']) G['Pact Magic slots'] = G['Pact Magic'];
   RES.forEach(r => { try { resTerm(r); } catch(_){} });   // every tracked feature (Bardic Inspiration, Sorcery Points…) gets a tooltip and links in text
 })();
+// Concentration, unless the pack explained it
 if (!G['Concentration']) G['Concentration'] = ['Rule', '**One concentration spell at a time.**\n• Casting another ends the first\n• Taking damage: CON save, DC 10 or half the damage (max 30)\n• Incapacitated → it ends', 'You.'];
-// aliases: words in prose that should open an existing term
+
+// ── Linking terms in text ──────────────────────────────────────────────────────────────────────────────────
+// Aliases: words in prose that open an existing term (null = never link that word).
 const GA = {'advantage':'Advantage','disadvantage':'Disadvantage','hidden':'Hide','hiding':'Hide','Halfling Luck':'Halfling Luck','Luck':'Halfling Luck',
   'Inspiration':'Heroic Inspiration','expertise':'Expertise','crit':'Critical hit','crits':'Critical hit','Critical hits':'Critical hit','natural 20':'Critical hit','Natural 20':'Critical hit',
   'opportunity attack':'Opportunity attack','opportunity attacks':'Opportunity attack','Opportunity attacks':'Opportunity attack','temporary HP':'Temporary HP','temp HP':'Temporary HP',
   'hit dice':'Hit dice','short rest':'Short rest','long rest':'Long rest','thrown':'Thrown','finesse':'Finesse','Ranged':null};
 const PROF_KEYS = new Set(Object.keys(PROF_INFO()));
+// GKEYS: the words linkify looks for in prose: every term except action names, coins, skills and proficiencies (too
+// common, or tappable in their own cards only), plus the aliases. Longest first, so "Bonus action" beats "Action".
+// GRE matches any of them as a whole word.
 const GKEYS = Object.keys(G).filter(k=>!['Action','Bonus action','Reaction','Free','Free / once per turn','Move','Light','Platinum','Gold','Electrum','Silver','Copper'].includes(k) && !SKILL_INFO[k] && !PROF_KEYS.has(k) && !CORE_PROF.has(k))
   .concat(Object.keys(GA).filter(k=>GA[k])).sort((a,b)=>b.length-a.length);
 const GRE = new RegExp('(^|[^A-Za-z-])(' + GKEYS.map(k=>k.replace(/[.*+?^${}()|[\]\\/]/g,'\\$&')).join('|') + ')(?![A-Za-z])', 'g');
-// turn glossary words in plain text into tappable terms (first mention per text node)
+// Turn glossary words in the text under root into tappable .term buttons: the first mention of each term per text
+// node. Skips buttons, links, headings, roll cards, bubbles and other places where a button would be in the way.
+// Then wraps chips whose text is a single term (weapon properties and masteries).
 function linkify(root){
   if (!root) return;
   const skip = 'button,a,input,label,textarea,h1,nav,.tr > summary,.roll,.bubble,.kv dd,.tag,.term,.num,.notelist,.changes,script,style';
@@ -180,10 +207,12 @@ function linkify(root){
     if (G[base]) ch.innerHTML = '<button type="button" class="term" data-term="'+esc(base)+'">'+esc(ch.textContent)+'</button>';
   });
 }
-// type cues: dice in brass mono, DCs as badges, distances in mono
+// ── Type cues ──────────────────────────────────────────────────────────────────────────────────────────────
+// Matches, as groups: dice ("2d6", "d20s", "1d8 + 3"), DCs ("DC 15"), metric distances ("9 m", "1.5 km").
 const DEC_RE = /(\b\d*d(?:4|6|8|10|12|20|100)s?(?:\s?[+−-]\s?\d+)?\b)|(\bDC\s?\d+\b)|(\b\d+(?:[.,]\d+)?\s?(?:km|m)\b)/g;
-// type cues: dice in mono with the die icon, DCs as badges, distances in mono.
-// Roll cards only get the dice cue (their DCs and numbers have their own layout).
+// Wrap dice, DCs and distances in the text under root in .dice / .dc / .dist spans (the styles add the die icon,
+// badge and mono). Roll cards only get the dice cue: their DCs and numbers have their own layout.
+// Called on every new node by the MutationObserver at the end of §21, so it must skip what it already wrapped.
 function decorate(root){
   if (!root) return;
   const skip = 'button,a,input,textarea,label,select,script,style,h1,h2,h3,.num,.dice,.dc,.dist,.qty,.k,.v,.eyebrow,.die,.mod,.roll .n,.fx,.dsw';
@@ -197,10 +226,12 @@ function decorate(root){
     const span = document.createElement('span'); span.innerHTML = html; n.replaceWith(span);
   });
 }
-// **bold** → <b>
+// ── Tooltip bubbles ────────────────────────────────────────────────────────────────────────────────────────
+// Escape a line, then turn **bold** into <b>.
 const fmtB = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
-// Glossary body markup → HTML. First line is the gist. "**x**" bold, "## Heading" starts a section (a leading
-// emoji is dropped), "• " lines become a list, a line that is just "OR" draws a choice divider.
+// Glossary body markup → HTML. The first line is the gist. "**x**" is bold, "## Heading" starts a section (a leading
+// emoji is dropped), "• " lines become a list, and a line that is just "OR" draws a choice divider.
+// A body without line breaks is returned as one escaped line.
 function fmtTip(s){
   s = String(s||''); if (!s.includes('\n')) return fmtB(s);
   let out = '', list = false;
@@ -215,8 +246,9 @@ function fmtTip(s){
   });
   return out + (list ? '</ul>' : '');
 }
-let tipFor = null;
-// close the open glossary bubble
+let tipFor = null;   // the .term element whose bubble is open
+// Close the open bubble. dir: 'now' (remove at once), 'fade' or nothing (fade where it is), 'left' / 'right' / other
+// (slide out that way). The old bubble loses its id at once, so a new one can open while it leaves.
 function closeTip(dir){
   const b = document.getElementById('bubble');
   if (tipFor) tipFor.setAttribute('aria-expanded','false'); tipFor = null; document.body.classList.remove('tipopen');
@@ -231,7 +263,10 @@ function closeTip(dir){
   b.style.transition = 'transform .18s ease-in, opacity .18s ease-in'; b.style.transform = to; b.style.opacity = '0';
   setTimeout(() => b.remove(), 180);
 }
-// open (or close) the bubble for a term, pinned to the tapped element
+// Open the bubble for el's data-term, pinned to el (or close it if it's already open). The bubble has a ✕, the
+// category (or the feature's source), the title, the body, and a footer with trackers, inventory and buttons.
+// Placement: below the word unless it only fits above; page words scroll with the page, words in the sticky header
+// or in an overlay (roll sheet, drawers, dialogs) get a fixed bubble drawn above that layer.
 function toggleTip(el){
   if (tipFor === el) return closeTip();
   closeTip();
@@ -278,8 +313,10 @@ function toggleTip(el){
     }
   }
 }
+// Escape closes the bubble
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTip(); });
-// scrolling keeps the bubble on its word; it only fades once the word has left the screen (or slid under the header)
+// Scrolling keeps the bubble on its word; it only fades once the word has left the screen (or slid under the header).
+// Capture phase, so scrolls inside drawers count too.
 window.addEventListener('scroll', () => {
   if (!tipFor) return;
   if (!tipFor.isConnected) return closeTip();
@@ -294,6 +331,7 @@ window.addEventListener('scroll', () => {
   const r = tipFor.getBoundingClientRect(), top = $('.top'), hb = top ? top.getBoundingClientRect().bottom : 0;
   if (r.bottom < hb || r.top > window.innerHeight || r.width === 0) closeTip();
 }, {passive:true, capture:true});
+// a resize moves everything, so the bubble just closes
 window.addEventListener('resize', closeTip);
 
 

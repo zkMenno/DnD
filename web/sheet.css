@@ -1,8 +1,16 @@
-/* The sheet page (/sheet.html, /<username>/<id>) uses the engine's own styles (engine/app.css), exactly as the
-   claude.ai sheets do. This file only adds the two bits the web app needs on top: the loading/"not here" message
-   and the offline pill. Keep home.css off this page: its generic rules (.card, .btn, .top, label, input) restyle the sheet. */
+/* ============================================================================
+   WEB APP SHEET PAGE EXTRAS (web/sheet.css)
+   The sheet pages (/sheet.html at /<username>/<id>, and /try.html) use the engine's own styles (engine/app.css),
+   exactly as the claude.ai sheets do. This file adds only what the web app needs on top: the loading card and
+   "not here" message (web/sheet-boot.js, web/try-boot.js), the offline pill, the try-out bar, and the throwable
+   background dice (web/home-anim.js). Loaded after app.css, so it wins ties.
+   Keep home.css off this page: its generic rules (.card, .btn, .top, label, input) restyle the sheet.
+   Later blocks override earlier ones on purpose (.boot, .trialin): don't merge them.
+   ============================================================================ */
+/* ── Loading message and offline pill ──────────────────────────────────────────────────────────────────── */
 .boot{max-width:560px;margin:60px auto;padding:0 16px;text-align:center;color:var(--muted)}
 .offline{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:300;background:#7a4b12;color:#fff;padding:6px 14px;border-radius:999px;font-size:.82rem;box-shadow:0 4px 14px rgba(0,0,0,.35);max-width:calc(100vw - 24px);text-align:center}
+/* ── Try-out bar ───────────────────────────────────────────────────────────────────────────────────────── */
 /* try-out sheets (web/try-boot.js): the bar on top, as wide as the sheet below it */
 .trialbar{padding-top:12px;box-sizing:border-box}
 .trialin{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 10px 8px 14px;border-radius:12px;
@@ -11,6 +19,7 @@
 .trialin .btn{transition:background .15s,color .15s,transform .15s,box-shadow .15s}
 .trialin .btn:hover{background:#fff4d6;color:#2a1a04;border-color:#fff4d6;transform:translateY(-1px);box-shadow:0 4px 14px rgba(42,26,4,.35)}
 
+/* ── Background dice ───────────────────────────────────────────────────────────────────────────────────── */
 /* background dice on sheet pages (src/bgdice.html; home-anim.js lets you throw them): fixed behind the sheet */
 .bgdice.sheetdice{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
 .sheetdice .bd{position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.3);transition:opacity .2s,filter .2s}
@@ -19,9 +28,11 @@
   .sheetdice .bd{animation:tumble var(--t,40s) ease-in-out var(--d,0s) infinite}
   @keyframes tumble{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(var(--dx,12px),var(--dy,-16px)) rotate(180deg)}100%{transform:translate(0,0) rotate(360deg)}}
 }
+/* the sheet stays above the dice; grab cursors while a die is under the mouse or held */
 #app{position:relative;z-index:1}
 html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.grabbing-die *{cursor:grabbing!important;user-select:none!important}
-/* the loading card: a spinning d20 and a quick gold bar */
+/* ── Loading card ──────────────────────────────────────────────────────────────────────────────────────── */
+/* the loading card: a spinning d20 and a quick gold bar (overrides the plain .boot above) */
 .boot{display:grid;justify-items:center;gap:12px;max-width:340px;margin:18vh auto 0;padding:26px 28px;border-radius:18px;background:var(--surface,#131f2b);border:1px solid var(--line,rgba(255,255,255,.1));box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .boot p{margin:0;font-weight:700;color:var(--ink)}
 .bootd20{width:54px;height:54px;color:var(--brass)}
@@ -31,6 +42,8 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
   .bootd20{animation:bootspin 1.1s cubic-bezier(.4,.1,.3,1) infinite} @keyframes bootspin{to{transform:rotate(360deg)}}
   .bootbar span{animation:bootbar 1.1s ease-in-out infinite} @keyframes bootbar{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
 }
-/* the try-out bar follows the theme: text and button in the page's own colours on the accent */
+/* ── Try-out bar in the theme's colours ────────────────────────────────────────────────────────────────── */
+/* the try-out bar follows the theme: text and button in the page's own colours on the accent (overrides the fixed
+   colours above) */
 .trialin{color:var(--bg)} .trialin .btn{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .trialin .btn:hover{background:var(--bg);color:var(--ink);border-color:var(--bg)}

@@ -1,12 +1,25 @@
 /* ============================================================================
-   §21 SYNC — Claude app browser → D&D Beyond JSON → republish this page
+   §21 SYNC — D&D Beyond → this sheet, and this sheet's changes → D&D Beyond; then the engine starts
+   Web app (window.SHEET set): ☰ → Sync opens one window (syncWindow); the server fetches D&D Beyond.
+   claude.ai: ⬇️ Pull reads D&D Beyond in the Claude app's browser and republishes this page (buildDoc), or fires a
+   cloud scheduled task when there's no app browser; ⬆️ Push fires a scheduled task that types the changes in.
+   Defines: textOf, extractJson, prefixHtml, buildDoc, REMOTE, changeListHtml, syncBusy, remoteMsg, syncWhen,
+   syncTableHtml, syncFx, syncWindow, pull, pullHere, push. Uses changes/changesText (§10), compact (§01),
+   confirmBox (§17), setMsg (§15), HOST, ls, PACK, DATA, THEME (§02).
+   Order: this is the last section with code that runs at load. The end of this file wraps three paint functions,
+   calls render() and bootStore(), and starts the MutationObserver that decorates new nodes. §22 only defines
+   functions and constants that are used after a tap, so it can follow.
    ============================================================================ */
+
+// ── Reading D&D Beyond in the Claude app's browser ─────────────────────────────────────────────────────────
+// The text of an MCP tool result: its text blocks joined, or else its payload (as is when it's a string, else JSON).
 function textOf(res){
   const t = (res && res.content || []).filter(b=>b.type==='text').map(b=>b.text).join('\n');
   if (t) return t;
   return typeof (res && res.payload) === 'string' ? res.payload : JSON.stringify(res && res.payload || '');
 }
-// pull the first {"id"…} JSON object out of page text
+// Pull the first {"id"…} JSON object out of page text by matching braces (strings and escapes aware), then parse it.
+// null when there is none or it never closes (text cut short); throws if the object itself isn't valid JSON.
 function extractJson(text){
   const i = text.indexOf('{"id"'); if (i < 0) return null;
   let depth = 0, inStr = false, escp = false;
@@ -17,13 +30,15 @@ function extractJson(text){
   }
   return null;
 }
-// Head bits the sync writes before the parts: title from the character, fonts from the theme.
+// ── Rebuilding the claude.ai page ──────────────────────────────────────────────────────────────────────────
+// The head bits the sync writes before the parts: the title from the character, the viewport hint, the theme's fonts.
 function prefixHtml(){
   return '<title>'+esc(DATA.name)+'</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
     + (THEME.fonts ? '<link href="'+THEME.fonts+'" rel="stylesheet">\n' : '');
 }
-// Rebuild this whole page with fresh character data. The page is a fixed list of parts (see the file map at the
-// top of #main); every <style>/<script> part must be listed here or a sync will drop it.
+// Rebuild this whole page as an HTML string with fresh character data, copying every other part from the page as it
+// is now. The page is a fixed list of parts (see the file map in §00, the same layout tools/build.js writes); every
+// <style>/<script> part must be listed here or a sync will drop it. "<" in JSON is escaped so it can't end the script.
 function buildDoc(data){
   const reset = (document.head.querySelector('style')||{}).textContent || '';
   const json = JSON.stringify(data).replace(/</g,'\\u003c');
@@ -36,18 +51,20 @@ function buildDoc(data){
     + ['themes','classes','pack','main'].map(id => '<script id="'+id+'">'+part(id)+'<\/script>').join('\n')
     + '\n</body></html>';
 }
-let syncing = false;
+// ── Sync helpers ───────────────────────────────────────────────────────────────────────────────────────────
+let syncing = false;   // a pull or push is running: further taps are ignored
 const REMOTE = 'Claude Code Remote';   // claude.ai connector that fires the pack's scheduled tasks
-// The change list as a confirm-dialog body
+// The change list (from changes()) as a confirm-dialog body, with an optional note under it (HTML).
 function changeListHtml(c, note){
   return '<ul class="chlist">'+c.map(x=>'<li>'+esc(x.t)+'<span class="chw">'+esc(x.where)+'</span></li>').join('')+'</ul>'+(note?'<p>'+note+'</p>':'');
 }
-// Busy state on both menu buttons while a sync runs
+// Busy state for the ☰ menu's Pull and Push buttons: both disabled while a sync runs (Push also when there's nothing
+// to push), and the running one (label 'pull' or 'push') reads "Working…".
 function syncBusy(on, label){
   ['#pullbtn','#pushbtn'].forEach(id => { const b = $(id); if (b) b.disabled = on || (id==='#pushbtn' && !changes().length); });
   const b = $(label==='push' ? '#pushbtn' : '#pullbtn'), t = b && b.querySelector('b[data-label]'); if (t) t.innerHTML = on ? 'Working…' : t.dataset.label;
 }
-// Copy for connector failures when firing a scheduled task
+// The message for a failed scheduled-task start, by error code. what = 'Pull' or 'Push'.
 function remoteMsg(code, what){
   return ({
     server_not_connected: what+' needs the Claude Code Remote connector. Check it’s on in claude.ai Settings → Connectors.',
@@ -60,15 +77,20 @@ function remoteMsg(code, what){
   })[code] || (what+' failed'+(code?' ('+esc(code)+')':'')+'. Try again in a moment.');
 }
 
-// ── Web app: one "Sync with D&D Beyond" window (☰ menu). Part 1 lists what differs between this sheet and D&D Beyond
-// (Dungeon Tracker can't write there, so the player changes it on D&D Beyond); part 2 fetches D&D Beyond's version into
-// this sheet, after a second "replace these values?" when something would be lost. A ✓ moment, then the page reloads.
+// ── Web app: the Sync with D&D Beyond window ───────────────────────────────────────────────────────────────
+// One window from the ☰ menu. Part 1 lists what differs between this sheet and D&D Beyond (Dungeon Tracker can't
+// write there, so the player changes it on D&D Beyond); part 2 fetches D&D Beyond's version into this sheet, after a
+// second "replace these values?" when something would be lost. A ✓ moment, then the page reloads.
+// When the character data was last synced, as "23 Oct 2026, 14:05".
 const syncWhen = () => new Date(DATA.syncedAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+// Part 1's table: one row per difference, with this sheet's value next to D&D Beyond's.
 function syncTableHtml(c){
   return '<div class="synctabw"><table class="synctab"><thead><tr><th>What</th><th>This sheet</th><th>D&amp;D Beyond</th></tr></thead><tbody>'
     + c.map(x => '<tr><td><b>'+esc(x.what || x.t)+'</b><span class="chw">'+esc(x.where)+'</span></td><td class="sv here">'+esc(x.here)+'</td><td class="sv">'+esc(x.ddb)+'</td></tr>').join('')
     + '</tbody></table></div>';
 }
+// The full-screen sync moment. state 'busy' (a spinning die), 'done' (✓, then the page reloads) or 'off' (remove).
+// Pass the element back in to update it; returns it (null after 'off').
 function syncFx(state, el){
   if (state === 'off') { if (el) el.remove(); return null; }
   if (!el) { el = document.createElement('div'); el.className = 'syncfx'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
@@ -78,6 +100,9 @@ function syncFx(state, el){
     : '<div class="sfxbox"><span class="sfxspin" aria-hidden="true">🎲</span><b>Reading D&amp;D Beyond…</b></div>';
   return el;
 }
+// Open the Sync window (closing the ☰ menu). Get D&D Beyond's version → confirm the replacement if values would be
+// lost (Go back reopens the window) → window.SHEET.pull saves the compacted data on the server → ✓ and reload.
+// A failure shows the server's message in a dialog.
 async function syncWindow(){
   if (syncing || !window.SHEET) return;
   if (menuOpen) { menuOpen = false; paintMenu(); }
@@ -100,9 +125,10 @@ async function syncWindow(){
   }
 }
 
+// ── claude.ai: Pull and Push ───────────────────────────────────────────────────────────────────────────────
 // ⬇️ PULL: D&D Beyond → this page. Two confirmations when it would overwrite table changes.
-// Desktop app with its browser: done right here (fast). Anywhere else: a cloud scheduled task does it and
-// republishes the page, which reloads every open view (a few minutes).
+// Desktop app with its browser: done right here (fast, pullHere). Anywhere else: a cloud scheduled task does it and
+// republishes the page, which reloads every open view (a few minutes). Errors become a message under the header.
 async function pull(){
   if (window.SHEET) return syncWindow();   // web app: the Sync with D&D Beyond window
   if (syncing) return;
@@ -113,7 +139,7 @@ async function pull(){
   }
   syncing = true; syncBusy(true, 'pull');
   const done = html => { syncing = false; syncBusy(false, 'pull'); setMsg(html); };
-  // standalone web app: the server fetches D&D Beyond, we compact and save, then reload
+  // web app path from before the Sync window; never reached now (window.SHEET returns at the top)
   if (window.SHEET) {
     try { setMsg('Reading D&amp;D Beyond…'); await window.SHEET.pull(compact); return done('Synced. Reloading…'); }
     catch (e) { return done(esc((e && e.message) || 'Sync failed. Try again in a moment.')); }
@@ -145,7 +171,9 @@ async function pull(){
     done(msgs[code] || ('Sync failed'+(code?' ('+esc(code)+')':'')+'. Try again in a moment.'));
   }
 }
-// The fast path: read D&D Beyond's JSON in the Claude app's own browser, rebuild, republish. Throws {code}.
+// The fast path: open D&D Beyond's character JSON in the Claude app's own browser (reusing the tab id saved in ls),
+// read the page text, check it's this character, rebuild the page and republish it. Throws {code} (see pull's
+// messages); 'no_host' / 'server_not_connected' mean there is no app browser, so pull hands over to the cloud.
 async function pullHere(mcp){
   const fail = code => { throw {code}; };
   const listed = await mcp.listTools(HOST).catch(() => null);
@@ -189,10 +217,14 @@ async function push(){
   } catch (e) { done(remoteMsg(e && e.code, 'Push')); }
 }
 
-// every drawer repaint re-checks whether it needs the "scroll for more" strip
+// ── Start ──────────────────────────────────────────────────────────────────────────────────────────────────
+// Every drawer repaint re-checks whether it needs the "scroll for more" strip: the three paint functions are
+// replaced on window with wrappers that call markScroll (§18) after them; done before render() so the first paint
+// is wrapped too.
 [['paintMenu','#menubox'], ['paintRollBox','#rollbox'], ['paintRest','#restbox']].forEach(([fn, sel]) => {
   const orig = window[fn]; window[fn] = function(){ const r = orig.apply(this, arguments); markScroll($(sel)); return r; };
 });
+// draw the sheet, then connect the tracker and notes store (§17)
 render();
 bootStore();
 // Every dice mention anywhere gets the dice style, whatever painted it (bubbles, drawers, dialogs, roll cards…)

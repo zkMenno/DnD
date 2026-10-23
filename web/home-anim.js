@@ -1,19 +1,24 @@
-// Front page motion and the dice tray (src/landing.html). Nothing here is needed to sign up: Get started works before
-// this file loads, and with "reduce motion" on the page stays still (rolls just show the number).
-//   reveal: cards and steps fade up as they scroll into view (html.anim turns it on)
-//   tray:   the sheet's dice sets, grouped, as pictures of each set's 3D d20; tap one to throw three random dice of it,
-//           or "Roll a d20" (window.HomeDice: src/home-dice-api.js + the sheet's 3D dice, built by tools/build.js).
-//           three.js (600 KB) loads only when the tray comes near.
-//   demo:   the first time the tray is in view and the visitor pauses, three dice are thrown for them (once per visit)
+// Front page motion, the throwable background dice and the dice tray (src/landing.html). Loaded (defer) on the home
+// page, Privacy & terms, and the sheet pages (sheet.html, try.html), where only the background dice apply: the other
+// parts find nothing and skip. Nothing here is needed to sign up: Get started works before this file loads, and with
+// "reduce motion" on the page stays still (rolls just show the number).
+//   reveal:  cards and steps fade up as they scroll into view (html.anim turns it on)
+//   bgdice:  pick up a background die and throw it; it bounces off the edges and knocks the others
+//   tray:    the sheet's dice sets, grouped, as pictures of each set's 3D d20; tap one to throw three random dice of it
+//            (window.HomeDice: src/home-dice-api.js + the sheet's 3D dice, built into home-dice.js by tools/build.js).
+//            three.js (600 KB) loads only when the tray comes near.
+//   demo:    the first time the tray is in view and the visitor pauses, three dice are thrown for them (once per visit)
+// Everything is inside one closure: no globals.
 (() => {
   const $ = s => document.querySelector(s), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // localStorage that never throws (blocked storage reads as null)
   const store = { get: k => { try { return localStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} } };
-  // (also on Privacy & terms: the background dice; the front-page parts below find nothing there and skip)
 
-  // ── reveal on scroll ────────────────────────────────────────────────────────────────────────────────
+  // ── Reveal on scroll ─────────────────────────────────────────────────────────────────────────────────────
   if (!still && 'IntersectionObserver' in window) {
     document.documentElement.classList.add('anim');
     document.querySelectorAll('.features .reveal, .steps .reveal').forEach(el => el.style.setProperty('--i', [...el.parentNode.children].indexOf(el)));   // stagger
+    // show one element (.in) and stop watching it
     const show = el => { el.classList.add('in'); io.unobserve(el); };
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) show(e.target); }), { rootMargin: '0px 0px -8% 0px' });
     document.querySelectorAll('.reveal').forEach(el => io.observe(el));
@@ -23,7 +28,7 @@
       document.querySelectorAll('.reveal:not(.in)').forEach(el => { const r = el.getBoundingClientRect(); if (r.height && r.bottom < 0) show(el); }); }); }, { passive: true });
   }
 
-  // ── background dice: pick one up, throw it, knock others ──────────────────────────────────────────
+  // ── Background dice: pick one up, throw it, knock others ─────────────────────────────────────────────────
   // The dice sit behind the page (.bgdice, no pointer events), so a press is matched to a die by position, and only
   // when it doesn't land on something you can use (link, button, video, dice tray). Mouse: hovering one lights it up,
   // grab straight away. Touch: hold still on a die for a moment first, so a swipe over one still just scrolls the page.
@@ -32,14 +37,18 @@
   // A die that comes to rest goes back to tumbling where it stopped.
   {
     const layer = document.querySelector('.bgdice'), dice = layer ? [...layer.querySelectorAll('.bd')] : [];
+    // presses on these never pick up a die (things you can use or read)
     const busy = 'a,button,input,textarea,select,label,summary,video,.sw,#tray,.phone,.clip,.card,.features li,.steps > li,.dicebox,.quicklink,.pc,.msg';
+    // The die under point (x, y), topmost first, with at least a 44 px target; null if the press target t is busy.
     const hit = (x, y, t) => { if (!t || (t.closest && t.closest(busy))) return null;
       for (let i = dice.length - 1; i >= 0; i--) { const r = dice[i].getBoundingClientRect(), pad = Math.max(0, 22 - r.width / 2); if (!r.width) continue;   // another theme's symbol (hidden)
         if (x > r.left - pad && x < r.right + pad && y > r.top - pad && y < r.bottom + pad) return dice[i]; } return null; };
     const live = new Map();   // die → { x, y (top-left px in the layer), a (deg), vx, vy (px per frame), va, w, h, m, held }
+    // held: the die in hand; hold: touch hold timer; hot: the die under the mouse; raf/last: the physics loop
     let held = null, hold = 0, hot = null, raf = 0, last = 0;
+    // write a die's state to its style
     const place = s => { s.d.style.left = s.x + 'px'; s.d.style.top = s.y + 'px'; s.d.style.rotate = s.a + 'deg'; };
-    // take a die out of its tumble: freeze it where it is, as left/top + rotate
+    // Take a die out of its tumble: freeze it where it is, as left/top + rotate, and start tracking it. Mass = width².
     const lift = d => {
       if (live.has(d)) return live.get(d);
       const cs = getComputedStyle(d).transform, m = new DOMMatrix(cs === 'none' ? undefined : cs);
@@ -48,9 +57,12 @@
         a: (parseFloat(d.style.rotate) || 0) + Math.atan2(m.b, m.a) * 180 / Math.PI, vx: 0, vy: 0, va: 0, held: false };
       d.style.animation = 'none'; place(st); live.set(d, st); return st;
     };
+    // stop tracking a die that has come to rest; its CSS tumble restarts from where it stopped
     const rest = s => { live.delete(s.d); s.d.style.animation = ''; s.d.style.animationDelay = '0s'; };   // tumble on from here
     // where a still (tumbling) die's centre is right now
     const centre = (d, L) => { const r = d.getBoundingClientRect(); return { x: r.left + r.width / 2 - L.left, y: r.top + r.height / 2 - L.top }; };
+    // One physics frame: move, bounce off the edges (losing 30%), slow down (friction), collide, then let still dice
+    // rest. k scales everything to the real frame time (capped at 3 frames after a stall). Runs while any die moves.
     const step = now => {
       const k = Math.min(3, (now - last) / 16.7); last = now;
       const W = layer.clientWidth, H = layer.clientHeight, L = layer.getBoundingClientRect(), f = Math.pow(0.95, k);
@@ -81,18 +93,23 @@
       for (const s of [...live.values()]) { place(s); if (!s.held && Math.abs(s.vx) + Math.abs(s.vy) < 0.15 && Math.abs(s.va) < 1) rest(s); }
       raf = live.size ? requestAnimationFrame(step) : 0;
     };
+    // start the physics loop if it isn't running
     const run = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(step); } };
+    // light up the die under the mouse (.hot) and show the grab cursor
     const setHot = d => { if (hot === d) return; if (hot) hot.classList.remove('hot'); hot = d; if (d) d.classList.add('hot'); document.documentElement.classList.toggle('grab-die', !!d); };
+    // pick up die d at pointer position e
     const start = (e, d) => {
       held = lift(d); held.held = true; held.vx = held.vy = held.va = 0; held.px = e.clientX; held.py = e.clientY; held.t = performance.now();
       d.classList.add('held'); setHot(null); document.documentElement.classList.add('grabbing-die'); run();
     };
+    // press: mouse and pen grab at once; touch waits for a 220 ms still hold
     addEventListener('pointerdown', e => {
       if (held || e.button > 0) return; const d = hit(e.clientX, e.clientY, e.target); if (!d) return;
       if (e.pointerType === 'mouse' || e.pointerType === 'pen') { e.preventDefault(); return start(e, d); }
       const x0 = e.clientX, y0 = e.clientY;   // touch: a short still hold picks it up
       hold = setTimeout(() => { hold = 0; start({ clientX: x0, clientY: y0 }, d); if (navigator.vibrate) navigator.vibrate(8); }, 220);
     });
+    // move: drag the held die and track its speed for the throw (or hover-light dice with the mouse)
     addEventListener('pointermove', e => {
       if (hold && e.pointerType !== 'mouse') { clearTimeout(hold); hold = 0; }   // moved: it's a scroll
       if (!held) { if (e.pointerType === 'mouse') setHot(hit(e.clientX, e.clientY, e.target)); return; }
@@ -104,6 +121,7 @@
     addEventListener('mouseout', e => { if (!e.relatedTarget) setHot(null); });
     // while a die is held, a finger drags the die, not the page
     addEventListener('touchmove', e => { if (held) e.preventDefault(); }, { passive: false });
+    // let go: the die flies on with its last speed (and spins with it), unless it was held still before release
     const drop = () => {
       clearTimeout(hold); hold = 0; if (!held) return; const s = held; held = null;
       s.held = false; s.d.classList.remove('held'); document.documentElement.classList.remove('grabbing-die');
@@ -113,10 +131,12 @@
     addEventListener('pointerup', drop); addEventListener('pointercancel', drop); addEventListener('blur', drop);
   }
 
-  // ── Try a sample character: the picker dialog (links work on their own too; #try opens it) ─────────────────────
+  // ── Try a sample character: the picker dialog ────────────────────────────────────────────────────────────
+  // Links to #try open the dialog (they also work on their own, without this file); #try in the address opens it too.
   {
     const dlg = $('#try');
     if (dlg && dlg.showModal) {
+      // open the dialog unless it's already open
       const open = () => { if (!dlg.open) dlg.showModal(); };
       document.addEventListener('click', e => { if (e.target.closest('a[href="#try"]')) { e.preventDefault(); open(); } });
       dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // a tap on the backdrop closes it
@@ -124,18 +144,21 @@
     }
   }
 
-  // ── phones: the sticky Get started bar shows while no other Get started (hero, How it works) is on screen ────────
+  // ── Phones: the sticky Get started bar ───────────────────────────────────────────────────────────────────
+  // It shows while no other Get started button (hero, How it works) is on screen, once the page is scrolled a bit.
   {
     const bar = $('.stickycta'), own = [...document.querySelectorAll('#landing .btn.cta')].filter(b => !bar.contains(b)), seen = new Set();
     if (bar && 'IntersectionObserver' in window) {
+      // show or hide the bar (and take its button out of the tab order while hidden)
       const set = () => { const on = !seen.size && scrollY > 200; bar.classList.toggle('on', on); bar.setAttribute('aria-hidden', String(!on)); bar.firstElementChild.tabIndex = on ? 0 : -1; };
       const io = new IntersectionObserver(es => { es.forEach(e => e.isIntersecting ? seen.add(e.target) : seen.delete(e.target)); set(); });
       own.forEach(b => io.observe(b)); addEventListener('scroll', set, { passive: true });
     }
   }
 
-  // ── demo clips (web/media): load when near, play while a third is in view, pause when scrolled away.
-  //    With reduce-motion they never start by themselves: the poster shows, with the browser's play controls.
+  // ── Demo clips ───────────────────────────────────────────────────────────────────────────────────────────
+  // The videos (web/media) load when near, play while 35% is in view, and pause when scrolled away.
+  // With reduce-motion they never start by themselves: the poster shows, with the browser's play controls.
   // The hero's phone (.herovid) is decoration: with reduce-motion it just keeps its poster, without controls.
   // Nothing loads before the page itself has (window load), so the videos never slow the first view.
   const clips = [...document.querySelectorAll('.clip video, .herovid')];
@@ -149,9 +172,10 @@
     if (document.readyState === 'complete') watch(); else addEventListener('load', watch, { once: true });
   }
 
-  // ── dice tray ───────────────────────────────────────────────────────────────────────────────────────
+  // ── Dice tray ────────────────────────────────────────────────────────────────────────────────────────────
   // Swatches grouped like the sheet's ☰ → Dice Sets. Each starts as a flat d20 shape in the set's colours and becomes a
   // picture of that set's real 3D d20 once three.js is here. Tap a set: it's chosen and throws three random dice of it.
+  // The chosen set is remembered on this device (dt-front-dice). Pages without home-dice.js stop here.
   const D = window.HomeDice; if (!D) return;
   const keys = D.order.flatMap(g => g[1]), tray = $('#tray'), sw = $('#swatches');
   let cur = keys.includes(store.get('dt-front-dice')) ? store.get('dt-front-dice') : D.def, rolling = false, rolled = false;
@@ -161,6 +185,7 @@
     + '</div></div>').join('');
   sw.querySelectorAll('.sw').forEach(b => { const c = D.sets[b.dataset.k].css;
     b.style.setProperty('--a', c[0]); b.style.setProperty('--b', c[1]); b.style.setProperty('--ink', c[2]); });
+  // choose set k: use it for the next throw, remember it, mark its swatch and show its name
   const pick = k => {
     cur = k; D.use(k); store.set('dt-front-dice', k);
     sw.querySelectorAll('.sw').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; });
@@ -168,7 +193,8 @@
   };
   pick(cur); tray.hidden = false;
 
-  // three.js: once, from this site (the page's security policy allows no other script source)
+  // three.js: once, from this site (the page's security policy allows no other script source). Resolves true when
+  // it's there, false when it failed or took over 8 s.
   let three = null;
   const loadThree = () => three || (three = new Promise(res => {
     if (window.THREE) return res(true);
@@ -187,8 +213,10 @@
       if (todo.length) idle(step); };
     idle(step);
   }
+  // a fair random whole number from 1 to n
   const rnd = n => { const a = new Uint32Array(1); crypto.getRandomValues(a); return 1 + (a[0] % n); };
   const SIZES = [4, 6, 8, 10, 12, 20];
+  // Throw dice ([{s: sides, v: value}]) in the current set. One throw at a time; none with reduced motion.
   async function roll(dice){
     if (rolling || still) return; rolling = rolled = true;
     if (!(await loadThree())) { rolling = false; return; }
@@ -197,10 +225,12 @@
   // three different dice (never two d20s): shuffle the six shapes, take three
   const three3 = () => { const z = SIZES.slice(); for (let i = z.length - 1; i > 0; i--) { const j = rnd(i + 1) - 1; [z[i], z[j]] = [z[j], z[i]]; }
     roll(z.slice(0, 3).map(s => ({ s, v: rnd(s) }))); };
+  // tap a swatch: choose that set and throw
   sw.addEventListener('click', e => { const b = e.target.closest('.sw'); if (!b) return; pick(b.dataset.k); three3(); });
   // the set's name in a bubble above it, like the app's tooltips: on mouse hover and keyboard focus (on touch the
   // name already shows under the tray when you tap)
   let tip = null;
+  // show the bubble for swatch b, centred above it and kept on screen
   const showTip = b => {
     hideTip(); const s = D.sets[b.dataset.k]; tip = document.createElement('div'); tip.className = 'dtip'; tip.setAttribute('aria-hidden', 'true');
     tip.innerHTML = '<span class="bk">' + (D.order.find(g => g[1].includes(b.dataset.k)) || [''])[0] + '</span><span class="bt">' + s.name + '</span>' + s.desc;
@@ -209,6 +239,7 @@
     const left = Math.max(12, Math.min(innerWidth - w - 12, cx - w / 2));
     tip.style.left = left + 'px'; tip.style.top = Math.max(8, r.top - h - 10) + 'px'; tip.style.setProperty('--tx', (cx - left) + 'px');
   };
+  // remove the bubble, if any
   const hideTip = () => { if (tip) { tip.remove(); tip = null; } };
   sw.addEventListener('pointerover', e => { const b = e.target.closest('.sw'); if (b && e.pointerType === 'mouse') showTip(b); });
   sw.addEventListener('pointerout', e => { const b = e.target.closest('.sw'); if (b && !b.contains(e.relatedTarget)) hideTip(); });
