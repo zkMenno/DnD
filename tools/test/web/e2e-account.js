@@ -14,7 +14,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   const email = 'acct'+Date.now()+'@example.test', email2 = 'new'+Date.now()+'@example.test';
   await p.goto(B + '/#signin'); await p.fill('input[name=email]', email); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'First-pass-123'); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await p.click('button[value=up]');
   await p.waitForSelector('#add'); await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/170557047'); await p.click('#add button'); await watch.onboard(p);
-  await p.waitForSelector('#vitals'); await p.goto(B + '/'); await p.waitForSelector('#secem');
+  await p.waitForSelector('#vitals'); await p.goto(B + '/'); await p.click('[data-hometab=account]'); await p.waitForSelector('#secem');
   // change email: wrong code refused, right code changes it
   await p.click('#secem'); await p.fill('#newemail', email2); await p.click('#emsend'); await p.waitForSelector('#emcode');
   const c1 = await codeFor(email2); ok('the email-change code goes to the new address', !!c1);
@@ -25,7 +25,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   // set a password with a code sent to the (new) email
   await p.click('#secpw'); await p.click('#pwsend'); await p.waitForSelector('#pwcode');
   const c2 = await codeFor(email2); ok('the password code goes to the account email', !!c2);
-  await p.fill('#pwcode', c2); await p.fill('#pwnew', 'Second-pass-456'); await p.click('#pwok'); await p.waitForTimeout(800);
+  await p.fill('#pwcode', c2); await p.fill('#pwnew', 'Second-pass-456'); await p.fill('#pwnew2', 'Second-pass-456'); await p.click('#pwok'); await p.waitForTimeout(800);
   ok('still signed in after the password change', await p.evaluate(() => pb.authStore.isValid));
   const r = await fetch(B + '/api/collections/users/auth-with-password', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ identity: email2, password: 'Second-pass-456' }) });
   ok('the new email and password sign in', r.ok);

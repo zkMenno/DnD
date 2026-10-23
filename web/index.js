@@ -202,13 +202,23 @@ function signOut() {
 async function renderHome() {
   header();
   const me = pb.authStore.record, auto = isAuto(me.username);
-  $('#main').innerHTML = (auto ? nameCard(me) : '') + `
+  // tabs keep the page short: Characters · Party · Account · Your data (the last one opened is remembered)
+  const TABS = [['chars', '🎲', 'Characters'], ['party', '🍻', 'Party'], ['account', '⚙️', 'Account'], ['data', '🗄️', 'Your data']];
+  $('#main').innerHTML = (auto ? nameCard(me) : '')
+    + '<nav class="hometabs" role="tablist" aria-label="Sections">' + TABS.map(([k, e, t]) => `<button type="button" role="tab" data-hometab="${k}"><span aria-hidden="true">${e}</span> ${t}</button>`).join('') + '</nav>'
+    + `<div class="htab" data-tab="chars">
     <section class="card"><h2>Your characters</h2><div id="mine" class="list"><p class="muted">Loading…</p></div>
       <form id="add" class="addrow"><input name="url" placeholder="Add a character: paste its D&amp;D Beyond link" required autocomplete="off" inputmode="url" aria-label="D&amp;D Beyond character link"><button class="btn primary">Add</button></form>
       <p class="small muted visinfo"><b>Who can see your tracker?</b> <i>Only me</i>: just you. <i>My party can see</i>: other verified players whose characters are in the same D&amp;D Beyond campaign can look at it (read-only), and you share a party log under Notes. <i>Anyone signed in</i>: anyone with the link. Verify a character first to share it with your party.</p>
       <p class="small muted">The character must be public on D&amp;D Beyond (Character Settings → Character Privacy → Public). Dungeon Tracker only reads it.</p></section>
-    <div id="cont"></div>
-    <section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + (auto ? '' : nameCard(me)) + secCard(me) + dataCard();
+    <div id="cont"></div></div>
+    <div class="htab" data-tab="party"><section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + '</div>'
+    + '<div class="htab" data-tab="account">' + (auto ? '' : nameCard(me)) + secCard(me) + '</div><div class="htab" data-tab="data">' + dataCard() + '</div>';
+  const showTab = k => { document.querySelectorAll('.htab').forEach(t => { t.hidden = t.dataset.tab !== k; });
+    document.querySelectorAll('[data-hometab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.hometab === k))); try { localStorage.setItem('home-tab', k); } catch (_) {} };
+  document.querySelectorAll('[data-hometab]').forEach(b => b.onclick = () => showTab(b.dataset.hometab));
+  let last = 'chars'; try { last = localStorage.getItem('home-tab') || 'chars'; } catch (_) {}
+  showTab(TABS.some(t => t[0] === last) ? last : 'chars');
   pwPrompt(me);
   $('#add').addEventListener('submit', addCharacter); $('#uname').addEventListener('submit', saveName);
   { const u = $('#uname [name=u]'); u.addEventListener('input', () => { $('#unpv').textContent = u.value.trim().toLowerCase() || 'name'; }); }   // the example link follows what you type
@@ -258,6 +268,16 @@ async function saveName(e) {
 }
 
 // Your data (GDPR, see /legal.html): download everything this app keeps about you, or delete it all
+// 👁 show/hide on every password field on screen (added once per field)
+function peek() {
+  document.querySelectorAll('input[type=password]:not([data-peek])').forEach(inp => {
+    inp.dataset.peek = '1'; const w = document.createElement('span'); w.className = 'pwwrap'; inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pwpeek'; b.setAttribute('aria-label', 'Show password'); b.textContent = '👁';
+    b.onclick = () => { const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.classList.toggle('on', show); b.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); };
+    w.appendChild(b);
+  });
+}
+new MutationObserver(() => peek()).observe(document.getElementById('main'), { childList: true, subtree: true });
 // No password yet (the account came from an emailed code): suggest saving one, so next time signing in is instant and
 // doesn't use an email. Right after a code sign-in it's one field; later the Sign-in & security flow (with a code) does it.
 function pwPrompt(me) {
@@ -266,13 +286,15 @@ function pwPrompt(me) {
   const card = document.createElement('section'); card.className = 'card pwprompt';
   card.innerHTML = `<h2>🔑 Save a password for next time</h2>
     <p class="small muted">Sign in straight away next time, without waiting for an email. You can still use emailed codes too.</p>
-    <div class="authrow"><input id="firstpw" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" aria-label="New password">
-      <button class="btn primary" type="button" id="firstpwok">Save password</button></div>
-    <div class="row authsub"><button class="btn" type="button" id="firstpwno">Not now</button></div>`;
+    <div class="pwpair"><input id="firstpw" type="password" autocomplete="new-password" minlength="8" placeholder="New password (at least 8 characters)" aria-label="New password">
+      <input id="firstpw2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again" aria-label="Repeat the password"></div>
+    <div class="row authsub"><button class="btn primary" type="button" id="firstpwok">Save password</button>
+<button class="btn" type="button" id="firstpwno">Not now</button></div>`;
   const list = $('#mine') && $('#mine').closest('section'); (list ? list.parentNode.insertBefore(card, list) : $('#main').prepend(card));
   $('#firstpwno').onclick = () => { try { localStorage.setItem('pw-later-' + me.id, '1'); } catch (_) {} card.remove(); };
   $('#firstpwok').onclick = async () => {
     const pw = $('#firstpw').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
+    if ($('#firstpw2').value !== pw) return msg('The two passwords aren’t the same.', true);
     try { const r = await pb.send('/api/account/first-password', { method: 'POST', body: { password: pw } });
       pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email })); card.remove(); msg('Password saved. Next time, sign in with your email and password.'); }
     catch (e) { const t = (e && e.response && e.response.message) || '';
@@ -283,14 +305,15 @@ function pwPrompt(me) {
 // Sign-in & security: change your email or set/change your password. Both confirm with a 6-digit code
 // (server/pb_hooks/account.pb.js): for a password it goes to your email, for a new email to the new address.
 const secCard = me => `<section class="card sec"><h2>Sign-in &amp; security</h2>
-    <div class="secrow"><div><b>Email</b><span class="small muted" id="secemail">${esc(me.email || '')}</span></div><button class="btn" type="button" id="secem">Change email</button></div>
+    <div class="secrow"><div><b>Email</b><span class="small muted" id="secemail">${esc(me.email || '')}</span></div><button class="btn xbtn" type="button" id="secem" aria-expanded="false">Change email <span class="xchev" aria-hidden="true"></span></button></div>
     <div class="secbox" id="secembox" hidden></div>
-    <div class="secrow"><div><b>Password</b><span class="small muted">Optional: you can always sign in with an emailed code.</span></div><button class="btn" type="button" id="secpw">Set or change password</button></div>
+    <div class="secrow"><div><b>Password</b><span class="small muted">Optional: you can always sign in with an emailed code.</span></div><button class="btn xbtn" type="button" id="secpw" aria-expanded="false">Set or change password <span class="xchev" aria-hidden="true"></span></button></div>
     <div class="secbox" id="secpwbox" hidden></div></section>`;
 function bindSec() {
   const api = (path, body) => pb.send('/api/account/' + path, { method: 'POST', body });
   const err = e => (e && e.response && e.response.message) || (e && e.message) || 'That didn’t work. Try again.';
-  const toggle = (box, html, other) => { $(other).hidden = true; const b = $(box); b.hidden = !b.hidden; if (!b.hidden) b.innerHTML = html; return !b.hidden; };
+  const toggle = (box, html, other) => { $(other).hidden = true; const b = $(box); b.hidden = !b.hidden; if (!b.hidden) b.innerHTML = html;
+    $('#secem').setAttribute('aria-expanded', String(!$('#secembox').hidden)); $('#secpw').setAttribute('aria-expanded', String(!$('#secpwbox').hidden)); return !b.hidden; };
   $('#secem').onclick = () => {
     if (!toggle('#secembox', `<label class="authlbl" for="newemail">New email</label><div class="authrow"><input id="newemail" type="email" autocomplete="email" placeholder="you@example.com"><button class="btn primary" type="button" id="emsend">Send a code</button></div>
       <p class="small muted">We send a 6-digit code to the new address to check it’s yours.</p><div id="emstep2"></div>`, '#secpwbox')) return;
@@ -312,10 +335,12 @@ function bindSec() {
       try { const r = await api('code', { purpose: 'password' }); msg('Code sent to ' + r.sent + '.'); $('#pwsend').hidden = true;
         $('#pwstep2').innerHTML = `<label class="authlbl" for="pwcode">Code</label><input id="pwcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
           <label class="authlbl" for="pwnew">New password</label><input id="pwnew" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+          <label class="authlbl" for="pwnew2">Repeat it</label><input id="pwnew2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again">
           <div class="row authsub"><button class="btn primary" type="button" id="pwok">Save password</button></div>`;
         $('#pwcode').focus();
         $('#pwok').onclick = async () => {
           const pw = $('#pwnew').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
+          if ($('#pwnew2').value !== pw) return msg('The two passwords aren’t the same.', true);
           try { const r = await api('confirm', { code: $('#pwcode').value, password: pw }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
             try { localStorage.setItem('has-password-' + r.record.id, '1'); } catch (_) {}
             $('#secpwbox').hidden = true; msg('Password saved. You can sign in with it or with an emailed code.'); }
@@ -326,7 +351,7 @@ function bindSec() {
 }
 const dataCard = () => `<section class="card"><h2>Your data</h2>
     <p class="small muted">Everything this app keeps about you, stored in the EU.</p>
-    <div class="row"><button class="btn" id="export">⬇️ Download my data</button><button class="btn danger" id="delacct">Delete my account</button></div>
+    <div class="row"><button class="btn" id="export">⬇️ Download my data</button><button class="btn danger xbtn" id="delacct" aria-expanded="false">Delete my account <span class="xchev" aria-hidden="true"></span></button></div>
     <div id="delbox" hidden></div></section>`;
 async function exportData() {
   const me = pb.authStore.record, mine = { m: me.id };
@@ -348,20 +373,20 @@ async function exportData() {
 }
 // delete: say exactly what goes, ask for the username typed out (with or without quotes), then one last yes/no
 function askDelete() {
-  const me = pb.authStore.record, box = $('#delbox'); box.hidden = false;
+  const me = pb.authStore.record, box = $('#delbox'); box.hidden = false; $('#delacct').setAttribute('aria-expanded', 'true');
   box.innerHTML = `<div class="claim delclaim"><p><b>Delete your account?</b> Your account, all your characters, trackers and notes (party log posts too)
       are deleted straight away and leave the backups within 15 days. This can’t be undone. Your D&amp;D Beyond characters aren’t touched.</p>
     <p class="delask"><label for="delname">Type your username, “<b>${esc(me.username)}</b>”, to confirm.</label></p>
     <input id="delname" autocomplete="off" autocapitalize="none" spellcheck="false">
     <div class="row"><button class="btn danger" id="delgo">Delete everything</button><button class="btn" id="delno">Keep my account</button></div></div>`;
-  $('#delno').onclick = () => { box.hidden = true; };
+  $('#delno').onclick = () => { box.hidden = true; $('#delacct').setAttribute('aria-expanded', 'false'); };
   $('#delgo').onclick = () => {
     const typed = $('#delname').value.trim().toLowerCase().replace(/^["“”'‘’]+|["“”'‘’]+$/g, '');
     if (typed !== me.username) return msg('That’s not your username.', true);
     msg('');
     box.innerHTML = `<div class="claim delclaim dellast"><p><b>Last check.</b> Delete <b>@${esc(me.username)}</b> and everything in it, for good?</p>
       <div class="row"><button class="btn danger solid" id="delyes">Yes, delete forever</button><button class="btn" id="delno2">No, keep my account</button></div></div>`;
-    $('#delno2').onclick = () => { box.hidden = true; };
+    $('#delno2').onclick = () => { box.hidden = true; $('#delacct').setAttribute('aria-expanded', 'false'); };
     $('#delyes').onclick = async () => {
       try { await pb.collection('users').delete(me.id); signOut(); msg('Your account and everything in it are deleted.'); }
       catch (e) { msg('Couldn’t delete the account. Try again, or email the contact on the Privacy & terms page.', true); }

@@ -10,7 +10,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const signUp = async (p, who) => { await p.goto(B + '/#signin'); await p.fill('input[name=email]', who + '@example.test'); await p.click('.pwbox summary');
     await p.fill('input[name=password]', 'Passw0rd-' + who); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await p.click('button[value=up]'); await p.waitForSelector('#add'); };
   const sheet = async p => { await p.waitForSelector('#vitals'); await p.evaluate(() => window.SHEET.saved); return new URL(p.url()).pathname; };
-  const rename = async (p, name) => { await p.fill('#uname input[name=u]', name); await p.click('#uname button'); await p.waitForTimeout(800); };
+  const rename = async (p, name) => { await p.evaluate(() => { const u = document.querySelector('#uname'), t = document.querySelector('[data-hometab=account]'); if (u && !u.offsetParent && t) t.click(); }); await p.fill('#uname input[name=u]', name); await p.click('#uname button'); await p.waitForTimeout(800); };
 
   const p = await page(); await signUp(p, 'linker');
   ok('a new account starts at step 1: add your character, with how to make it public', /Step 1 of 2/.test(await p.textContent('#add')) && /Character Privacy/.test(await p.textContent('#add')) && /Read-only/.test(await p.textContent('#add')));
@@ -23,7 +23,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   ok('then the sheet opens at /<username>/<D&D Beyond id> (lowercased)', (await sheet(p)) === '/menno-test/165157421');
   await p.goto(B + '/170557047'); ok('/<D&D Beyond id> adds and opens your own copy', (await sheet(p)) === '/menno-test/170557047' && (await p.title()) === 'Henry Gibbs');
 
-  await p.goto(B + '/'); await p.waitForSelector('#mine .ch'); await rename(p, 'menno-two'); await p.waitForSelector('#mine .ch');
+  await p.goto(B + '/'); await p.waitForSelector('#mine .ch'); await rename(p, 'menno-two'); await p.click('[data-hometab=chars]'); await p.waitForSelector('#mine .ch');
   ok('your characters follow a new username', await p.evaluate(() => [...document.querySelectorAll('#mine a.open')].map(a => a.getAttribute('href')).sort().join() === '/menno-two/165157421,/menno-two/170557047'));
   await p.goto(B + '/menno-two/165157421'); ok('the new address opens the sheet', (await sheet(p)) === '/menno-two/165157421');
   await p.goto(B + '/menno-test/165157421'); await p.waitForSelector('.boot');

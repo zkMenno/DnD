@@ -24,7 +24,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   ok('the sheet\'s ☰ menu has a Back to all characters row (Privacy & terms is only in the home footer)', !!(await p.$('#menubox a.homelink[href="/"]')) && !(await p.$('#menubox a[href="/legal.html"]')));
   ok('nothing loads from another site (fonts, scripts: all from this server)', outside.size === 0 || console.log('   outside:', [...outside]));
 
-  await p.goto(B + '/'); await p.waitForSelector('#export');
+  await p.goto(B + '/'); await p.click('[data-hometab=data]'); await p.waitForSelector('#export');
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#export')]);
   const data = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
   ok('download my data: account, character, tracker and notes as JSON', data.account.email === 'leaver@example.test' && data.characters.length === 1

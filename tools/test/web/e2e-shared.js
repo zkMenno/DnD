@@ -22,7 +22,7 @@ const api = async (path, opt={}) => (await fetch(B+path, {...opt, headers:{'cont
   await h.evaluate(() => { S.hp = 30; save(); }); await h.waitForTimeout(1500);   // the owner's tracker, saved to the server
 
   // the viewer finds Henry under "Shared with you" and opens it
-  await a.goto(B+'/'); await a.waitForSelector('#shared .ch a.open');
+  await a.goto(B+'/'); await a.click('[data-hometab=party]'); await a.waitForSelector('#shared .ch a.open');
   ok('Henry is listed under Shared with you', !!(await a.$('#shared a.open[href="'+h.path+'"]')));
   await a.click('#shared a.open[href="'+h.path+'"]'); await a.waitForSelector('#vitals'); await a.waitForTimeout(1500);
   ok('opens read-only with a banner', await a.evaluate(() => VIEW && !!document.querySelector('.viewbar') && document.body.classList.contains('viewonly')));

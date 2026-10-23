@@ -44,13 +44,18 @@ const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<titl
   + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96"><link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">'
   + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css">'
   + '<script src="/sw-register.js"></script>';   // offline (web/sw.template.js); no inline scripts (CSP)
-fs.writeFileSync(out+'/web/sheet.html', head('Character') + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/sheet.css">\n'
-  + '<div id="app"><div class="boot"><p>Loading…</p></div></div>\n<script src="/pocketbase.umd.js"></script>\n<script src="/sheet-boot.js"></script>\n</body></html>');
+// sheet pages: the tumbling background dice (the same ones as the home page, throwable via home-anim.js) and a
+// loading card with a gold bar while the character and the engine load
+const DICE_DEFS = (R('src/landing.html').match(/<svg width="0" height="0"[\s\S]*?<\/svg>/) || [''])[0];
+const BOOT = '<div class="boot"><svg class="bootd20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><p>Opening your sheet…</p><div class="bootbar" aria-hidden="true"><span></span></div></div>';
+const sheetFrame = (title, scripts) => head(title) + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/sheet.css">\n'
+  + R('src/bgdice.html').replace('class="bgdice"', 'class="bgdice sheetdice"') + DICE_DEFS
+  + '<div id="app">' + BOOT + '</div>\n' + scripts + '<script src="/home-anim.js" defer></script>\n</body></html>';
+fs.writeFileSync(out+'/web/sheet.html', sheetFrame('Character', '<script src="/pocketbase.umd.js"></script>\n<script src="/sheet-boot.js"></script>\n'));
 // try-out sheets (web/try-boot.js): two made-up characters anyone can open without an account
 fs.mkdirSync(out+'/web/trial', {recursive:true});
 for (const t of ['trial-brute','trial-mage']) fs.copyFileSync(path.join(__dirname,'..','data',t+'.json'), out+'/web/trial/'+t+'.json');
-fs.writeFileSync(out+'/web/try.html', head('Try Dungeon Tracker') + '<meta name="robots" content="noindex"><link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/sheet.css">\n'
-  + '<div id="app"><div class="boot"><p>Loading…</p></div></div>\n<script src="/try-boot.js"></script>\n</body></html>');
+fs.writeFileSync(out+'/web/try.html', sheetFrame('Try Dungeon Tracker', '<script src="/try-boot.js"></script>\n').replace('<link rel="stylesheet" href="/engine/app.css">', '<meta name="robots" content="noindex"><link rel="stylesheet" href="/engine/app.css">'));
 // the site's header and footer, shared by the home page and Privacy & terms
 const SITE_FOOT = '<footer class="foot"><p>Made with 🎲 by <a href="https://github.com/zkMenno" target="_blank" rel="noopener">Menno</a></p>'
   + '<p class="small">This is an unofficial fan project. Dungeon Tracker is not affiliated with Wizards of the Coast or D&amp;D Beyond.</p>'
@@ -79,7 +84,7 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
   fs.writeFileSync(out+'/web/legal.html', head('Privacy & terms') + '<link rel="stylesheet" href="/home.css">\n'
     + R('src/bgdice.html') + '<header class="top"><a class="brand" href="/"><svg class="brand-d20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><span>Dungeon Tracker</span></a><span id="who"><a class="btn login toplogin" href="/">‹ Back</a></span></header>\n'
     + R('src/legal.html').replace(/<!--[\s\S]*?-->\n?/, '').replace(/\{\{(\w+)\}\}/g, (m, k) => (k in site ? site[k] : m)) + '\n' + SITE_FOOT
-    + (R('src/landing.html').match(/<svg width="0" height="0"[\s\S]*?<\/svg>/) || [''])[0]   // the dice shapes (<symbol>s)
+    + DICE_DEFS   // the dice shapes (<symbol>s)
     + '<script src="/home-anim.js" defer></script>\n</body></html>'); }
 // Cache-busting: each page asks for this build's copy of its scripts and stylesheets (?v=<hash of the build's files>).
 // The service worker serves files from its saved copy first, so without this a fresh page could run with the previous

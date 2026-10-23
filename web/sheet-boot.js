@@ -42,7 +42,7 @@ window.withV = withV;
   let firstSync = false, payload = ch.data;
   if (!payload || !payload.id) {
     if (!mine) return fail('This character hasn’t been synced by its owner yet.');
-    app.innerHTML = '<div class="boot"><p>Reading D&amp;D Beyond…</p></div>';
+    app.innerHTML = '<div class="boot"><svg class="bootd20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><p>Reading D&amp;D Beyond…</p><div class="bootbar" aria-hidden="true"><span></span></div></div>';
     try { payload = await pb.send('/api/ddb/' + ch.ddb_id, {}); firstSync = true; }
     catch (e) { return fail((e && e.message) || 'D&D Beyond didn’t answer. Is the character public?'); }
   }

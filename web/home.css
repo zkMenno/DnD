@@ -543,3 +543,26 @@ body > #msg:empty{display:none}
 .codebox p.small{margin:12px 0 0}
 .codebox .authrow .codein{flex:1 1 0;min-width:0;width:100%;max-width:none}
 #codebox input[name=code]{max-width:none}
+
+/* ── Account page (23 Oct, late): tabs, bigger text, password pairs with 👁, chevrons on buttons that open a section ── */
+body:not(.front) main{font-size:1.06rem}
+body:not(.front) main .small{font-size:.95rem}
+body:not(.front) main h2{font-size:1.35rem}
+.hometabs{display:flex;gap:6px;flex-wrap:wrap;padding:6px;border-radius:999px;border:1px solid var(--line);background:var(--surface);position:sticky;top:8px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.hometabs button{flex:1 1 auto;appearance:none;border:0;background:none;color:var(--muted);font:inherit;font-weight:700;font-size:.98rem;padding:9px 14px;border-radius:999px;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+.hometabs button:hover{color:var(--ink);background:color-mix(in srgb,var(--brass) 10%,transparent)}
+.hometabs button[aria-selected="true"]{background:var(--brass);color:#1d1406}
+.htab{display:grid;gap:14px} .htab[hidden]{display:none}
+@media (max-width:520px){ .hometabs{border-radius:16px} .hometabs button{flex:1 1 40%;padding:8px 10px;font-size:.92rem} }
+.pwwrap{position:relative;display:block;flex:1;min-width:0}
+.pwwrap input{width:100%;box-sizing:border-box;padding-right:46px}
+.pwpeek{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;border-radius:8px;background:none;cursor:pointer;font-size:1.05rem;opacity:.55;transition:opacity .15s,background .15s}
+.pwpeek:hover{opacity:1;background:color-mix(in srgb,var(--ink) 8%,transparent)} .pwpeek.on{opacity:1}
+.secbox .pwwrap input{margin:0}
+.secbox .pwwrap{margin:0 0 10px}
+.pwpair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pwpair input{padding:10px 12px}
+@media (max-width:520px){ .pwpair{grid-template-columns:1fr} }
+.xbtn{display:inline-flex;align-items:center;gap:10px}
+.xchev{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s}
+.xbtn[aria-expanded="true"] .xchev{transform:rotate(-135deg) translate(-2px,-2px)}

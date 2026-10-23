@@ -1588,3 +1588,6 @@ button.chip.ic.term{text-decoration:none}
 a.menulink.homelink{text-decoration:none;color:var(--ink)} a.menulink.homelink:visited{color:var(--ink)}
 a.menulink.homelink .mico{font-size:1.6rem;line-height:1;font-weight:700;color:var(--brass);width:28px;text-align:center}
 .synctab td b{overflow-wrap:anywhere}
+/* ☰ menu: "Back to all characters" stands out (gold edge), and fills gold on hover */
+a.menulink.homelink{border-color:var(--brass);transition:background .15s,color .15s}
+a.menulink.homelink:hover{background:var(--brass);color:#1d1406} a.menulink.homelink:hover .mico{color:#1d1406}

@@ -164,7 +164,7 @@ function snapshotBase(){ const b = {}; TRACKED.forEach(k => b[k] = JSON.parse(JS
 function changes(){
   // each change: t (one line), where (how to enter it on D&D Beyond), and for the sync table: what, here (this sheet), ddb
   const f = baseline(), out = [], add = (t, where, what, here, ddb) => out.push({t, where, what, here: here == null ? '' : String(here), ddb: ddb == null ? '' : String(ddb)});
-  if (S.hp !== f.hp) { const d = S.hp - f.hp; add('HP '+f.hp+' → '+S.hp+' (of '+D.hpMax+')', 'Tap Hit Points, enter '+Math.abs(d)+' and press '+(d<0?'Damage':'Heal'), 'Hit points', S.hp+' / '+D.hpMax, f.hp+' / '+D.hpMax); }
+  if (S.hp !== f.hp) { const d = S.hp - f.hp; add('HP '+f.hp+' → '+S.hp+' (of '+D.hpMax+')', 'Tap Hit Points, enter '+Math.abs(d)+' and press '+(d<0?'Damage':'Heal'), 'Hit points', S.hp, f.hp); }
   if (S.temp !== f.temp) add('Temporary HP '+f.temp+' → '+S.temp, 'Hit Points panel → Temp HP: set to '+S.temp, 'Temporary HP', S.temp, f.temp);
   if (S.insp !== f.insp) add('Heroic Inspiration '+(S.insp?'gained':'used'), (S.insp?'Switch on':'Switch off')+' Inspiration at the top of the sheet', 'Heroic Inspiration', S.insp?'Yes':'No', f.insp?'Yes':'No');
   RES.forEach(r => { const a = f[r.key]||0, b = S[r.key]||0, where = r.ddb || ('Actions → '+r.name); if (a === b) return;
@@ -195,8 +195,10 @@ function changesHtml(){
   const c = changes();
   if (!c.length) return '<div class="changes ok"><span class="dot p"></span><span>'+WORD.clean+' Matches D&amp;D Beyond, nothing to enter.</span></div>';
   return '<div class="changes"><div class="cardhead" style="margin-bottom:6px"><h3><span class="emo" aria-hidden="true">📝</span>To enter in D&amp;D Beyond <span class="chip brass">'+c.length+'</span></h3><div class="chbtns"><button class="btn small" data-act="copychanges">Copy</button><button class="btn small" data-act="clearchanges">Clear</button></div></div>'
-    + '<ul class="chlist">'+c.map(x=>'<li><span class="cht">'+esc(x.t)+'</span><span class="chw">'+esc(x.where)+'</span></li>').join('')+'</ul>'
-    + '<p class="small muted" style="margin:6px 0 0">Enter these in the D&amp;D Beyond app, then tap Clear. Syncing clears the list too. Or tell Claude “push '+esc(FIRST_NAME)+'”.</p></div>';
+    // the same table as the Sync with D&D Beyond window (§21): what, this sheet, D&D Beyond, and where to change it
+    + syncTableHtml(c)
+    + '<p class="small muted" style="margin:6px 0 0">'+(window.SHEET ? 'Change these on D&amp;D Beyond (website or app), then tap Clear. Syncing with D&amp;D Beyond clears the list too.'
+      : 'Enter these in the D&amp;D Beyond app, then tap Clear. Syncing clears the list too. Or tell Claude “push '+esc(FIRST_NAME)+'”.')+'</p></div>';
 }
 // repaint the change list
 function paintChanges(){ const n = $('#notechanges'); if (n) { n.innerHTML = changesHtml(); } }
