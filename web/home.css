@@ -656,7 +656,7 @@ body > #msg{font-size:1.02rem;line-height:1.45}
 .pwnote{margin:12px 0 8px;line-height:1.5}
 #firstcode .codein{max-width:14rem}
 /* Sign-in & security rows: text left, buttons right; the rows stack on phones */
-.secrow .secbtns{gap:8px;flex-wrap:nowrap}
+.sec .secrow > .secbtns{display:flex;gap:8px;flex-wrap:nowrap;align-items:center}
 @media (max-width:560px){ .secrow{flex-direction:column;align-items:stretch;gap:10px} .secrow .btn,.secrow .secbtns{align-self:flex-start} }
 /* "Forgot your password?" next to Roll in */
 .pwgorow{align-items:center;gap:14px}
@@ -667,3 +667,22 @@ body > #msg{font-size:1.02rem;line-height:1.45}
 .askcard b{font-family:var(--f-display);font-size:1.3rem}
 .askcard span{color:var(--muted);line-height:1.5}
 .askcard .row{gap:10px;margin-top:8px;justify-content:center}
+/* phones: a character row is two lines — ☆ name … ⋯ Continue →, then Verify and who can see it — instead of four */
+@media (max-width:560px){
+  .ch{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;column-gap:8px;row-gap:10px}
+  .ch > .chstar{grid-column:1;grid-row:1}
+  .ch > .open{grid-column:2;grid-row:1;flex-basis:auto}
+  .ch > .chmore{grid-column:3;grid-row:1}
+  .ch > .contbtn{grid-column:4;grid-row:2;padding:8px 12px}
+  .ch > .contbtn .d20i{display:none}
+  .chctl select{padding-left:12px;padding-right:30px}
+  .ch > .chctl{grid-column:1/4;grid-row:2;width:auto;justify-content:flex-start;flex-wrap:nowrap;min-width:0}
+  .ch > .open{grid-column:2/4}
+  .ch > .chmore{grid-column:4;justify-self:end}
+  .ch > .chctl:empty{display:none}
+  .ch > .small.muted{grid-column:1/-1}
+  .chctl select{flex:1 1 auto;min-width:0;max-width:none}
+  /* Sign-in & security: Change and Remove side by side */
+  .sec .secrow > .secbtns{display:flex;flex-direction:row-reverse;justify-content:flex-end;flex-wrap:nowrap;align-self:stretch;width:auto}
+  .secrow .secbtns > .btn{align-self:auto}
+}
