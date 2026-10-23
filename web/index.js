@@ -78,9 +78,25 @@ document.querySelectorAll('form.quicklink').forEach(f => f.addEventListener('sub
 
 // ── Sign in ────────────────────────────────────────────────────────────────────────────────────────────────
 // otpId: the pending email-code request (set once a code is sent); providers: OAuth2 providers, fetched once
-let otpId = null, otpEmail = '', providers = null;
+let otpId = null, otpEmail = '', providers = null, otpAt = 0;   // otpAt: when the last code was sent (for the countdowns)
+const OTP_LIFE = 600, OTP_RESEND = 60;   // a code works 10 minutes (users.otp.duration, migration 1761000000); a new one after a minute
 // Draws the sign-in card. mode: 'signin', 'signup' (the password box offers "new account") or 'signup-pw' (opens
 // the password box). Redraws itself after a code is sent, to show the code box. Binds every button on the card.
+// The code box's two countdowns, once a second while it's on screen: how long the code still works ("9:41", then
+// "This code has run out" at 0), and "Send a new code (0:42)" held back for the first minute. Stops by itself when
+// the box goes (sign-in, another email, leaving the page).
+let otpTick = null;
+function otpTimers(){
+  clearInterval(otpTick);
+  const mmss = n => Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
+  const tick = () => {
+    const left = $('#otpleft'), life = $('#otplife'), re = $('#otpresend'); if (!left || !re) return clearInterval(otpTick);
+    const gone = Math.floor((Date.now() - otpAt) / 1000), l = Math.max(0, OTP_LIFE - gone), w = Math.max(0, OTP_RESEND - gone);
+    if (l > 0) left.textContent = mmss(l); else life.innerHTML = '<b>This code has run out.</b> Send a new one.';
+    re.disabled = w > 0; re.textContent = w > 0 ? 'Send a new code (' + mmss(w) + ')' : 'Send a new code';
+  };
+  tick(); otpTick = setInterval(tick, 1000);
+}
 async function renderLogin(mode) {
   // signed out, the sign-in card wears the front page's (pirate) look like the landing page; your own look comes
   // back once you're in (header() switches it)
@@ -104,10 +120,10 @@ async function renderLogin(mode) {
         ${otpId ? '' : '<button class="btn primary" name="go" value="code">📧 Email me a code</button>'}
       </div>
       ${otpId ? `<div id="codebox" class="codebox">
-        <p>We sent a 6-digit code to <b>${esc(otpEmail)}</b>. It works for 10 minutes.</p>
+        <p>We sent a 6-digit code to <b>${esc(otpEmail)}</b>. <span id="otplife">It works for <b class="num" id="otpleft">10:00</b>.</span></p>
         <div class="authrow"><input name="code" class="codein" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456" aria-label="Code">
           <button class="btn primary" name="go" value="otp">Roll in <span aria-hidden="true">→</span></button></div>
-        <div class="row authsub"><button class="btn" name="go" value="resend" formnovalidate>Send a new code</button><button class="btn" type="button" id="otpback">Use another email</button></div>
+        <div class="row authsub"><button class="btn" name="go" value="resend" id="otpresend" formnovalidate>Send a new code</button><button class="btn" type="button" id="otpback">Use another email</button></div>
         <p class="small muted">Not there? Check your spam folder.</p>
       </div>` : '<p class="small muted authhint">We email you a 6-digit code. No password to remember.</p>'}
       <details class="pwbox"${pwKnown(otpEmail) || mode === 'signup-pw' ? ' open' : ''}><summary class="btn">🔑 Use a password instead <span class="xchev" aria-hidden="true"></span></summary>
@@ -144,7 +160,7 @@ async function renderLogin(mode) {
   // an email this device knows has a password: open the password box straight away
   const em = $('#authemail'), pwOpen = () => { if (pwKnown(em.value)) { const d = document.querySelector('.pwbox'); if (!d.open) { d.open = true; pwMode('in'); } } };
   em.addEventListener('input', pwOpen); em.addEventListener('change', pwOpen); pwOpen();
-  if (otpId) { const c = document.querySelector('[name=code]'); if (c) c.focus(); }
+  if (otpId) { const c = document.querySelector('[name=code]'); if (c) c.focus(); otpTimers(); }
   $('#tofront').onclick = e => { e.preventDefault(); history.replaceState(null, '', '/'); msg(''); showLanding(); };
   // OAuth2: PocketBase opens the provider in a pop-up and resolves when it's done
   document.querySelectorAll('[data-oauth]').forEach(b => b.onclick = async () => {
@@ -160,7 +176,7 @@ async function renderLogin(mode) {
     if (go === 'code' || go === 'resend') {
       if (!email) return msg('Type your email first.', true);
       msg('Sending a code…');
-      try { otpId = (await pb.collection('users').requestOTP(email)).otpId; otpEmail = email; msg(''); renderLogin(mode); const c = document.querySelector('[name=code]'); if (c) c.focus(); }
+      try { otpId = (await pb.collection('users').requestOTP(email)).otpId; otpEmail = email; otpAt = Date.now(); msg(''); renderLogin(mode); const c = document.querySelector('[name=code]'); if (c) c.focus(); }
       catch (err) { msg('Couldn’t send the email right now. Use a password for the moment (below).', true); }
       return;
     }

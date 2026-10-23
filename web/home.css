@@ -769,3 +769,6 @@ body > #msg{font-size:1.02rem;line-height:1.45}
    they read as buttons on every look */
 .saverow .btn:not(.primary):not(.danger){border:1.5px solid color-mix(in srgb,var(--brass) 70%,transparent)}
 @media (hover:hover) and (pointer:fine){ .saverow .btn:not(.primary):not(.danger):hover{border-color:var(--brass)} }
+/* phones: the code box stacks (column), so the code field's 14rem flex-basis became its height; there it's full width
+   and its natural height */
+@media (max-width:520px){ .codebox .authrow .codein,#codebox input[name=code]{flex:none;max-width:none;width:100%;box-sizing:border-box} }
