@@ -11,7 +11,8 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const p = await ctx.newPage(); const errs = []; watch(p, errs); p.setDefaultTimeout(20000);
   // D&D Beyond portraits: answer with a tiny local image, so the crest test doesn't need the network (CI has none)
   const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
-  await ctx.route('https://www.dndbeyond.com/avatars/**', r => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
+  const avatars = c => c.route('https://www.dndbeyond.com/avatars/**', r => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
+  await avatars(ctx);
   // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   // Sign up, add Wick by link, change HP and write a note; both survive a reload.
@@ -33,7 +34,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   ok('tracker change kept after reload (from the server)', await p.evaluate(h => S.hp === h - 7, hp0));
   ok('note kept after reload', await p.evaluate(() => NOTES.some(n => /harbourmaster/.test(n.text))));
   // a fresh browser (no local cache) sees the same state: proves it's on the server, not localStorage
-  const ctx2 = await b.newContext({viewport:{width:390,height:844}}); const p2 = await ctx2.newPage(); p2.setDefaultTimeout(20000);
+  const ctx2 = await b.newContext({viewport:{width:390,height:844}}); await avatars(ctx2); const p2 = await ctx2.newPage(); p2.setDefaultTimeout(20000);
   await p2.goto(B + '/#signin'); await p2.fill('input[name=email]', 'menno@example.test'); await p2.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p2.fill('input[name=password]', 'Passw0rd-menno'); await p2.click('button[value=in]');
   await p2.waitForSelector('#mine .ch'); ok('home lists the character with campaign', /The Bluff|Warlock/.test(await p2.textContent('#mine')));
   ok('the home row has the portrait (initials under it)', await p2.evaluate(() => { const c = document.querySelector('#mine .ch .open .chpic'); return !!c && c.dataset.i === 'WS' && /^https:\/\/www\.dndbeyond\.com\/avatars\//.test((c.querySelector('img') || {}).src || ''); }));
