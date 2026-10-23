@@ -83,13 +83,13 @@ async function syncWindow(){
   if (menuOpen) { menuOpen = false; paintMenu(); }
   const c = changes(), n = c.length, vals = n+' value'+(n===1?'':'s');
   const body = '<p class="small muted synclast">Last synced '+esc(syncWhen())+'</p>'
-    + '<h4 class="synch"><span class="syncno">1</span>Sync the values in this sheet with D&amp;D Beyond</h4>'
+    + '<section class="syncpart"><h4 class="synch"><span class="syncno">1</span>Sync the values in this sheet with D&amp;D Beyond</h4>'
     + (n ? '<p>Dungeon Tracker can only read your D&amp;D Beyond sheet, not write to it. To match this sheet, open D&amp;D Beyond on your phone or laptop and change these:</p>' + syncTableHtml(c)
-         : '<p class="syncok">✓ This sheet and D&amp;D Beyond match. Nothing to change there.</p>')
-    + '<h4 class="synch"><span class="syncno">2</span>Sync the values of D&amp;D Beyond to this sheet</h4>'
-    + '<p>Get your character’s latest version from D&amp;D Beyond: new levels, spells and items'+(n ? ', and D&amp;D Beyond’s numbers for the '+vals+' above.' : '.')+'</p>';
+         : '<p class="syncok">✓ This sheet and D&amp;D Beyond match. Nothing to change there.</p>') + '</section>'
+    + '<section class="syncpart"><h4 class="synch"><span class="syncno">2</span>Sync the values of D&amp;D Beyond to this sheet</h4>'
+    + '<p>Get your character’s latest version from D&amp;D Beyond: new levels, spells and items'+(n ? ', and D&amp;D Beyond’s numbers for the '+vals+' above.' : '.')+'</p></section>';
   if (!await confirmBox('Sync with D&amp;D Beyond', '<div class="syncwin">'+body+'</div>', '⬇️ Get D&amp;D Beyond’s version', false, null, 'Close')) return;
-  if (n && !await confirmBox('Replace '+vals+' in this sheet?', 'Press Replace to use D&amp;D Beyond’s values. The '+vals+' that only this sheet has will be gone. To keep them, change them on D&amp;D Beyond first (part 1).', 'Replace', true, null, 'Go back')) return syncWindow();
+  if (n && !await confirmBox('Replace '+vals+' in this sheet?', 'Press Replace to use D&amp;D Beyond’s values. The '+vals+' that only this sheet has will be gone. To keep them, change them on D&amp;D Beyond first (part 1).', 'Replace', false, null, 'Go back')) return syncWindow();
   syncing = true; let fx = syncFx('busy');
   try {
     await window.SHEET.pull(compact);

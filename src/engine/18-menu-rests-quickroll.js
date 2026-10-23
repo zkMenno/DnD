@@ -16,6 +16,9 @@ function paintMenu(){
       : s.tex === 'char' ? 'linear-gradient(176deg,transparent 40%,rgba(255,110,20,.75) 42%,transparent 45%),linear-gradient(183deg,transparent 68%,rgba(255,90,10,.6) 70%,transparent 72%),repeating-linear-gradient(178deg,rgba(0,0,0,.35) 0 1px,transparent 1px 4px),'
       : s.tex === 'iron' ? 'radial-gradient(circle at 30% 35%,rgba(0,0,0,.5) 0 1.5px,transparent 2px),radial-gradient(circle at 65% 60%,rgba(0,0,0,.45) 0 1.5px,transparent 2px),radial-gradient(circle at 60% 25%,rgba(150,70,20,.45),transparent 40%),'
       : s.tex === 'map' ? 'radial-gradient(circle at 70% 30%,rgba(170,24,12,.9) 0 1.6px,transparent 2.4px),radial-gradient(circle at 35% 70%,rgba(120,80,40,.35),transparent 45%),repeating-linear-gradient(0deg,rgba(90,60,30,.18) 0 1px,transparent 1px 6px),repeating-linear-gradient(90deg,rgba(90,60,30,.18) 0 1px,transparent 1px 6px),'
+      : s.tex === 'marble' ? 'linear-gradient(150deg,transparent 40%,rgba(0,0,0,.35) 42%,transparent 44%),linear-gradient(60deg,transparent 62%,rgba(0,0,0,.25) 63%,transparent 65%),radial-gradient(circle at 30% 30%,rgba(255,255,255,.3),transparent 50%),'
+      : s.tex === 'nebula' ? 'radial-gradient(circle at 30% 30%,#fff 0 .8px,transparent 1.3px),radial-gradient(circle at 70% 60%,#fff 0 .8px,transparent 1.3px),radial-gradient(circle at 55% 25%,rgba(255,255,255,.9) 0 .6px,transparent 1px),radial-gradient(ellipse at 40% 60%,rgba(255,255,255,.3),transparent 55%),'
+      : s.tex === 'moss' ? 'radial-gradient(circle at 30% 35%,rgba(255,255,255,.7) 0 1.6px,transparent 2.4px),radial-gradient(circle at 65% 65%,rgba(255,255,255,.6) 0 1.2px,transparent 2px),radial-gradient(circle at 60% 30%,rgba(0,0,0,.3),transparent 45%),'
       : s.tex === 'lava' ? 'linear-gradient(160deg,transparent 40%,rgba(255,150,40,.95) 43%,transparent 47%),linear-gradient(60deg,transparent 62%,rgba(255,110,20,.85) 64%,transparent 67%),'
       : s.tex === 'frost' ? 'radial-gradient(circle at 30% 30%,#fff 0 1px,transparent 2px),linear-gradient(135deg,transparent 45%,rgba(255,255,255,.7) 48%,transparent 52%),'
       : s.tex === 'acid' ? 'linear-gradient(90deg,transparent 40%,rgba(170,255,70,.9) 43% 47%,transparent 50%),radial-gradient(circle at 50% 50%,rgba(255,255,255,.18) 0 2px,transparent 3px) 0 0/5px 4px,'
@@ -95,16 +98,16 @@ function diceKeys(){
   const all = Object.keys(DICE_SETS), saved = (ui.diceOrder || []).filter(k => all.includes(k));
   return saved.concat(all.filter(k => !saved.includes(k)));
 }
-// Sets grouped by style (THEME.diceGroups order), each group in this device's order: [[label, keys], …]
+// Sets grouped by style (DICE_GROUPS order: the pirate groups, or the look's own), each group in this device's order: [[label, keys], …]
 function diceGroups(){
-  const keys = diceKeys(), labels = THEME.diceGroups || {}, out = [];
+  const keys = diceKeys(), labels = DICE_GROUPS, out = [];
   diceGroupKeys().forEach(g => { const ks = keys.filter(k => DICE_SETS[k].group === g); if (ks.length) out.push([labels[g], ks, g]); });
   const rest = keys.filter(k => !labels[DICE_SETS[k].group]); if (rest.length) out.push([out.length ? 'Other' : '', rest]);
   return out;
 }
 // group order: this device's (ui.diceGroupOrder), new groups appended in the theme's order
 function diceGroupKeys(){
-  const all = Object.keys(THEME.diceGroups || {}), saved = (ui.diceGroupOrder || []).filter(g => all.includes(g));
+  const all = Object.keys(DICE_GROUPS), saved = (ui.diceGroupOrder || []).filter(g => all.includes(g));
   return saved.concat(all.filter(g => !saved.includes(g)));
 }
 // move a dice-set group up or down in the picker
@@ -142,7 +145,7 @@ function dicePromptMaybe(){
 }
 function closeDiceAsk(){ const el = document.querySelector('.diceask'); if (el) el.remove(); }
 function pickDiceSet(k){
-  if (!DICE_SETS[k]) return; ui.dice = k; ui.diceAuto = false; saveUi(); paintMenu();
+  if (!DICE_SETS[k]) return; ui.dice = k; ui.diceAuto = false; ui.diceBySkin = Object.assign({}, ui.diceBySkin, { [DICE_LOOK]: k }); saveUi(); paintMenu();
   const b = document.querySelector('.dspick.on'); if (b && b.animate && !reduceMotion()) b.animate([{transform:'scale(.6)'},{transform:'scale(1.15)'},{transform:'scale(1)'}], {duration:260, easing:'cubic-bezier(.2,.8,.2,1)'});
 }
 let restMode = null, restLog = [];

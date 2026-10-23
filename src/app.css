@@ -1608,3 +1608,9 @@ a.menulink.homelink:hover{background:var(--brass);color:var(--bg)} a.menulink.ho
   .x2:hover{background:color-mix(in srgb,var(--ink) 18%,transparent)}
   .roll .x:hover,.bubble .bclose:hover{background:color-mix(in srgb,var(--bg) 26%,transparent)}
 }
+/* Sync window: the two parts stand apart (a divider and room above each), the heading sits on its own line */
+.syncwin .synclast{margin:-2px 0 0;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.syncpart{padding:18px 0 6px}
+.syncpart + .syncpart{border-top:1px solid var(--line);margin-top:10px}
+.syncpart .synch{margin:0 0 10px;font-size:1.1rem}
+.syncpart .synctable,.syncpart table{margin-bottom:6px}

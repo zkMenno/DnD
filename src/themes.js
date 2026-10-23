@@ -8,7 +8,7 @@
      3. dice:   the 3D dice sets offered in ☰ → Dice set. Each set: name, desc, grad [light, deep] hex for the
                 three.js faces, body (fallback colour), ink (numerals), rim (numeral shadow), metal/rough
                 (material), css [light, deep, ink] for the menu swatch. Optional: pips:true draws d6 pips,
-                tex:'wood'|'bone'|'tar'|'hammered'|'caustic'|'seaglass'|'gem'|'char'|'iron'|'map'|'lava'|'frost'|'acid'|'storm' adds a surface texture,
+                tex:'wood'|'bone'|'tar'|'hammered'|'caustic'|'seaglass'|'gem'|'char'|'iron'|'map'|'lava'|'frost'|'acid'|'storm'|'marble'|'nebula'|'moss' adds a surface texture,
                 glow (hex colour) lights up the texture's veins (lava cracks, acid bubbles, storm bolts), alpha<1 lets gems glow slightly see-through, bold:true draws numerals solid with a pale halo (rim),
                 font overrides the numeral font family, matte:true removes all highlights (raw wood), shine:true adds polished reflections (studio:'cool' for silver tones).
                 group: menu section (labels in diceGroups). The order here is the default order within each group
@@ -58,6 +58,81 @@ const THEMES = {
       cold:      { name:'Frostbite', group:'elemental', desc:'Glacier ice, navy numerals', tex:'frost', shine:true, studio:'cool', alpha:.92, grad:[0xE2F4FF,0x5890C4], body:0xA8CCE8, ink:'#0E2A44', rim:'rgba(255,255,255,.75)', bold:true, font:'"Alegreya SC", Georgia, serif', metal:.15, rough:.18, css:['#EEF8FF','#6CA6D2','#0E2A44'] },
       acid:      { name:'Snake’s Acid', group:'elemental', desc:'Serpent scales, pale numerals', tex:'acid', glow:0x9cff3a, grad:[0x6E9A30,0x0E1C06], body:0x3A5A18, ink:'#F2FFDC', rim:'rgba(0,0,0,0)', bold:true, font:'"Alegreya SC", Georgia, serif', metal:.15, rough:.35, css:['#6E9A30','#0E1C06','#F2FFDC'] },
       lightning: { name:'Thunderstrike', group:'elemental', desc:'Thunderhead, white numerals', tex:'storm', glow:0xd6c2ff, grad:[0x8A93A8,0x1E2236], body:0x444A60, ink:'#EAF6FF', rim:'rgba(0,0,20,.8)', bold:true, font:'"Alegreya SC", Georgia, serif', metal:.2, rough:.4, css:['#7A8296','#161A2C','#EAF6FF'] }
+    },
+    // The web app's other looks (☰ → Theme, <html data-skin>) offer their own dice sets instead of the pirate ones
+    // (engine §06 skinDiceSets). Each set: from = a pirate set to start from (its texture and material), then any
+    // field to change; col:[light, deep, numerals] recolours it (faces, body and menu swatch in one go). font is the
+    // look's numeral font unless a set says otherwise. Keys are unique across looks, so each look keeps its own pick.
+    skinDice: {
+      fantasy: { font:'"Cinzel", Georgia, serif', groups:{ hoard:'The Royal Hoard', arcane:'Arcane Arts', dragon:'Dragon Lairs' }, sets:{
+        fk_crown:    { from:'doubloon', group:'hoard',  name:'Crown Gold',          desc:'Polished gold, dark numerals' },
+        fk_mithril:  { from:'silver',   group:'hoard',  name:'Mithril',             desc:'Bright silver-steel, dark numerals' },
+        fk_marble:   { from:'blackflag', group:'hoard', name:'Castle Marble',       desc:'White marble, gold numerals', tex:'marble', col:['#F4F1EA','#A9A39A','#9A7414'], rim:'rgba(255,255,255,.6)', metal:.05, rough:.35 },
+        fk_sapphire: { from:'amethyst', group:'arcane', name:'Royal Sapphire',      desc:'Deep sapphire, pale numerals', col:['#7FA8FF','#0C1E5E','#F3F6FF'], rim:'rgba(0,6,30,.7)' },
+        fk_amethyst: { from:'amethyst', group:'arcane', name:'Archmage’s Amethyst', desc:'Violet amethyst, pale numerals' },
+        fk_obsidian: { from:'blackflag', group:'arcane', name:'Wizard’s Obsidian',  desc:'Black marble, silver numerals', tex:'marble', col:['#4A4A55','#0A0A10','#DDE3EE'], metal:.1, rough:.3 },
+        fk_reddragon:{ from:'fire',     group:'dragon', name:'Red Dragon’s Breath', desc:'Lava crust, gold numerals' },
+        fk_golddragon:{ from:'acid',    group:'dragon', name:'Gold Dragon Scale',   desc:'Golden scales, dark numerals', col:['#F2D27A','#7A5410','#2A1A04'], glow:0xffd060, rim:'rgba(255,240,200,.7)' },
+      } },
+      space: { font:'"Orbitron", system-ui, sans-serif', bold:true, groups:{ hull:'Hull & Hardware', cosmos:'Deep Space', core:'Energy Cores' }, sets:{
+        sp_hull:     { from:'silver',   group:'hull',   name:'Hull Plating',        desc:'Brushed alloy, dark numerals', tex:'hammered' },
+        sp_titanium: { from:'cannon',   group:'hull',   name:'Titanium',            desc:'Scuffed grey metal, white numerals', col:['#9AA2AC','#2E343C','#F2F6FA'] },
+        sp_nebula:   { from:'blackflag', group:'cosmos', name:'Nebula',             desc:'Violet starfield, cyan numerals', tex:'nebula', col:['#7A58C8','#0E0A26','#7FF3FF'], rim:'rgba(0,0,20,.8)', metal:.1, rough:.35 },
+        sp_horizon:  { from:'blackflag', group:'cosmos', name:'Event Horizon',      desc:'Black starfield, gold numerals', tex:'nebula', col:['#3A3F5A','#04050C','#FFD877'], rim:'rgba(0,0,0,.85)', metal:.1, rough:.35 },
+        sp_crystal:  { from:'emerald',  group:'cosmos', name:'Quantum Crystal',     desc:'Cyan crystal, pale numerals', col:['#8FF6FF','#085A70','#F2FEFF'], rim:'rgba(0,20,30,.7)' },
+        sp_plasma:   { from:'lightning', group:'core',  name:'Plasma Core',         desc:'Charged cloud, white numerals', col:['#6FA6E8','#0E1A3A','#F2FAFF'], glow:0x7ff3ff },
+        sp_cryo:     { from:'cold',     group:'core',   name:'Cryo Pod',            desc:'Frosted ice, navy numerals' },
+        sp_solar:    { from:'fire',     group:'core',   name:'Solar Flare',         desc:'Burning plasma, pale numerals', col:['#FF9A3C','#3A0C04','#FFF2C8'], glow:0xffb040 },
+      } },
+      woodland: { font:'"Uncial Antiqua", Georgia, serif', groups:{ grove:'The Grove', bloom:'Fey Blooms', wild:'Wild Magic' }, sets:{
+        fw_oak:      { from:'walnut',   group:'grove',  name:'Old Oak',             desc:'Oiled oak, cream numerals' },
+        fw_birch:    { from:'timber',   group:'grove',  name:'Silver Birch',        desc:'Pale birch, dark numerals', col:['#E8E2D2','#9C927C','#2A2418'] },
+        fw_moss:     { from:'blackflag', group:'grove', name:'Mossy Stone',         desc:'Stone and moss, cream numerals', tex:'moss', col:['#8AA06A','#24301A','#F2EED8'], rim:'rgba(0,0,0,.7)', metal:0, rough:.95, matte:true },
+        fw_amber:    { from:'topaz',    group:'bloom',  name:'Amber Sap',           desc:'Honey amber, dark numerals' },
+        fw_emerald:  { from:'emerald',  group:'bloom',  name:'Fey Emerald',         desc:'Green sapphire, pale numerals' },
+        fw_rose:     { from:'rosegold', group:'bloom',  name:'Wild Rose',           desc:'Rose gold, dark numerals' },
+        fw_dew:      { from:'kraken',   group:'wild',   name:'Morning Dew',         desc:'Green glass, cream numerals', col:['#9EE0A8','#1E5A3A','#F6FFF2'] },
+        fw_thorn:    { from:'acid',     group:'wild',   name:'Thornvine',           desc:'Bramble scales, pale numerals' },
+      } },
+      gothic: { font:'"Grenze Gotisch", Georgia, serif', groups:{ crypt:'The Crypt', blood:'Blood & Bone', mist:'Out of the Mists' }, sets:{
+        rv_ebony:    { from:'walnut',   group:'crypt',  name:'Ebony Coffin',        desc:'Black wood, silver numerals', col:['#3A2E2A','#0A0606','#D8D8DE'] },
+        rv_nail:     { from:'cannon',   group:'crypt',  name:'Coffin Nail',         desc:'Rusted iron, bone numerals', col:['#6A6460','#1A1614','#EDE4D0'] },
+        rv_silver:   { from:'silver',   group:'crypt',  name:'Silver Stake',        desc:'Polished silver, dark numerals' },
+        rv_bone:     { from:'bone',     group:'blood',  name:'Crypt Bone',          desc:'Bloodied bone, red numerals' },
+        rv_ruby:     { from:'ruby',     group:'blood',  name:'Vampire’s Ruby',      desc:'Blood-red ruby, silver numerals', ink:'#F0F0F4', css:['#FF6A78','#5A0412','#F0F0F4'] },
+        rv_raven:    { from:'blackflag', group:'mist',  name:'Raven Feather',       desc:'Glossy black, violet numerals', ink:'#C9A6FF', css:['#4E454C','#0A090B','#C9A6FF'] },
+        rv_mist:     { from:'lightning', group:'mist',  name:'Dread Mists',         desc:'Grey storm, pale numerals', col:['#9A9AA4','#26262E','#F2F0F6'], glow:0xe8e0ff },
+        rv_witch:    { from:'amethyst', group:'mist',   name:'Witch’s Amethyst',    desc:'Violet amethyst, pale numerals' },
+      } },
+      underdark: { font:'"Grenze Gotisch", Georgia, serif', groups:{ stone:'Deep Stone', glow:'Things That Glow' }, sets:{
+        ud_obsidian: { from:'blackflag', group:'stone', name:'Obsidian',            desc:'Black glass, teal numerals', tex:'marble', col:['#3A3448','#06040A','#5EF0D2'], metal:.15, rough:.25 },
+        ud_iron:     { from:'cannon',   group:'stone',  name:'Deep Iron',           desc:'Dark pitted iron, pale numerals', col:['#5E5868','#16121C','#E8E1F2'] },
+        ud_geode:    { from:'amethyst', group:'stone',  name:'Geode',               desc:'Violet crystal, pale numerals' },
+        ud_spider:   { from:'blackflag', group:'stone', name:'Spider Silk',         desc:'Glossy black, violet numerals', ink:'#B59CFF', css:['#4E454C','#0A090B','#B59CFF'] },
+        ud_glowcap:  { from:'blackflag', group:'glow',  name:'Glowcap',             desc:'Spotted mushroom, glowing numerals', tex:'moss', col:['#7A5AA8','#1A0E2A','#9CFFE8'], rim:'rgba(0,0,0,.8)', glow:0x5ef0d2, bold:true, metal:0, rough:.9 },
+        ud_crystal:  { from:'emerald',  group:'glow',   name:'Glowcrystal',         desc:'Teal crystal, pale numerals', col:['#7DF7DF','#06463E','#F2FFFC'] },
+        ud_ooze:     { from:'acid',     group:'glow',   name:'Ooze',                desc:'Slick scales, pale numerals' },
+      } },
+      icewind: { font:'"Cinzel", Georgia, serif', bold:true, groups:{ ice:'Ice & Snow', north:'The Frozen North' }, sets:{
+        iw_glacier:  { from:'cold',     group:'ice',    name:'Glacier',             desc:'Glacier ice, navy numerals' },
+        iw_rime:     { from:'cold',     group:'ice',    name:'Rime',                desc:'White frost, blue numerals', col:['#FFFFFF','#B8CCDC','#1F4E7A'] },
+        iw_seaice:   { from:'kraken',   group:'ice',    name:'Sea Ice',             desc:'Icy glass, navy numerals', col:['#CFEFFF','#3A6E8E','#0E2A44'] },
+        iw_aurora:   { from:'blackflag', group:'ice',   name:'Aurora',              desc:'Night sky, green numerals', tex:'nebula', col:['#2E8A7A','#06121E','#B8FFD8'], rim:'rgba(0,0,0,.8)', metal:.1, rough:.35 },
+        iw_ivory:    { from:'moby',     group:'north',  name:'Mammoth Ivory',       desc:'Carved ivory, navy numerals' },
+        iw_silver:   { from:'silver',   group:'north',  name:'Moonlit Silver',      desc:'Polished silver, dark numerals' },
+        iw_pine:     { from:'timber',   group:'north',  name:'Frozen Pine',         desc:'Dark pine, frost numerals', col:['#5E6A58','#1A2018','#E6F2FA'] },
+        iw_blizzard: { from:'lightning', group:'north', name:'Blizzard',            desc:'Snow storm, white numerals', col:['#B8C6D4','#3A4A5C','#FFFFFF'], glow:0xe6f6ff },
+      } },
+      avernus: { font:'"Grenze Gotisch", Georgia, serif', groups:{ hells:'The Nine Hells', forge:'Infernal Forge' }, sets:{
+        av_hellfire: { from:'fire',     group:'hells',  name:'Hellfire',            desc:'Lava crust, gold numerals' },
+        av_offering: { from:'shipwreck', group:'hells', name:'Burnt Offering',      desc:'Charred wood, glowing numerals' },
+        av_brimstone:{ from:'blackflag', group:'hells', name:'Brimstone',           desc:'Black stone, ember numerals', tex:'marble', col:['#4A3A34','#0E0806','#FF9A3C'], glow:0xff5a10, metal:.05, rough:.6 },
+        av_bonethrone:{ from:'bone',    group:'hells',  name:'Bone Throne',         desc:'Bloodied bone, red numerals' },
+        av_brass:    { from:'bronze',   group:'forge',  name:'Infernal Brass',      desc:'Polished brass, dark numerals' },
+        av_iron:     { from:'cannon',   group:'forge',  name:'Infernal Iron',       desc:'Pitted iron, ember numerals', ink:'#FF8A3C', css:['#84888C','#26292C','#FF8A3C'] },
+        av_soulcoin: { from:'ruby',     group:'forge',  name:'Soul Coin',           desc:'Blood-red ruby, gold numerals' },
+        av_contract: { from:'doubloon', group:'forge',  name:'Contract Gold',       desc:'Polished gold, dark numerals' },
+      } },
     }
   }
 };

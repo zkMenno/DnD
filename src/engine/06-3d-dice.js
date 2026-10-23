@@ -194,6 +194,28 @@ function d3Pattern(kind){
     x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = .8; for (let i = 0; i < 12; i++) { x.beginPath(); x.moveTo(R()*256, R()*256); x.lineTo(R()*256, R()*256); x.stroke(); }
     for (let i = 0; i < 16; i++) { const px = R()*256, py = R()*256, l = 3 + R()*6; x.strokeStyle = 'rgba(255,255,255,.95)'; x.lineWidth = 1.2;
       x.beginPath(); x.moveTo(px - l, py); x.lineTo(px + l, py); x.moveTo(px, py - l); x.lineTo(px, py + l); x.stroke(); dot(px, py, 1.4, '#fff'); }
+  } else if (kind === 'marble') {   // marble / obsidian: soft clouds and thin wandering veins
+    x.fillStyle = '#e8e8e8'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 16; i++) { const px = R()*256, py = R()*256, rr = 30 + R()*60, g = x.createRadialGradient(px, py, 0, px, py, rr);
+      g.addColorStop(0, R() < .5 ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.12)'); g.addColorStop(1, 'rgba(128,128,128,0)'); x.fillStyle = g; x.fillRect(px-rr, py-rr, rr*2, rr*2); }
+    x.lineCap = 'round';
+    for (let i = 0; i < 9; i++) { let px = R()*256, py = R()*256, a = R()*7; x.strokeStyle = 'rgba(0,0,0,'+(.18 + R()*.3).toFixed(2)+')'; x.lineWidth = .6 + R()*1.8;
+      x.beginPath(); x.moveTo(px, py); for (let k = 0; k < 24; k++) { a += (R()-.5)*.8; px += Math.cos(a)*9; py += Math.sin(a)*9; x.lineTo(px, py); } x.stroke(); }
+  } else if (kind === 'nebula') {   // deep space: coloured gas clouds and a scatter of stars
+    x.fillStyle = '#8a8a8a'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 22; i++) { const px = R()*256, py = R()*256, rr = 24 + R()*60, g = x.createRadialGradient(px, py, 0, px, py, rr);
+      g.addColorStop(0, 'rgba(255,255,255,'+(.2 + R()*.35).toFixed(2)+')'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(px-rr, py-rr, rr*2, rr*2); }
+    for (let i = 0; i < 10; i++) { const px = R()*256, py = R()*256, rr = 20 + R()*40, g = x.createRadialGradient(px, py, 0, px, py, rr);
+      g.addColorStop(0, 'rgba(0,0,0,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(px-rr, py-rr, rr*2, rr*2); }
+    for (let i = 0; i < 220; i++) dot(R()*256, R()*256, .4 + R()*.9, 'rgba(255,255,255,'+(.5 + R()*.5).toFixed(2)+')');
+    for (let i = 0; i < 6; i++) { const px = R()*256, py = R()*256, l = 3 + R()*4; x.strokeStyle = '#fff'; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(px - l, py); x.lineTo(px + l, py); x.moveTo(px, py - l); x.lineTo(px, py + l); x.stroke(); }
+  } else if (kind === 'moss') {     // mossy stone: soft green-grey clumps, speckle, a few light spots (or mushroom caps)
+    x.fillStyle = '#c8c8c8'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 40; i++) { const px = R()*256, py = R()*256, rr = 10 + R()*30, g = x.createRadialGradient(px, py, 0, px, py, rr);
+      const lit = R() < .45; g.addColorStop(0, lit ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.28)'); g.addColorStop(1, 'rgba(128,128,128,0)'); x.fillStyle = g; x.fillRect(px-rr, py-rr, rr*2, rr*2); }
+    for (let i = 0; i < 1400; i++) dot(R()*256, R()*256, .4 + R()*.8, R() < .5 ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.25)');
+    for (let i = 0; i < 14; i++) dot(R()*256, R()*256, 2 + R()*3.5, 'rgba(255,255,255,.75)');
   } else {                          // sea glass: frosted speckle, tiny trapped bubbles, faint swirls
     x.fillStyle = '#b4b4b4'; x.fillRect(0, 0, 256, 256);
     for (let i = 0; i < 1800; i++) dot(R()*256, R()*256, .4 + R()*.9, R() < .55 ? 'rgba(255,255,255,.6)' : 'rgba(0,30,30,.15)');
@@ -247,11 +269,35 @@ function d3Label(text, ink, rim, pips, bold, font){
   const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return (D3.tex[key] = t);
 }
 // Dice sets come from the theme (see #themes). Every die in a set shares one look; picked in the ☰ menu.
-const DICE_SETS = THEME.dice;
-const DEFAULT_DICE = THEME.defaultDice || Object.keys(DICE_SETS)[0];
+// The web app's other looks (☰ → Theme) bring their own sets (THEME.skinDice): each starts from a pirate set and
+// changes what it needs (col recolours faces, body and swatch at once); numerals use the look's font.
+const DICE_SKIN = typeof SKIN === 'string' && SKIN && THEME.skinDice && THEME.skinDice[SKIN] ? THEME.skinDice[SKIN] : null;
+function skinDiceSets(sd){
+  const hex = c => parseInt(c.slice(1), 16), out = {};
+  for (const [k, spec] of Object.entries(sd.sets)) {
+    const s = Object.assign({}, THEME.dice[spec.from] || {}, { font: sd.font, bold: sd.bold || (THEME.dice[spec.from] || {}).bold }, spec);
+    if (spec.col) { const [l, d, ink] = spec.col, a = hex(l), b = hex(d);
+      const mid = [16, 8, 0].reduce((v, sh) => v | (Math.round((((a >> sh) & 255) + ((b >> sh) & 255)) / 2) << sh), 0);
+      Object.assign(s, { grad: [a, b], body: mid, ink, css: [l, d, ink] }); }
+    delete s.from; delete s.col; out[k] = s;
+  }
+  return out;
+}
+const DICE_SETS = DICE_SKIN ? skinDiceSets(DICE_SKIN) : THEME.dice;
+const DICE_GROUPS = DICE_SKIN ? DICE_SKIN.groups : (THEME.diceGroups || {});
+const DICE_LOOK = DICE_SKIN ? SKIN : 'pirate';
+const DEFAULT_DICE = DICE_SKIN ? Object.keys(DICE_SETS)[0] : (THEME.defaultDice || Object.keys(DICE_SETS)[0]);
+if (DICE_SKIN) try { document.fonts && document.fonts.load('84px ' + DICE_SKIN.font); } catch (_) {}
 // a new player starts with a random set, not always the first one; after their first throw they're asked whether they'd
 // like another (dicePromptMaybe, §18). Only on a sheet: the front page's dice bundle has no saveUi.
-if (typeof saveUi === 'function' && !ui.dice) { const ks = Object.keys(DICE_SETS); ui.dice = ks[Math.floor(Math.random() * ks.length)]; ui.diceAuto = true; saveUi(); }
+// Each look remembers its own pick (ui.diceBySkin); switching back to a look brings its set back.
+if (typeof saveUi === 'function') {
+  const mine = (ui.diceBySkin || {})[DICE_LOOK];
+  if (DICE_SETS[mine]) { if (ui.dice !== mine) { ui.dice = mine; saveUi(); } }
+  else if (ui.dice && DICE_SETS[ui.dice]) { ui.diceBySkin = Object.assign({}, ui.diceBySkin, { [DICE_LOOK]: ui.dice }); saveUi(); }   // picked before looks remembered their own
+  else { const ks = Object.keys(DICE_SETS); ui.dice = ks[Math.floor(Math.random() * ks.length)]; ui.diceAuto = true;
+    ui.diceBySkin = Object.assign({}, ui.diceBySkin, { [DICE_LOOK]: ui.dice }); saveUi(); }
+}
 // the dice set picked in the menu (or the theme default)
 let DICE_PREVIEW = null;   // a set being previewed from the picker (not selected)
 // the dice set to roll with (the one being previewed wins)

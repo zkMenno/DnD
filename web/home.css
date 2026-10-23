@@ -636,3 +636,8 @@ body > #msg.bad::before{top:9px}
 .addrow input{border:1px solid var(--line)}
 section:not(:has(#mine .ch)) .addrow input{border:1.5px solid color-mix(in srgb,var(--brass) 75%,transparent)}
 .addrow input:focus{border-color:var(--brass)}
+/* one loud button per row: Continue → is the gold one; Add is outlined (gold edge only) */
+.ch .contbtn.btn.primary{background:var(--brass);border-color:var(--brass);color:var(--bg)}
+.ch .contbtn.btn.primary:hover{filter:brightness(1.08);border-color:var(--brass)}
+.addrow .btn.primary{background:transparent;color:var(--ink);border:1.5px solid var(--brass)}
+.addrow .btn.primary:hover{background:color-mix(in srgb,var(--brass) 14%,transparent);border-color:var(--brass);filter:none}
