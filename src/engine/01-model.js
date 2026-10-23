@@ -72,7 +72,7 @@ function compact(full){
     return {
       id:i.id, name:x.name, type:x.type, filter:x.filterType, sub:x.subType, qty:i.quantity, equipped:!!i.equipped,
       inPack: i.containerEntityId !== d.id, isContainer: !!x.isContainer, magic: !!x.magic, rarity:x.rarity,
-      weight: x.weight, damage: x.damage ? x.damage.diceString : null, dmgType: x.damageType,
+      weight: x.weight, bundle: x.bundleSize > 1 ? x.bundleSize : 1, damage: x.damage ? x.damage.diceString : null, dmgType: x.damageType,
       props: (x.properties||[]).map(p => p.name + (p.notes ? ' ('+p.notes+')' : '')),
       range: x.range, longRange: x.longRange, attackType: x.attackType, category: x.categoryId,
       ac: x.armorClass, armorType: x.armorTypeId, stealthDis: x.stealthCheck === 2,

@@ -84,6 +84,7 @@ function paintInv(n){
   document.querySelectorAll('[data-invq]').forEach(e => { if (e.dataset.invq===n) e.textContent = itemCountTxt(n); });
   document.querySelectorAll('[data-invn]').forEach(e => { if (e.dataset.invn===n) e.textContent = left; });   // plain numbers (− / + steppers)
   document.querySelectorAll('[data-invbtn]').forEach(b => { if (b.dataset.invbtn===n) b.disabled = !left; });
+  paintCarry();
 }
 // Spend one of a consumable (saved) and play its animation. A healing potion rolls, heals you (healMe) and shows a
 // result card that closes itself; an arrow also counts as fired (for recovering half after the fight).
@@ -121,6 +122,7 @@ function gearPanel(){
     + (i.added ? addedCtl(i) : i.equipped && (i.filter==='Weapon'||i.filter==='Armor')?'<span class="chip">equipped</span>':i.filter==='Weapon'||i.filter==='Armor'?'<span class="chip ghost">spare</span>':'')+'</div>';
   };
   return '<section class="card" id="coinbox"></section>'
+    + '<section class="card carrycard">'+carryHTML()+'</section>'
     + (CAN_ADD() ? '<section class="card addcard"><div class="cardhead"><h2><span class="emo" aria-hidden="true">🛒</span>New gear</h2><button class="btn primary" data-act="additem">➕ Add item</button></div>'
       + '<p class="small muted" style="margin:0">'+(ADDED.length ? ADDED.length+' item'+(ADDED.length===1?'':'s')+' added here, marked <span class="chip addtag">not in D&amp;D Beyond yet</span>. They go once D&amp;D Beyond has them and you sync.' : 'Picked something up? Add it here. It works straight away and goes on the change list until it’s in D&amp;D Beyond.')+'</p></section>' : '')
     + '<section class="card"><h2><span class="emo" aria-hidden="true">⚔️</span>Weapons and armour</h2><div class="items">'+weaponsArmor.map(row).join('')+'</div></section>'
@@ -153,6 +155,90 @@ const itCat = it => it.k === 'pack' || it.k === 'ammo' ? 'gear' : it.k;
 const lbToKg = lb => Math.round(lb*0.45*10)/10;
 // generic magic items (Weapon +1, Flame Tongue…) need a base weapon or armour picked
 const needsBase = it => it.k === 'magic' && (it.gen === 'weapon' || it.gen === 'armor');
+// ── What weapons and armour do ─────────────────────────────────────────────────────────────────────────────
+// The SRD item list has no text for plain weapons, armour, ammunition and spellcasting foci, so the picker explains
+// them from their properties. Short versions of the SRD 5.2 rules (CC-BY-4.0).
+const PROP_TXT = {
+  'Ammunition': 'Each attack uses one piece of ammunition. After the fight you can spend a minute to get half of it back.',
+  'Finesse': 'Use STR or DEX, whichever is better, for the attack and the damage.',
+  'Heavy': 'Disadvantage on the attack if your STR (melee) or DEX (ranged) is below 13.',
+  'Light': 'After you attack with it, you can make one more attack as a Bonus Action with a different Light weapon. That second hit adds no ability modifier to its damage, unless the modifier is negative.',
+  'Loading': 'One shot per action, Bonus Action or Reaction, however many attacks you have.',
+  'Range': 'A ranged weapon: past the first range you have Disadvantage, and you can’t hit beyond the second.',
+  'Reach': 'Reaches 1.5 m further than normal, so 3 m.',
+  'Thrown': 'You can throw it for a ranged attack, with the same ability you’d use in melee.',
+  'Two-Handed': 'Takes both hands to attack with.',
+  'Versatile': 'One or two hands. With two, it deals the bigger damage die.',
+  // weapon masteries: only for characters whose class lets them use this weapon's mastery
+  'Cleave': 'Hit a creature in melee, and you can attack a second creature within 1.5 m of it and within your reach. On a hit it takes the weapon’s damage without your ability modifier. Once per turn.',
+  'Graze': 'Miss, and the target still takes damage equal to the ability modifier you attacked with.',
+  'Nick': 'The extra Light-weapon attack becomes part of your Attack action instead of a Bonus Action. Once per turn.',
+  'Push': 'On a hit, push a Large or smaller creature up to 3 m straight away from you.',
+  'Sap': 'On a hit, the target has Disadvantage on its next attack roll before your next turn starts.',
+  'Slow': 'Hit and deal damage, and the target’s Speed drops by 3 m until your next turn starts.',
+  'Topple': 'On a hit, the target makes a CON save (DC 8 + your attack’s ability modifier + proficiency bonus) or falls Prone.',
+  'Vex': 'Hit and deal damage, and you have Advantage on your next attack against that creature before the end of your next turn.'};
+// armour by kind (1 light … 4 shield): what counts for AC, and how long putting it on and taking it off takes
+const ARMOR_TXT = {
+  1: ['Light armour', 'AC is the armour’s number plus your full DEX modifier.', 'Takes 1 minute to put on and 1 minute to take off.'],
+  2: ['Medium armour', 'AC is the armour’s number plus your DEX modifier, up to +2.', 'Takes 5 minutes to put on and 1 minute to take off.'],
+  3: ['Heavy armour', 'AC is the armour’s number. DEX doesn’t count, for better or worse.', 'Takes 10 minutes to put on and 5 minutes to take off.'],
+  4: ['Shield', 'Adds 2 to your AC while you hold it. It takes a hand.', 'Takes an action to pick up or put away.']};
+// ammunition and spellcasting foci (the rest of the SRD list has its own text)
+const GEAR_TXT = {
+  'Arrows': 'Ammunition for shortbows and longbows. The quiver they come in holds 20.', 'Bolts': 'Ammunition for crossbows. The case holds 20.',
+  'Bullets, Firearm': 'Ammunition for pistols and muskets. The pouch holds 10.', 'Bullets, Sling': 'Ammunition for slings. The pouch holds 20.', 'Needles': 'Ammunition for blowguns. The pouch holds 50.',
+  'Crystal': 'Arcane focus', 'Orb': 'Arcane focus', 'Rod': 'Arcane focus', 'Staff': 'Arcane focus (it also works as a quarterstaff)', 'Wand': 'Arcane focus',
+  'Sprig of Mistletoe': 'Druidic focus', 'Yew Wand': 'Druidic focus', "Glassblower's Tools": 'Shape glass: blow, cut and polish it, and tell good glass from bad. Your proficiency bonus counts on checks with them.'};
+const FOCUS_TXT = 'Hold it to cast spells: it stands in for material components that have no cost listed.';
+// The "what it does" block in the picker for a catalogue item it (and the base weapon / armour picked): the item's
+// own text first, then each weapon property, the armour rules, and whether you're trained with it.
+function itemExplain(it, base){
+  const w = base && base.k==='weapon' ? base : it.k==='weapon' ? it : null, ar = base && base.k==='armor' ? base : it.k==='armor' ? it : null;
+  const out = [];
+  if (it.d) out.push(traitBody(it.d.replace(/^(Common|Uncommon|Rare|Very Rare|Legendary|Artifact)( \([^)]*\))?\s+(?=[A-Z])/, '')));
+  else if (GEAR_TXT[it.n]) out.push('<p>'+esc(GEAR_TXT[it.n])+(/focus/.test(GEAR_TXT[it.n]) ? ': '+esc(FOCUS_TXT.charAt(0).toLowerCase()+FOCUS_TXT.slice(1)) : '')+'</p>');
+  const dl = [];
+  if (w) {
+    dl.push([(w.cat===2 ? 'Martial' : 'Simple')+' '+(w.at===2 ? 'ranged' : 'melee')+' weapon', w.dmg+' '+String(w.dt||'').toLowerCase()+' damage.'
+      + (typeof D !== 'undefined' && D.profs ? ' '+((w.cat===2 ? D.profs.weapons.includes('Martial') : D.profs.weapons.includes('Simple')) ? 'You’re trained with it: add your proficiency bonus (+'+D.pb+') to hit.' : 'You’re not trained with it, so no proficiency bonus to hit.') : '')]);
+    (w.p||[]).forEach(x => { const k = x.replace(/\s*\(.*\)$/, ''), t = PROP_TXT[k]; if (!t) return;
+      const mine = MASTERY_WORDS.includes(k) && typeof D !== 'undefined' && D.masteries && D.masteries[w.n] === k;
+      dl.push([MASTERY_WORDS.includes(k) ? 'Mastery: '+k : x, t + (MASTERY_WORDS.includes(k) ? (mine ? ' You have this mastery.' : ' Only with Weapon Mastery for this weapon.') : '')]); });
+  }
+  if (ar && ARMOR_TXT[ar.arm]) { const [nm, ac, time] = ARMOR_TXT[ar.arm];
+    const kind = ar.arm===4 ? 'Shields' : nm.split(' ')[0];
+    const trained = typeof D !== 'undefined' && D.profs ? D.profs.armor.includes(kind) : null;
+    dl.push([nm, ac+' '+time]);
+    if (ar.str) dl.push(['Needs STR '+ar.str, 'Below STR '+ar.str+', your Speed drops by 3 m while you wear it.']);
+    if (ar.sd) dl.push(['Noisy', 'Disadvantage on Stealth checks while you wear it.']);
+    if (trained !== null) dl.push([trained ? 'You’re trained with it' : 'You’re not trained with it', trained ? 'No penalties.' : 'While you wear it: Disadvantage on every STR and DEX roll, and you can’t cast spells.']); }
+  if (dl.length) out.push('<dl class="iexp">'+dl.map(([k, v]) => '<dt>'+esc(k)+'</dt><dd>'+esc(v)+'</dd>').join('')+'</dl>');
+  return out.join('');
+}
+
+// ── Carrying capacity ──────────────────────────────────────────────────────────────────────────────────────
+// What you can carry: STR × 15 lb, twice that with Powerful Build (or a Large species). Weight counts what the
+// inventory lists minus what was used at the table; coins don't count. Returns pounds.
+const carryCap = () => (D.score.str||10) * 15 * ((DATA.race && (DATA.race.traits||[]).some(t => /^Powerful Build$/i.test(t.name))) || /large/i.test(String(DATA.race && DATA.race.size || '')) ? 2 : 1);
+function carriedLb(){
+  // D&D Beyond weighs ammunition and the like per bundle (Arrows: 1 lb for 20); older saved sheets lack .bundle
+  const BUNDLE = {'Arrows':20, 'Bolts':20, 'Needles':50, 'Bullets, Sling':20, 'Bullets, Firearm':10, 'Ball Bearings':1000, 'Caltrops':20};
+  const unit = i => (i.weight||0) / (i.bundle || BUNDLE[i.name] || 1);
+  let lb = DATA.inventory.reduce((a, i) => a + unit(i) * (i.qty||0), 0);
+  Object.entries(S.spent||{}).forEach(([n, k]) => { const i = DATA.inventory.find(x => x.name === n); if (i && k > 0) lb -= unit(i) * Math.min(k, invQty(n)); });
+  return Math.max(0, lb);
+}
+// The carrying line: "Carrying 34 kg of 116 kg" with a bar; addLb shows what it becomes with an item added.
+// Lives in the Gear tab and the item picker (data-carry), and paintCarry() refreshes it in place.
+function carryHTML(addLb){
+  const cap = carryCap(), now = carriedLb(), after = now + (addLb||0), pct = Math.min(100, after / cap * 100), over = after > cap;
+  return '<div class="carry'+(over?' over':'')+'" data-carry'+(addLb ? ' data-add="'+addLb+'"' : '')+'><div class="carryt"><span class="eyebrow">Carrying</span><span><b class="num">'+lbToKg(now)+'</b>'+(addLb ? ' → <b class="num">'+lbToKg(after)+'</b>' : '')+' of '+lbToKg(cap)+' kg</span></div>'
+    + '<div class="carrybar" role="meter" aria-label="Carrying" aria-valuemin="0" aria-valuemax="'+lbToKg(cap)+'" aria-valuenow="'+lbToKg(after)+'"><i style="width:'+pct.toFixed(1)+'%"></i></div>'
+    + (over ? '<p class="small">That’s more than you can carry. Past '+lbToKg(cap)+' kg you can only push or drag it (up to '+lbToKg(cap*2)+' kg), at 1.5 m a turn.</p>' : '')+'</div>';
+}
+function paintCarry(){ document.querySelectorAll('[data-carry]').forEach(e => { e.outerHTML = carryHTML(+e.dataset.add || 0); }); }
+
 // one line of facts under an item's name: damage or AC (from the base weapon / armour if one is picked), range,
 // rarity, kind, cost and weight in kg
 function itemFacts(it, base){
@@ -170,7 +256,7 @@ function invFrom(it, base, qty, eq){
   const name = !base ? it.n : it.b ? base.n+' +'+it.b : /\b(Weapon|Armor)\b/.test(it.n) ? it.n.replace(/\b(Weapon|Armor)\b/, base.n) : it.n+' '+base.n;
   return { id:'add-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), name, type:it.k, filter: w ? 'Weapon' : ar ? 'Armor' : it.k==='potion' ? 'Potion' : 'Other Gear',
     sub:null, qty, equipped: !!(eq && (w || ar)), inPack: !(w || ar), isContainer:false, magic: it.k==='magic' || !!it.magic, rarity: it.rar || null,
-    weight: (base ? base.w : it.w) || null, damage: w ? w.dmg : null, dmgType: w ? w.dt : null, props: w ? (w.p||[]).slice() : [],
+    weight: (base ? base.w : it.w) || null, bundle: !base && it.q > 1 ? it.q : 1, damage: w ? w.dmg : null, dmgType: w ? w.dt : null, props: w ? (w.p||[]).slice() : [],
     range: w ? w.r : null, longRange: w ? w.lr : null, attackType: w ? w.at : null, category: w ? w.cat : null,
     ac: ar ? ar.ac : null, armorType: ar ? ar.arm : null, stealthDis: !!(ar && ar.sd), uses:null,
     text: String(it.d || (base && base.d) || '').slice(0, 260), bonus: it.b || 0, added:true };
@@ -226,7 +312,7 @@ async function openItemPicker(){
     if (!pick) {
       box.innerHTML = '<div class="itop"><div class="cardhead"><h3>➕ Add item</h3><button class="x2" data-i="close" aria-label="Close">×</button></div>'
         + '<input id="itq" class="qrsearch" type="search" placeholder="Search: rope, longsword, healing, bag…" autocomplete="off" value="'+esc(q)+'">'
-        + '<div class="spfilters">'+IT_CATS.map(([k,t]) => '<button class="chip toggle'+(cat===k?' on':'')+'" data-i="cat" data-k="'+k+'" aria-pressed="'+(cat===k)+'">'+t+'</button>').join('')+'</div></div>'
+        + '<div class="spfilters">'+IT_CATS.map(([k,t]) => '<button class="chip toggle'+(cat===k?' on':'')+'" data-i="cat" data-k="'+k+'" aria-pressed="'+(cat===k)+'">'+t+'</button>').join('')+'</div>'+carryHTML()+'</div>'
         + '<div class="ilist"></div><p class="small muted isrc">Items from the D&amp;D System Reference Document 5.2 (CC-BY-4.0).</p>';
       paintList(); box.querySelector('.ilist').scrollTop = scroll;
       const inp = box.querySelector('#itq'); inp.addEventListener('input', () => { q = inp.value; paintList(); });
@@ -239,13 +325,13 @@ async function openItemPicker(){
     const inv = invFrom(it, base, qty, eq), have = ddbQty(inv.name);
     box.innerHTML = '<div class="itop"><div class="cardhead"><button class="btn small" data-i="back">‹ Back</button><button class="x2" data-i="close" aria-label="Close">×</button></div></div>'
       + '<div class="idet"><h3>'+esc(inv.name)+'</h3><p class="small muted">'+esc(itemFacts(it, base))+'</p>'
-      + (it.p && it.p.length ? '<div class="chips">'+it.p.map(x => '<span class="chip ghost">'+esc(x)+'</span>').join('')+'</div>' : '')
       + (it.has ? '<p class="small">Contains: '+esc(it.has.map(([n, x]) => (n>1?n+'× ':'')+x).join(', '))+'</p>' : '')
-      + (it.d ? traitBody(it.d.replace(/^(Common|Uncommon|Rare|Very Rare|Legendary|Artifact)( \([^)]*\))?\s+(?=[A-Z])/, '')) : '')
+      + itemExplain(it, base)
       + (bl.length ? '<label class="ifield"><span class="eyebrow">Which '+(bl === bases.armor ? 'armour' : 'weapon')+(needsBase(it) ? '' : ' (optional)')+'</span><select id="itbase"><option value="">'+(needsBase(it) ? 'Pick one…' : 'Not a specific one')+'</option>'+bl.map(b => '<option'+(base && base.n===b.n?' selected':'')+'>'+esc(b.n)+'</option>').join('')+'</select></label>' : '')
       + '<div class="ifield irow2"><span class="eyebrow">How many</span><span class="istep"><button class="iconbtn" data-i="qty" data-d="-1" aria-label="One fewer">−</button><output class="num">'+qty+'</output><button class="iconbtn" data-i="qty" data-d="1" aria-label="One more">+</button></span></div>'
       + (wa ? '<label class="ifield irow2 icheck"><span class="eyebrow">Equipped</span><input type="checkbox" id="iteq"'+(eq?' checked':'')+'></label>' : '')
       + (have ? '<p class="small muted">D&amp;D Beyond already lists '+have+'. This adds '+qty+' more.</p>' : '')
+      + carryHTML(((base ? base.w : it.w) || 0) / (!base && it.q > 1 ? it.q : 1) * qty)
       + '</div><div class="mbtns"><button class="btn primary" data-i="add"'+(needsBase(it) && !base ? ' disabled' : '')+'>➕ Add '+(qty>1?qty+'× ':'')+esc(inv.name)+'</button></div>';
     const sel = box.querySelector('#itbase'); if (sel) sel.addEventListener('change', () => { base = bl.find(b => b.n === sel.value) || null; paint(); });
     const cb = box.querySelector('#iteq'); if (cb) cb.addEventListener('change', () => { eq = cb.checked; });
