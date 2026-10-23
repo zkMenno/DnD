@@ -44,8 +44,9 @@ module.exports.newUsername = function newUsername() {
 };
 
 // ── Character packs ────────────────────────────────────────────────────────────────────────────────────────
-// Characters that have their own pack (theme, wording). Everyone else gets "bare". Decided here, never by the browser.
-const PACKS = { 170557047: "henry" };
+// Characters that have their own pack (theme, wording), as { <D&D Beyond id>: "<pack name>" }. Everyone else gets
+// "bare". Decided here, never by the browser. None at the moment.
+const PACKS = {};
 // The pack file name (packs/<name>.js) for a D&D Beyond character id.
 module.exports.packFor = id => PACKS[id] || "bare";
 

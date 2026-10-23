@@ -7,8 +7,9 @@ const { check, withBrowser, openSheet, shot, DIST, OUT } = require('./lib');
 withBrowser(async browser => {
   // ── Add item ─────────────────────────────────────────────────────────────────────────────────────────────
   // Adding gear, a weapon, a +1 weapon on a chosen base, two potions and a shield: AC, attack cards, counts and the
-  // change list update; the items survive a reload; remove and equip work. Henry on desktop, Wick on a phone.
-  for (const [sheet, width] of [['henry', 1400], ['wick', 390]]) {
+  // change list update; the items survive a reload; remove and equip work. The Rogue / Fighter fixture on desktop,
+  // Vexa (trial-mage) on a phone. Both have a higher DEX than STR, which the Rapier +1 check needs.
+  for (const [sheet, width] of [['rogue-fighter', 1400], ['trial-mage', 390]]) {
     const p = await openSheet(browser, sheet, width), at = sheet+' @'+width+': ';
     await p.evaluate(() => document.querySelector('[data-tab="gear"]').click()); await p.waitForTimeout(300);
     // Adds one item through the picker: search q, pick n; o.base picks the base weapon, o.qty the count,
@@ -47,11 +48,11 @@ withBrowser(async browser => {
     await shot(p, 'additem-'+sheet+'-gear');
     check(at+'no page errors', !p.errs.length, p.errs); await p.close2();
   }
-  // ── Item counters (Henry) ────────────────────────────────────────────────────────────────────────────────
+  // ── Item counters (Rogue / Fighter fixture: arrows and potions) ──────────────────────────────────────────
   // Trackers saved before 21 Oct (S.arrows / S.potions) carry over as spent counts; arrows and potions use the
   // shared counter; + gives an arrow back; 🧪 Drink heals and uses one potion.
   {
-    const p = await openSheet(browser, 'henry', 390);
+    const p = await openSheet(browser, 'rogue-fighter', 390);
     const base = await p.evaluate(() => ({ arrows: itemLeft(ARROW_N), pots: itemLeft('Potion of Healing'), key: SKEY, stamp: DATA.syncedAt }));
     await p.evaluate(b => { const s = JSON.parse(localStorage.getItem(b.key)) || {}; Object.assign(s, { stamp: b.stamp, arrows: b.arrows - 3, potions: b.pots - 1, spent: {} }); delete s.base; localStorage.setItem(b.key, JSON.stringify(s)); }, base);
     await p.reload(); await p.waitForTimeout(900);
@@ -91,12 +92,12 @@ withBrowser(async browser => {
   }
   // ── Sync drop-off ────────────────────────────────────────────────────────────────────────────────────────
   // A sync where D&D Beyond now lists one of two added items: that one goes, the other stays. Uses a copy of
-  // henry.html in $OUT with a newer syncedAt and a Rope in its data.
-  const src = fs.readFileSync(path.join(DIST, 'henry.html'), 'utf8'), F = path.join(OUT, 'synctest.html');
+  // trial-brute.html in $OUT with a newer syncedAt and a Rope in its data.
+  const src = fs.readFileSync(path.join(DIST, 'trial-brute.html'), 'utf8'), F = path.join(OUT, 'synctest.html');
   fs.writeFileSync(F, src);
   const p = await openSheet(browser, F);
   await p.evaluate(() => { const L = n => ({ inv:{ id:'add-'+n, name:n, qty:1, filter:'Other Gear', inPack:true, props:[], added:true }, had: ddbQty(n), at:1 }); S.added = [L('Rope'), L('Crowbar')]; save(); });
-  const m = src.match(/(<script id="henry-data" type="application\/json">)([\s\S]*?)(<\/script>)/), d = JSON.parse(m[2]);
+  const m = src.match(/(<script id="trial-brute-data" type="application\/json">)([\s\S]*?)(<\/script>)/), d = JSON.parse(m[2]);
   d.syncedAt = new Date().toISOString(); d.inventory.push(Object.assign({}, d.inventory[0], { id: 999, name: 'Rope', qty: 1, equipped: false, filter: 'Other Gear', inPack: true }));
   fs.writeFileSync(F, src.replace(m[0], m[1]+JSON.stringify(d)+m[3]));
   await p.reload(); await p.waitForTimeout(900);

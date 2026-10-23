@@ -12,11 +12,10 @@ const fs = require('fs'), path = require('path'), { createHash } = require('cryp
 // Reads a repo file (path relative to the repo root) as text.
 const R = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 if (process.argv[2] === '--stamp') { stamp(path.resolve(process.argv[3])); process.exit(0); }
-// The claude.ai sheets (dist/claude). tools/test/lib.js knows four of them by name.
+// The claude.ai sheets (dist/claude). tools/test/lib.js knows them by name (and builds its fixture sheets from
+// trial-brute.html).
 const SHEETS = [   // pack file, data file, page title, output name
-  { pack:'henry',  data:'henry',  title:'Henry Gibbs',      out:'henry.html' },
   { pack:'tester', data:'tester', title:'AppTester-01',     out:'apptester.html' },
-  { pack:'wick',   data:'wick',   title:'Wick Softtoppoms', out:'wick.html' },
   { pack:'tester2', data:'tester2', title:'AppTester-02',    out:'apptester2.html' },
   { pack:'trial-brute', data:'trial-brute', title:'Torgan Ironvow', out:'trial-brute.html' },
   { pack:'trial-mage',  data:'trial-mage',  title:'Vexa Emberscale', out:'trial-mage.html' },

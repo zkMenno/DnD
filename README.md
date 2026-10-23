@@ -1,7 +1,7 @@
 # Character sheets
 
 One engine, two ways to run it:
-- **claude.ai sheets** (Henry, AppTester-01, AppTester-02, Wick): one self-contained HTML file each → `dist/claude/`
+- **claude.ai sheets** (AppTester-01, AppTester-02, and the made-up try-out characters Torgan Ironvow and Vexa Emberscale): one self-contained HTML file each → `dist/claude/`
 - **Web app** (accounts, several sheets per account, party sharing): `dist/web/` served by PocketBase
 
 ## Layout
@@ -9,7 +9,7 @@ One engine, two ways to run it:
   and `engine/` (the main script, one file per section, joined in name order by the build; the map is in `engine/00-header.js`)
 - `src/looks/` the looks players pick in ☰ → Theme (web app only), one file per look: colours, fonts, textures, words, dice (see below)
 - `src/legal.html` + `src/site.json`: the web app's Privacy & terms page (operator, contact, email provider filled in from site.json)
-- `packs/` per-character packs (`henry.js` is the full pirate pack; `bare.js` for everyone else)
+- `packs/` per-character packs (`bare.js` for everyone, with the list of pack fields in its header; the others only set their own storage id)
 - `data/` synced D&D Beyond data for the claude.ai sheets, and `items.json` (SRD 5.2 items for ➕ Add item, built by `tools/items.py`)
 - `web/` web app pages: `index.html` (built), `index.js` (sign in, characters, add by link, verify, sharing), `sheet-boot.js` (loads a sheet; db on PocketBase), `home.css`,
   `sw.template.js` + `sw-register.js` (offline: the app shell is saved on install, the rest on first use; files that didn't change are kept across deploys, see `stamp()` in `tools/build.js`), `three.min.js` (r128) and `fonts/` (self-hosted: the app loads nothing from other sites but the characters' D&D Beyond portraits, see Privacy & terms)
@@ -20,9 +20,9 @@ One engine, two ways to run it:
 ## Build and test
     node tools/build.js
     bash tools/test.sh                   # everything, ~10 min (or: sheets ~5 min · web ~2 min)
-    bash tools/test.sh sheets            # lint + every browser test on the four claude.ai sheets
+    bash tools/test.sh sheets            # lint + every browser test on the claude.ai sheets and the fixture sheets in tools/test/fixtures/sheets
     bash tools/test.sh web               # fresh local server: rules, web e2e (incl. CSP watch), move, headers + rate limits
-    node tools/refresh.js henry henry.html 170557047   # pull fresh D&D Beyond data into data/henry.json
+    node tools/refresh.js tester apptester.html 172559988   # pull fresh D&D Beyond data into data/tester.json
     bash tools/devserver.sh reset        # needs the pocketbase binary at /home/claude/pbbin/pocketbase
     bash tools/devserver.sh reset fixtures   # same, but D&D Beyond answers come from tools/test/fixtures/ddb (no network)
     DDB_FIXTURES=tools/test/fixtures/ddb PB_BIN=/path/to/pocketbase bash tools/test.sh web   # what CI runs

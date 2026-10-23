@@ -72,7 +72,7 @@ function remoteMsg(code, what){
     not_in_manifest: 'You turned off scheduled tasks for this page. Allow Claude Code Remote in the page’s permissions.',
     approval_required: what+' needs your OK to start a scheduled task. Tap again and allow it.',
     not_granted: what+' isn’t available in this view.', capability_disabled: what+' isn’t available in this view.',
-    tool_error: 'The scheduled task didn’t start. Check “'+(what==='Push'?'Henry: push changes':'Henry: pull')+'” in your scheduled tasks.',
+    tool_error: 'The scheduled task didn’t start. Check the '+(what==='Push'?'push':'pull')+' task for '+esc(DATA.name)+' in your scheduled tasks.',
     server_unavailable: 'Couldn’t reach Claude just now. Try again in a minute.'
   })[code] || (what+' failed'+(code?' ('+esc(code)+')':'')+'. Try again in a moment.');
 }

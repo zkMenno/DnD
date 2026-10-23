@@ -82,8 +82,8 @@ s,x = req('GET','/api/collections/notes/records/'+n2['id'],tok=ta); check('party
 s,_ = req('PATCH','/api/collections/characters/records/'+wa['id'],{'data':{'id':165157421,'hp':{'override':'<img src=x onerror=alert(1)>'}}},ta); check('character data with HTML is refused', s==400)
 s,_ = req('PATCH','/api/collections/play/records/'+pa['id'],{'state':{'hp':'<svg onload=alert(1)>'}},ta); check('a tracker with HTML is refused', s==400)
 s,_ = req('PATCH','/api/collections/play/records/'+pa['id'],{'state':{'hp':12,'note':'HP < 10 is bad'}},ta); check('a plain "<" in text is fine', s==200)
-s,x = req('PATCH','/api/collections/characters/records/'+wa['id'],{'pack':'henry'},ta); check('the pack is the server\'s choice', s==200 and x['pack']=='bare')
-s,x = mk(tc,ic,170557047,'private',{'pack':'evil'}); check('Henry gets his own pack, whatever the browser sends', s==200 and x['pack']=='henry')
+s,x = req('PATCH','/api/collections/characters/records/'+wa['id'],{'pack':'tester'},ta); check('the pack is the server\'s choice', s==200 and x['pack']=='bare')
+s,x = mk(tc,ic,170557047,'private',{'pack':'evil'}); check('a new character gets the server\'s pack, whatever the browser sends', s==200 and x['pack']=='bare')
 s,x = req('PATCH','/api/collections/characters/records/'+wa['id'],{'visibility':'public'},ta); check('a sharing change still works', s==200 and x['visibility']=='public')
 # ── Verify reads only the player's own text ─────────────────────────────────────────────────────────────────
 # Verify reads only the player's own text (Notes, Backstory, traits), never the campaign block, where other

@@ -46,7 +46,7 @@ function paintMenu(){
   const opt = (act, ico, t, sub, off) => '<button class="dsopt syncopt" id="'+act+'btn" data-act="'+act+'"'+(off||syncing?' disabled':'')+'><span class="mico" aria-hidden="true">'+ico+'</span><span class="dst"><b data-label="'+t+'">'+(syncing?'Working…':t)+'</b><span>'+sub+'</span></span></button>';
   const syncBody = '<div class="msub"><div class="diceset">'
     + opt('pull', '⬇️', 'Pull from D&amp;D Beyond', 'D&amp;D Beyond → this app. Works on any device.')
-    // push needs the pack's scheduled tasks (claude.ai, Henry); the web app only reads D&D Beyond
+    // push needs the pack's scheduled tasks (PACK.sync, claude.ai only); the web app only reads D&D Beyond
     + (PACK.sync && PACK.sync.pushTask && !window.SHEET ? opt('push', '⬆️', pend ? 'Push '+pend+' change'+(pend===1?'':'s') : 'Push changes', pend ? 'This app → D&amp;D Beyond, via Chrome on your computer.' : 'Nothing to push: matches D&amp;D Beyond.', !pend) : '')
     // moving to the web app: the claude.ai sheet gives a code, your own web-app copy takes it (§22)
     + (!window.SHEET ? opt('moveout', '📦', 'Move to the web app', 'Copy this tracker and your notes as a code to paste there.')

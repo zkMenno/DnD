@@ -46,7 +46,7 @@ migrate((app) => {
       { name: "owner",      type: "relation", required: true, collectionId: users.id, maxSelect: 1, cascadeDelete: true },
       { name: "handle",     type: "text", max: 20 },                 // the owner's username (hooks): the link's first part
       { name: "name",       type: "text", max: 120 },                // from D&D Beyond (hooks)
-      { name: "pack",       type: "text", max: 40 },                 // character pack file: henry, bare… (hooks)
+      { name: "pack",       type: "text", max: 40 },                 // character pack file: bare, … (hooks)
       { name: "data",       type: "json", maxSize: 4000000 },        // the engine's compact() of the D&D Beyond sheet
       { name: "visibility", type: "select", maxSelect: 1, values: ["private", "party", "public"] },
       { name: "campaign",   type: "text", max: 40 },                 // D&D Beyond campaign id (hooks)
