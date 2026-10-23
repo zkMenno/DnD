@@ -2,6 +2,7 @@
 // 23 Oct 2026: tighter per-IP limits where a request costs a D&D Beyond fetch or an email (security review):
 // adding a character, or pulling a fresh copy of one, fetches the sheet from D&D Beyond, and the account endpoints
 // send codes. Before, both only fell under the generous "/api/" limit (600 a minute).
+// Up: adds the three rules just above the catch-all "/api/" (replacing any with the same label). Down: removes them.
 migrate((app) => {
   const s = app.settings(), add = [
     { label: "characters:create", maxRequests: 20, duration: 60, audience: "" },

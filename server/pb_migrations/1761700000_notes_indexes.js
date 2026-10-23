@@ -1,6 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
 // 23 Oct 2026: indexes for the notes every sheet reads and subscribes to (by character and scope; the party log by
 // campaign and scope). Without them each query scans the whole notes table (architecture review).
+// Up: adds both indexes (replacing older ones with the same names). Down: drops them.
 migrate((app) => {
   const notes = app.findCollectionByNameOrId("notes");
   notes.indexes = notes.indexes.filter(i => !/idx_notes_(character|campaign)_scope/.test(i)).concat([

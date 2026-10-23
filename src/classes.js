@@ -4,6 +4,8 @@
    A character loads every module whose key matches one of its classes (by name) or whose match(DATA) is true
    (species and the like). Modules run lazily (inside derive and at render time), like PACK, so they may use
    engine globals: D, S, sgn, esc, optRow, ob, hasBoost, sdLeft…  Never touch those at the top level.
+   Loaded before the pack and the engine: as <script id="classes"> in a claude.ai sheet, as /engine/classes.js in the
+   web app (tools/build.js). The engine collects the matching ones in MODS (activeModules, src/engine/01-model.js).
 
    A module may define:
      match(DATA)   → true when it applies (default: a class with the module's name)
@@ -18,7 +20,10 @@
                         button?: {act, label, use},      a quick-use button (panel label / bubble label)
                         pool?: true,                     a pool of points (Lay on Hands): −5 / −1 / +1 instead of pips
                         toggle?: {on, off, onChip, onDesc, noSpells?, start?},   an on/off state (Rage): on spends a use
-                        buttons?: [{label, n, title, note | attacks:{w, n} | heal | activate}],   spend buttons (Focus)
+                        buttons?: [{label, n, title, tip?, when?, note | attacks:{w, n} | heal | healRoll | activate,
+                                    restore?}],          spend buttons (Focus); healRoll: a rolled self-heal;
+                                                         restore: a tracker key to refill
+                        spell?, freeOf?,                 a spell resource; freeOf = free casts of that spell (not a slot)
                         ddb: 'Actions → …' }]            where to tick it in D&D Beyond
      checkRows(k)  → [html] extra option rows on a check or save sheet (k = the open check)
      riders(w, c)    → extra damage on a hit (see §8 Riders in 08-roll-flow): Sneak Attack, Rage, Divine Smite…
@@ -28,7 +33,9 @@
      longRestNote  → string, a reminder on the long-rest drawer
    ============================================================================ */
 const CLASS_MODULES = {
+  // ---- Fighter (Henry: Battle Master) ----
   Fighter: {
+    // Second Wind (heal 1d10 + level), Action Surge, superiority dice (d8 → d12 by level), Extra Attack at 5
     derive: x => {
       const f = x.lvl('Fighter'), sw = x.act('Second Wind'), surge = x.act('Action Surge'), sup = x.act('Superiority Dice');
       return { fighter: f, attacksPerAction: f >= 5 ? 2 : 1,
@@ -76,7 +83,9 @@ const CLASS_MODULES = {
     },
     longRestNote: 'you can swap one Fighter weapon mastery'
   },
+  // ---- Rogue (Henry) ----
   Rogue: {
+    // Sneak Attack dice: 1d6 per two Rogue levels, rounded up
     derive: x => { const r = x.lvl('Rogue'); return { rogue: r, sneakDice: Math.ceil(r/2) }; },
     // Steady Aim (Rogue 3): bonus action, advantage on your next attack if you haven't moved this turn
     advNote: w => !w.spell && D.rogue >= 3 ? 'Steady Aim (bonus action, don’t move this turn)' : '',
@@ -89,6 +98,7 @@ const CLASS_MODULES = {
   },
   // ---- Martial classes (built around AppTester-02: Barbarian / Paladin / Monk / Ranger) ----
   Barbarian: {
+    // Rage uses (from D&D Beyond, or by level), rage damage +2/+3/+4, Berserker subclass, Extra Attack at 5
     derive: x => { const b = x.lvl('Barbarian'), r = x.act('Rage (Enter)') || x.act('Rage'), k = x.c.classes.find(c => c.name === 'Barbarian');
       return { barbarian: b, attacksPerAction: b >= 5 ? 2 : 1, rageDmg: b >= 16 ? 4 : b >= 9 ? 3 : 2, berserker: /Berserker/.test(k && k.sub || ''),
         rage: { max: (r && r.max) || (b >= 17 ? 6 : b >= 12 ? 5 : b >= 6 ? 4 : b >= 3 ? 3 : 2), used: r ? r.used : 0 } }; },
@@ -98,23 +108,27 @@ const CLASS_MODULES = {
         onDesc:'<b>+'+D.rageDmg+' damage</b> on Strength attacks (added for you). <b>Advantage</b> on Strength checks and saves. <b>Resistance</b> to bludgeoning, piercing and slashing. <b>No spells, no concentration.</b> Ends early if you don’t attack, take damage or keep it going with a bonus action each turn.'+(D.berserker ? ' <b>Frenzy:</b> attack recklessly and your first hit each turn adds '+D.rageDmg+'d6.' : ''),
         noSpells:'You can’t cast spells while raging.',
         start: () => { if (!S.conc) return ''; const c = S.conc; S.conc = null; return 'Your concentration on '+esc(c)+' ends.'; } } }],
+    // Rage damage on Strength attacks while raging (added automatically); Frenzy on a reckless (advantage) attack
     riders: (w, c) => {
       if (!S.active.rage || w.spell || w.a !== 'str') return [];
       return [{ key:'rage', label:'Rage', emoji:'🔥', flat:D.rageDmg, auto:true, note:'+'+D.rageDmg+' on Strength attacks while raging.' },
         D.berserker && c.mode === 'adv' && { key:'frenzy', label:'Frenzy', emoji:'😤', dice:D.rageDmg+'d6', type:w.dmgType, once:'turn', note:'You attacked recklessly while raging: the first target you hit this turn takes '+D.rageDmg+'d6 more.' }];
     },
+    // a reminder on Strength checks while raging
     checkRows: k => S.active.rage && /^(Strength|Athletics)/.test(k.label) ? [optRow('🔥 Raging', [['', 'Advantage on Strength checks and saves: roll with advantage.']])] : [],
     // Reckless Attack: the attack setup's Advantage choice says so for Strength attacks
     advNote: w => !w.spell && w.a === 'str' ? 'Reckless Attack (enemies get advantage on you until your next turn)' : '',
     longRestNote: 'all Rages come back'
   },
   Monk: {
+    // Focus Points, martial arts die (d6 → d12), save DC, Open Hand subclass, Wholeness of Body, Uncanny Metabolism
     derive: x => { const m = x.lvl('Monk'), f = x.act('Focus Points'), wb = x.act('Wholeness of Body'), um = x.act('Uncanny Metabolism');
       return { monk: m, attacksPerAction: m >= 5 ? 2 : 1, focusDC: 8 + x.pb + x.mod.wis, openHand: x.c.classes.some(c => c.name === 'Monk' && /Open Hand/.test(c.sub || '')),
         maDie: 'd'+(m >= 17 ? 12 : m >= 11 ? 10 : m >= 5 ? 8 : 6),
         focus: { max: (f && f.max) || m, used: f ? f.used : 0 },
         wholeness: wb && wb.max ? { max: wb.max, used: wb.used } : (wb ? { max: Math.max(1, x.mod.wis), used: wb.used } : null),
         metabolism: um ? { max: um.max || 1, used: um.used } : null }; },
+    // Focus Points with Flurry / Patient Defense / Step of the Wind buttons, then the two once-per-rest heals
     resources: D => [{ key:'focus', name:'Focus Points', emoji:'☯️', max:D.focus.max, used:D.focus.used, short:'all', unit:['Focus Point','Focus Points'], ddb:'Actions → Focus Points',
       terms:['Focus Points','Monk’s Focus','Flurry of Blows','Patient Defense','Step of the Wind','Stunning Strike'],
       desc:'Fuel for Monk techniques (bonus actions). Stunning Strike costs 1 on a hit. All back on a short rest.',
@@ -128,6 +142,7 @@ const CLASS_MODULES = {
       D.metabolism && { key:'metabolism', name:'Uncanny Metabolism', emoji:'🍃', max:D.metabolism.max, used:D.metabolism.used, short:0, unit:['use','uses'], terms:['Uncanny Metabolism'], ddb:'Actions → Uncanny Metabolism',
         desc:'When you roll Initiative: all Focus Points back, and heal 1'+D.maDie+D.sgn(D.monk)+'. Once per long rest.',
         buttons:[{ label:'🍃 Use', n:1, title:'Uncanny Metabolism', restore:'focus', healRoll:'1'+D.maDie+D.sgn(D.monk), note:'All your Focus Points are back.' }] }],
+    // Stunning Strike (Monk 5+) on a melee monk-weapon hit; Open Hand Technique on Flurry of Blows hits
     riders: (w, c) => {
       if (w.spell || w.ranged || !w.monkWeapon) return [];
       return [D.monk >= 5 && { key:'stun', label:'Stunning Strike', emoji:'⚡', cost:{ key:'focus', n:1 }, once:'turn', after:'DC '+D.focusDC+' Constitution save',
@@ -137,10 +152,12 @@ const CLASS_MODULES = {
     }
   },
   Paladin: {
+    // Lay on Hands pool (5 × level), Channel Divinity, Sacred Weapon bonus (CHA, at least 1), Devotion subclass
     derive: x => { const p = x.lvl('Paladin'), l = x.act('Lay On Hands: Healing Pool') || x.act('Lay on Hands'), cd = x.act('Channel Divinity');
       return { paladin: p, attacksPerAction: p >= 5 ? 2 : 1, loh: { max: (l && l.max) || 5*p, used: l ? l.used : 0 },
         channel: cd ? { max: cd.max, used: cd.used } : null, sacredBonus: Math.max(1, x.mod.cha),
         devotion: x.c.classes.some(c => c.name === 'Paladin' && /Devotion/.test(c.sub || '')) }; },
+    // Lay on Hands as a pool; Channel Divinity with Sacred Weapon (Devotion) and Divine Sense buttons
     resources: D => [{ key:'loh', name:'Lay on Hands', emoji:'🙌', pool:true, max:D.loh.max, used:D.loh.used, short:0, unit:['point','points'], ddb:'Actions → Lay On Hands: Healing Pool',
       terms:['Lay on Hands','Lay On Hands','Lay On Hands: Healing Pool','Lay On Hands: Heal'],
       desc:'Bonus action: touch a creature and restore Hit Points from this pool. 5 points also end the Poisoned condition. Refills on a long rest.',
@@ -153,7 +170,9 @@ const CLASS_MODULES = {
           { label:'👁️ Divine Sense', n:1, title:'Divine Sense', note:'Bonus action: for 10 minutes you know the location of any Celestial, Fiend or Undead within 18 m, and of any consecrated or desecrated place.' }].filter(Boolean) }],
     // on/off states this class can have (shown as a strip on the Combat tab while on)
     actives: D => [D.devotion && { key:'sacred', chip:'⚔️ Sacred Weapon', off:'End', desc:'<b>+'+D.sacredBonus+'</b> to hit with your melee weapon (added for you). 10 minutes; ends if you drop the weapon.' }],
+    // Sacred Weapon: +CHA to hit with melee weapons while it is on
     hitRiders: (w, c) => S.active.sacred && !w.spell && !w.ranged ? [{ key:'sacred', label:'Sacred Weapon', emoji:'⚔️', flat:D.sacredBonus, auto:true, note:'+'+D.sacredBonus+' (your CHA) while your weapon shines.' }] : [],
+    // Divine Smite on a melee weapon hit: one option per slot level with a slot left (2d8 + 1d8 per level above 1st)
     riders: (w, c) => {
       if (w.spell || w.ranged || !(DATA.spells||[]).some(s => s.name === 'Divine Smite')) return [];
       return RES.filter(r => r.spell && !r.freeOf && r.key !== 'pact' && r.max - S[r.key] > 0).map(r => ({ key:'smite'+r.slotLevel, group:'smite', once:'turn',
@@ -163,11 +182,14 @@ const CLASS_MODULES = {
     longRestNote: 'Lay on Hands refills'
   },
   Ranger: {
+    // Extra Attack at 5, Colossus Slayer, free Hunter's Mark casts
     derive: x => { const r = x.lvl('Ranger'), hm = x.act('Hunter’s Mark') || x.act("Hunter's Mark");
       return { ranger: r, attacksPerAction: r >= 5 ? 2 : 1, colossus: !!x.act('Colossus Slayer'), hmFree: hm ? { max: hm.max, used: hm.used } : null }; },
+    // free Hunter's Mark casts, as a spell resource tied to that spell
     resources: D => { const sp = (DATA.spells||[]).find(s => /^Hunter.s Mark$/.test(s.name));
       return [D.hmFree && D.hmFree.max && { key:'hmfree', name:'Hunter’s Mark (free casts)', emoji:'🎯', spell:true, freeOf: sp ? sp.name : 'Hunter’s Mark', max:D.hmFree.max, used:D.hmFree.used,
         short:0, unit:['free cast','free casts'], terms:['Hunter’s Mark',"Hunter's Mark"], ddb:'Actions → Hunter’s Mark' }]; },
+    // Hunter's Mark (added when concentrating on it) and Colossus Slayer on weapon hits
     riders: (w, c) => {
       if (w.spell) return [];
       const marked = /^Hunter.s Mark$/.test(S.conc || '');
@@ -175,6 +197,8 @@ const CLASS_MODULES = {
         D.colossus && { key:'colossus', label:'Colossus Slayer', emoji:'🗿', dice:'1d8', type:w.dmgType, once:'turn', note:'If the target is already missing any of its Hit Points.' }];
     }
   },
+  // ---- Species ----
+  // Goliath: Large Form as an on/off tracker
   Goliath: {
     match: d => /goliath/i.test(d.race && d.race.name || ''),
     derive: x => { const l = x.act('Activate Large Form'); return { largeForm: l ? { max: l.max || 1, used: l.used } : null }; },
@@ -182,8 +206,10 @@ const CLASS_MODULES = {
       terms:['Large Form','Activate Large Form'], ddb:'Actions → Activate Large Form',
       desc:'Bonus action: become Large for 10 minutes. Advantage on Strength checks, +3 m speed. Once per long rest.',
       toggle:{ on:'⛰️ Grow', off:'Shrink back', onChip:'⛰️ Large Form', onDesc:'You’re <b>Large</b> for 10 minutes: <b>advantage on Strength checks</b> and <b>+3 m speed</b>.' } }],
+    // a reminder on Strength checks while Large
     checkRows: k => S.active.large && / check$|^Athletics/.test(k.label) && /^(Strength|Athletics)/.test(k.label) ? [optRow('⛰️ Large Form', [['', 'Advantage on Strength checks: roll with advantage.']])] : []
   },
+  // Halfling: Luck (reroll a natural 1 on a d20), read by the roll code as D.luck
   Halfling: {
     match: d => /halfling/i.test(d.race && d.race.name || '') || ((d.race && d.race.traits) || []).some(t => t.name === 'Luck'),
     derive: () => ({ luck: true })

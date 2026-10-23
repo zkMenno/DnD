@@ -1,17 +1,26 @@
-// Sign-in & security on the home page: change the email (code sent to the new address) and set a password (code sent
-// to the current email), then sign in with the new email and password. Needs tools/mailsink.py, like e2e-codes.
+// Sign-in & security on the home page: change the email (codes to the new and the current address), set a password
+// by emailed code, save a first password after a code sign-in, the remembered password box on the sign-in page, a
+// password set by someone else before the owner proved the email, Forgot your password?, Sign out everywhere else
+// and Remove password. Needs tools/mailsink.py running (tools/test.sh starts it); reads codes from its file.
+// Run: node tools/test/web/e2e-account.js [server URL], or as part of bash tools/test.sh web. Default server:
+// http://127.0.0.1:8090 (tools/devserver.sh). Prints PASS/FAIL per check and exits non-zero on a failure.
+// Uses fresh email addresses, so it can run more than once on the same server.
 const fs = require('fs'), { chromium } = require('playwright'), watch = require('./watch');
 const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt';
 (async () => {
+  // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
+  // As the test superuser (made by tools/devserver.sh): point the server's mail at tools/mailsink.py.
   const su = await (await fetch(B+'/api/collections/_superusers/auth-with-password', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({identity:'admin@example.test', password:'TestPass-12345'}) })).json();
   await fetch(B+'/api/settings', { method:'PATCH', headers:{'content-type':'application/json', Authorization: su.token}, body: JSON.stringify({ meta:{ senderName:'Character sheets', senderAddress:'sheets@example.test' }, smtp:{ enabled:true, host:'127.0.0.1', port:2525, tls:false } }) });
+  // The newest code mailed to an address, from the plain-text "code: 123456" line (polls for up to 10 s).
   const codeFor = async to => { for (let i = 0; i < 40; i++) { const t = fs.existsSync(MAIL) ? fs.readFileSync(MAIL, 'utf8') : ''; const parts = t.split('=== TO ').filter(x => x.startsWith(to)); const m = parts.length && parts[parts.length-1].match(/code: (\d{6})/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; };
   fs.writeFileSync(MAIL, '');
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const p = await (await b.newContext({ viewport:{width:390, height:844} })).newPage(); p.setDefaultTimeout(15000);
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const email = 'acct'+Date.now()+'@example.test', email2 = 'new'+Date.now()+'@example.test';
+  // Sign up with a password and add Henry, then open Account on the home page.
   await p.goto(B + '/#signin'); await p.fill('input[name=email]', email); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'First-pass-123'); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await p.click('#pwgo');
   await p.waitForSelector('#add'); await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/170557047'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForSelector('#vitals'); await p.goto(B + '/'); await p.click('[data-hometab=account]'); await p.waitForSelector('#secem');
@@ -36,6 +45,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   const q = await (await b.newContext({ viewport:{width:390, height:844} })).newPage(); q.setDefaultTimeout(15000); q.on('pageerror', e => errs.push(e.message));
   const email3 = 'otp'+Date.now()+'@example.test';
   await q.goto(B + '/#signin'); await q.fill('input[name=email]', email3); await q.click('button[value=code]'); await q.waitForSelector('input[name=code]');
+  // the sign-in code is in the HTML body (<strong>123456</strong>), quoted-printable: soft line breaks removed first
   const c3 = await (async () => { for (let i = 0; i < 40; i++) { const t = fs.existsSync(MAIL) ? fs.readFileSync(MAIL, 'utf8') : ''; const parts = t.split('=== TO ').filter(x => x.startsWith(email3)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/<strong>(\d{6})<\/strong>/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; })(); ok('the sign-in code arrives', !!c3);
   await q.fill('input[name=code]', c3); await q.click('button[value=otp]'); await q.waitForSelector('#add');
   const u3 = await (await fetch(B+'/api/collections/users/records?filter='+encodeURIComponent('email="'+email3+'"'), { headers:{ Authorization: su.token } })).json();
@@ -66,6 +76,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   ok('a password set before the owner proved the email stops working', !r4.ok);
   // Forgot your password? on the sign-in page: a code, then "Choose a new password" on the home page
   const f = await (await b.newContext({ viewport:{width:390, height:844} })).newPage(); f.setDefaultTimeout(15000); f.on('pageerror', e => errs.push(e.message));
+  // the newest sign-in code mailed to an address (same format as above)
   const otp = async to => { for (let i = 0; i < 40; i++) { const t = fs.readFileSync(MAIL, 'utf8'); const parts = t.split('=== TO ').filter(x => x.startsWith(to)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/<strong>(\d{6})<\/strong>/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; };
   fs.writeFileSync(MAIL, '');
   await f.goto(B + '/#signin'); await f.fill('input[name=email]', email3); await f.evaluate(() => { document.querySelector('.pwbox').open = true; });
@@ -75,6 +86,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   await f.fill('#firstpw', 'Fourth-pass-111'); await f.fill('#firstpw2', 'Fourth-pass-112'); await f.click('#firstpwok');
   ok('two different passwords: the error shows in the card, under the boxes', /aren’t the same/.test(await f.textContent('.pwprompt .pwerr')));
   await f.fill('#firstpw2', 'Fourth-pass-111'); await f.click('#firstpwok'); await f.waitForSelector('#donepop.show');
+  // a password sign-in straight against the API
   const signIn = async (em, pw) => fetch(B + '/api/collections/users/auth-with-password', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ identity: em, password: pw }) });
   ok('the new password works', (await signIn(email3, 'Fourth-pass-111')).ok);
   ok('the old one doesn’t', !(await signIn(email3, 'Third-pass-789')).ok);

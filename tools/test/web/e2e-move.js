@@ -1,9 +1,14 @@
-// Moving a claude.ai sheet to the web app (§22): the claude.ai copy of Wick gives a code with its tracker and notes,
-// the player's own web-app copy of Wick takes it; a code for another character or a broken code is refused.
+// Moving a claude.ai sheet to the web app (src/engine/22-move.js): the claude.ai copy of Wick gives a code with its
+// tracker and notes, the player's own web-app copy of Wick takes it; a code for another character or a broken code
+// is refused, and bringing the same code over twice doesn't double the notes.
+// Run: node tools/test/web/e2e-move.js [server URL], or as part of bash tools/test.sh web. Default server:
+// http://127.0.0.1:8090 (tools/devserver.sh). Prints PASS/FAIL per check and exits non-zero on a failure.
+// Also opens the built claude.ai sheets in dist/claude. Uses a fixed account (mover): run it on a fresh database.
 const { chromium } = require('playwright'), path = require('path'), watch = require('./watch');
 const B = process.argv[2] || 'http://127.0.0.1:8090', DIST = path.join(__dirname, '..', '..', '..', 'dist', 'claude');
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   const errs = [];
   // open ☰ → Sync and press one of its buttons
@@ -29,6 +34,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', DIST = path.join(__dirname
   await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await p.click('#pwgo'); await p.waitForSelector('#add');
   await p.fill('#add input[name=url]', 'https://www.dndbeyond.com/characters/165157421'); await p.click('#add button'); await watch.onboard(p);
   await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals'); await p.waitForTimeout(2500);
+  // opens "Bring over from claude.ai", pastes a code and confirms
   const paste = async text => { p.evaluate(() => { moveIn(); }); await p.waitForSelector('.mbox');   // the web app's menu no longer offers it (Menno, 23 Oct); the code path stays
     await p.fill('#movepaste', text); await p.click('.mbtns [data-m="1"]'); await p.waitForTimeout(400); };
   await paste('hello'); ok('a broken code is refused, in words', /isn’t a moving code/.test(await p.textContent('#syncmsg')));

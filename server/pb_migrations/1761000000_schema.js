@@ -1,6 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
-// The whole server schema: accounts, characters, trackers, notes, and the server settings. One file, written before
-// the first deploy (later changes go in new migrations next to this one, never in here).
+// 22 Oct 2026, the first schema: accounts, characters, trackers (play), notes, and the server settings. One file,
+// written before the first deploy. Later changes go in new migrations next to this one, never in here: a server
+// that already ran it would never see an edit. Migrations run in file-name order, so this one always comes first.
 //
 // Who sees what
 //   • A character record is one account's copy of a public D&D Beyond character ("tracker"). Anyone can add any
@@ -10,8 +11,10 @@
 //   • Verified ("this account can edit the D&D Beyond sheet", proven by a code; see hooks) unlocks party features.
 //   • Server-set, never from the browser: owner checks, verified, claim_code, name, campaign, pack, handle (hooks),
 //     and a note's author name + campaign. Nothing can be moved to another character, scope or campaign.
+// Up: adds the collections, rules and settings below. Down: drops notes, play and characters, removes the username
+// field and turns code sign-in off (the settings stay).
 migrate((app) => {
-  // ── users: sign in with an emailed code (or a password); a username for sheet links ──────────────
+  // ── users: sign in with an emailed code (or a password); a username for sheet links ──────────────────────
   const users = app.findCollectionByNameOrId("users");
   users.fields.add(new TextField({ name: "username", min: 3, max: 20, pattern: "^[a-z0-9][a-z0-9-]{1,18}[a-z0-9]$" }));   // /<username>/<D&D Beyond id>
   users.indexes = (users.indexes || []).concat(["CREATE UNIQUE INDEX idx_users_username ON users (username) WHERE username != ''"]);
@@ -24,7 +27,9 @@ migrate((app) => {
   users.authAlert.enabled = false;   // no "new location" mails: with codes every new phone would trigger one
   app.save(users);
 
-  // ── characters ─────────────────────────────────────────────────────────────────────────────────────
+  // A character is visible to its owner, to verified party members in the same campaign (when shared with the party)
+  // and to anyone signed in (when public). Only the owner writes; the hooks fill in the server-set fields.
+  // ── characters ───────────────────────────────────────────────────────────────────────────────────────────
   const OWN   = 'owner = @request.auth.id';
   const PARTY = '(visibility = "party" && verified = true && campaign != "" && @collection.characters.owner ?= @request.auth.id'
     + ' && @collection.characters.verified ?= true && @collection.characters.campaign ?= campaign)';
@@ -57,7 +62,7 @@ migrate((app) => {
   });
   app.save(characters);
 
-  // ── play: one live tracker per character record ────────────────────────────────────────────────────
+  // ── play: one live tracker per character record ──────────────────────────────────────────────────────────
   const C_OWN   = 'character.owner = @request.auth.id';
   const C_PARTY = '(character.visibility = "party" && character.verified = true && character.campaign != "" && @collection.characters.owner ?= @request.auth.id'
     + ' && @collection.characters.verified ?= true && @collection.characters.campaign ?= character.campaign)';
@@ -75,7 +80,7 @@ migrate((app) => {
   });
   app.save(play);
 
-  // ── notes: scope "own" = the character's log, "party" = the campaign's shared party log ───────────
+  // ── notes: scope "own" = the character's log, "party" = the campaign's shared party log ──────────────────
   const PARTY_MEMBER = '@collection.characters.owner ?= @request.auth.id && @collection.characters.verified ?= true && @collection.characters.campaign ?= campaign';
   const notes = new Collection({
     type: "base", name: "notes",
@@ -101,14 +106,15 @@ migrate((app) => {
   });
   app.save(notes);
 
-  // ── settings ───────────────────────────────────────────────────────────────────────────────────────
+  // ── settings ─────────────────────────────────────────────────────────────────────────────────────────────
   const s = app.settings();
   s.meta.appName = "Character sheets";
   s.backups.cron = "15 3 * * *"; s.backups.cronMaxKeep = 7;          // nightly at 03:15, last 7 kept
   s.logs.maxDays = 5; s.logs.logIP = true;                          // request logs (with IP) for security, 5 days: stated on /legal.html
   s.trustedProxy.headers = ["X-Forwarded-For"]; s.trustedProxy.useLeftmostIP = false;   // behind Caddy: the last entry is the client
   s.rateLimits.enabled = true;
-  // per IP, sized for a whole party signing up on one café wifi on game night, not for a script
+  // Per IP, sized for a whole party signing up on one café wifi on game night, not for a script.
+  // The catch-all "/api/" stays last: later migrations insert their rules above it.
   s.rateLimits.rules = [
     { label: "*:requestOTP",       maxRequests: 20,  duration: 600, audience: "" },   // code emails
     { label: "*:authWithOTP",      maxRequests: 30,  duration: 60,  audience: "" },   // ~300 guesses in a code's 10 min: 0.03% of a 6-digit code

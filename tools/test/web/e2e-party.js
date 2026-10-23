@@ -1,11 +1,20 @@
 // Party log end to end: two players in The Bluff, both verified (superuser stands in for the D&D Beyond code check).
+// A party note is seen, signed, by the other player, a private note isn't, others' party notes can't be edited,
+// and replies show up live.
+// Run: node tools/test/web/e2e-party.js [server URL], or as part of bash tools/test.sh web. Default server:
+// http://127.0.0.1:8090 (tools/devserver.sh). Prints PASS/FAIL per check and exits non-zero on a failure.
+// Uses fixed accounts (ann, hal): run it on a fresh database.
 const {chromium} = require('playwright'), watch = require('./watch');
 const B = process.argv[2] || 'http://127.0.0.1:8090';
+// A JSON request to the server; returns the parsed answer.
 const api = async (path, opt={}) => { const r = await fetch(B+path, {...opt, headers:{'content-type':'application/json', ...(opt.headers||{})}}); return r.json(); };
 (async () => {
   const su = (await api('/api/collections/_superusers/auth-with-password', {method:'POST', body: JSON.stringify({identity:'admin@example.test', password:'TestPass-12345'})})).token;
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+  // Prints PASS/FAIL for one check and marks the run failed if it didn't pass.
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
+  // A player in their own browser context: signs up, adds the character at link and waits for its first save.
+  // p.cid is the character record id, p.errs the page errors and CSP blocks.
   const player = async (email, link) => {
     const ctx = await b.newContext({viewport:{width:390,height:844}, colorScheme:'dark'}); const p = await ctx.newPage(); p.setDefaultTimeout(30000);
     const errs = []; watch(p, errs); p.errs = errs;
@@ -16,6 +25,7 @@ const api = async (path, opt={}) => { const r = await fetch(B+path, {...opt, hea
   };
   const a = await player('ann@example.test', 'https://www.dndbeyond.com/characters/165157421');   // Wick
   const h = await player('hal@example.test', 'https://www.dndbeyond.com/characters/170557047');   // Henry
+  // the superuser marks both verified; both reload and open Notes
   for (const p of [a, h]) await api('/api/collections/characters/records/'+p.cid, {method:'PATCH', headers:{Authorization: su}, body: JSON.stringify({verified:true})});
   for (const p of [a, h]) { await p.reload(); await p.waitForSelector('#vitals'); await p.waitForTimeout(800); await p.evaluate(() => showTab('notes')); await p.waitForTimeout(400); }
   ok('verified players get the Party log sub-tab', await a.$('[data-act="notescope"][data-k="party"]') && await h.$('[data-act="notescope"][data-k="party"]'));

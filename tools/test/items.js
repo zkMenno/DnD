@@ -1,10 +1,18 @@
 // ➕ Add item: the picker, gear, AC and attack cards, the change list, remove / equip, reload, and the sync drop-off.
+// Also the shared item counters (arrows, potions), old trackers carrying over, drinking potions and self-heals.
+// Run: node tools/test/items.js (after node tools/build.js), or as part of bash tools/test.sh sheets. Uses the built
+// claude.ai sheets in dist/claude through lib.js; prints PASS/FAIL per check and exits non-zero on a failure.
 const fs = require('fs'), path = require('path');
 const { check, withBrowser, openSheet, shot, DIST, OUT } = require('./lib');
 withBrowser(async browser => {
+  // ── Add item ─────────────────────────────────────────────────────────────────────────────────────────────
+  // Adding gear, a weapon, a +1 weapon on a chosen base, two potions and a shield: AC, attack cards, counts and the
+  // change list update; the items survive a reload; remove and equip work. Henry on desktop, Wick on a phone.
   for (const [sheet, width] of [['henry', 1400], ['wick', 390]]) {
     const p = await openSheet(browser, sheet, width), at = sheet+' @'+width+': ';
     await p.evaluate(() => document.querySelector('[data-tab="gear"]').click()); await p.waitForTimeout(300);
+    // Adds one item through the picker: search q, pick n; o.base picks the base weapon, o.qty the count,
+    // o.shot takes a screenshot before adding.
     const add = async (q, n, o = {}) => {
       await p.click('[data-act="additem"]'); await p.waitForSelector('#itq');
       await p.fill('#itq', q); await p.click('.irow[data-n="'+n+'"]');
@@ -39,7 +47,9 @@ withBrowser(async browser => {
     await shot(p, 'additem-'+sheet+'-gear');
     check(at+'no page errors', !p.errs.length, p.errs); await p.close2();
   }
-  // counters: trackers saved before 21 Oct (S.arrows / S.potions) carry over as spent counts; arrows and potions use the shared counter
+  // ── Item counters (Henry) ────────────────────────────────────────────────────────────────────────────────
+  // Trackers saved before 21 Oct (S.arrows / S.potions) carry over as spent counts; arrows and potions use the
+  // shared counter; + gives an arrow back; 🧪 Drink heals and uses one potion.
   {
     const p = await openSheet(browser, 'henry', 390);
     const base = await p.evaluate(() => ({ arrows: itemLeft(ARROW_N), pots: itemLeft('Potion of Healing'), key: SKEY, stamp: DATA.syncedAt }));
@@ -56,6 +66,7 @@ withBrowser(async browser => {
       check('🧪 Drink heals and uses one', await p.evaluate(h => S.hp > h && itemLeft('Potion of Healing'), hp0) === base.pots - 2); }
     check('no page errors', !p.errs.length, p.errs); await p.close2();
   }
+  // ── Healing (AppTester-02) ───────────────────────────────────────────────────────────────────────────────
   // AppTester-02: every healing potion size can be drunk, with its own dice
   {
     const p = await openSheet(browser, 'tester2', 390);
@@ -78,7 +89,9 @@ withBrowser(async browser => {
     check('Wholeness of Body heals 1d8+1 and spends its use', await p.evaluate(() => S.hp >= 52 && S.hp <= 59 && S.wholeness === 1));
     check('no page errors', !p.errs.length, p.errs); await p.close2();
   }
-  // a sync where D&D Beyond now lists one of two added items: that one goes, the other stays
+  // ── Sync drop-off ────────────────────────────────────────────────────────────────────────────────────────
+  // A sync where D&D Beyond now lists one of two added items: that one goes, the other stays. Uses a copy of
+  // henry.html in $OUT with a newer syncedAt and a Rope in its data.
   const src = fs.readFileSync(path.join(DIST, 'henry.html'), 'utf8'), F = path.join(OUT, 'synctest.html');
   fs.writeFileSync(F, src);
   const p = await openSheet(browser, F);

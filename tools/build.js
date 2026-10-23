@@ -1,9 +1,14 @@
-// Build the sheets.
-//   claude: one self-contained HTML per character (the claude.ai artifacts, same layout buildDoc() writes)
-//   web:    the standalone web app (engine files + packs), see web/
-// usage: node tools/build.js            → dist/claude/*.html + dist/web/
+// Builds everything in dist/ from src/, packs/, data/ and web/. No dependencies beyond Node itself.
+//   dist/claude/  one self-contained HTML per character: the claude.ai artifacts (the layout buildDoc() writes)
+//   dist/web/     the web app PocketBase serves: engine files, packs, items.json, and the built pages index.html,
+//                 sheet.html, try.html, legal.html, home-dice.js and sw.js (everything else is copied from web/)
+// usage: node tools/build.js   (also run by tools/test.sh, the Dockerfile and tools/refresh.js)
+// Order matters at the end: cache-busting tags are added once every file is written, and sw.js comes last
+// because its version hash covers the finished pages. Run python3 tools/gen-skins.py first after changing a skin.
 const fs = require('fs'), path = require('path');
+// Reads a repo file (path relative to the repo root) as text.
 const R = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
+// The claude.ai sheets (dist/claude). tools/test/lib.js knows four of them by name.
 const SHEETS = [   // pack file, data file, page title, output name
   { pack:'henry',  data:'henry',  title:'Henry Gibbs',      out:'henry.html' },
   { pack:'tester', data:'tester', title:'AppTester-01',     out:'apptester.html' },
@@ -12,11 +17,18 @@ const SHEETS = [   // pack file, data file, page title, output name
   { pack:'trial-brute', data:'trial-brute', title:'Torgan Ironvow', out:'trial-brute.html' },
   { pack:'trial-mage',  data:'trial-mage',  title:'Vexa Emberscale', out:'trial-mage.html' },
 ];
-// The engine lives in src/engine/ as one file per section (00-header … 21-sync). They are joined in name order into one
-// script: the claude.ai page keeps it as its single #main part (buildDoc writes it back on sync), the web app gets engine/main.js.
+// The engine lives in src/engine/ as one file per section (00-header … 22-move). They are joined in name order into
+// one script: the claude.ai page keeps it as its single #main part (buildDoc writes it back on sync), the web app
+// gets engine/main.js.
 const ENGINE_DIR = path.join(__dirname, '..', 'src', 'engine');
+// The whole engine as one script (src/engine/*.js joined in name order).
 const engine = () => fs.readdirSync(ENGINE_DIR).filter(f => f.endsWith('.js')).sort().map(f => fs.readFileSync(path.join(ENGINE_DIR, f), 'utf8')).join('\n');
+// A pack's id, read from its source text (PACK = { id, theme, … }): it names the #<id>-data script.
 const packId = src => (src.match(/\bid:\s*["']([a-z0-9-]+)["'],\s*theme:/) || [])[1];   // PACK = { id, theme, … }
+// ── claude.ai sheets ───────────────────────────────────────────────────────────────────────────────────────
+// One claude.ai sheet as a single HTML file: head, CSS, the character's data, the item list, themes, class modules,
+// the pack and the engine, each in its own <script>/<style> with the id the engine looks for. items.json is
+// escaped ("<" → \u003c) so no item text can close the script tag.
 function claudeDoc(s){
   const pack = R('packs/'+s.pack+'.js'), id = packId(pack);
   return R('src/head.html').replace(/<title>[^<]*<\/title>/, '<title>'+s.title+'</title>') + '\n'
@@ -29,38 +41,43 @@ function claudeDoc(s){
 const out = path.join(__dirname, '..', 'dist');
 fs.mkdirSync(out+'/claude', {recursive:true});
 for (const s of SHEETS) fs.writeFileSync(out+'/claude/'+s.out, claudeDoc(s));
-// web app: engine parts as files, plus packs; the shell pages live in web/
+// ── Web app: engine, packs and static files ────────────────────────────────────────────────────────────────
+// Engine parts as files, plus packs; the shell pages live in web/ (sw.template.js is only the source of sw.js).
 fs.mkdirSync(out+'/web/engine', {recursive:true}); fs.mkdirSync(out+'/web/packs', {recursive:true});
 for (const f of ['theme.css','skins.css','app.css','themes.js','classes.js']) fs.copyFileSync(path.join(__dirname,'..','src',f), out+'/web/engine/'+f);
 fs.writeFileSync(out+'/web/engine/main.js', engine());
 fs.copyFileSync(path.join(__dirname,'..','data','items.json'), out+'/web/items.json');   // ➕ Add item list, fetched when opened
 for (const f of fs.readdirSync(path.join(__dirname,'..','packs'))) fs.copyFileSync(path.join(__dirname,'..','packs',f), out+'/web/packs/'+f);
 fs.cpSync(path.join(__dirname,'..','web'), out+'/web', { recursive: true, filter: f => !f.endsWith('sw.template.js') });   // incl. fonts/
-// web pages: the same <head> as the claude.ai sheets (reset, fonts), then engine CSS by link. Every path is absolute:
-// sheet.html is also served at /<username>/<D&D Beyond id> (server/pocketbase-main.go), where relative paths would miss.
-// Fonts: the web app serves its own copies (web/fonts, GDPR: no visitor ever contacts Google); claude.ai sheets keep Google Fonts.
+// ── Web app: pages ─────────────────────────────────────────────────────────────────────────────────────────
+// A web page's <head>: the same as the claude.ai sheets (reset, fonts), then engine CSS by link. Every path is
+// absolute: sheet.html is also served at /<username>/<D&D Beyond id> (server/pocketbase-main.go), where relative
+// paths would miss. Fonts: the web app serves its own copies (web/fonts, GDPR: no visitor ever contacts Google);
+// claude.ai sheets keep Google Fonts. Adds the manifest, icons, theme and skin CSS, and the offline script.
 const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<title>'+title+'</title>')
     .replace(/<link rel="preconnect"[^>]*>\n?/g, '').replace(/<link href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/fonts/fonts.css">')
   + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96"><link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">'
   + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css"><link rel="stylesheet" href="/engine/skins.css">'
   + '<script src="/sw-register.js"></script>';   // offline (web/sw.template.js); no inline scripts (CSP)
-// sheet pages: the tumbling background dice (the same ones as the home page, throwable via home-anim.js) and a
-// loading card with a gold bar while the character and the engine load
+// Sheet pages: the tumbling background dice (the same ones as the home page, throwable via home-anim.js) and a
+// loading card with a gold bar while the character and the engine load. DICE_DEFS is the hidden <svg> of dice
+// shapes (<symbol>s) taken from src/landing.html.
 const DICE_DEFS = (R('src/landing.html').match(/<svg width="0" height="0"[\s\S]*?<\/svg>/) || [''])[0];
 const BOOT = '<div class="boot"><svg class="bootd20" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg><p>Opening your sheet…</p><div class="bootbar" aria-hidden="true"><span></span></div></div>';
+// A sheet page around the given <script> tags (sheet.html, try.html).
 const sheetFrame = (title, scripts) => head(title) + '<link rel="stylesheet" href="/engine/app.css"><link rel="stylesheet" href="/sheet.css">\n'
   + R('src/bgdice.html').replace('class="bgdice"', 'class="bgdice sheetdice"') + DICE_DEFS
   + '<div id="app">' + BOOT + '</div>\n' + scripts + '<script src="/home-anim.js" defer></script>\n</body></html>';
 fs.writeFileSync(out+'/web/sheet.html', sheetFrame('Character', '<script src="/pocketbase.umd.js"></script>\n<script src="/sheet-boot.js"></script>\n'));
-// try-out sheets (web/try-boot.js): two made-up characters anyone can open without an account
+// Try-out sheets (web/try-boot.js): two made-up characters anyone can open without an account. Not indexed.
 fs.mkdirSync(out+'/web/trial', {recursive:true});
 for (const t of ['trial-brute','trial-mage']) fs.copyFileSync(path.join(__dirname,'..','data',t+'.json'), out+'/web/trial/'+t+'.json');
 fs.writeFileSync(out+'/web/try.html', sheetFrame('Try Dungeon Tracker', '<script src="/try-boot.js"></script>\n').replace('<link rel="stylesheet" href="/engine/app.css">', '<meta name="robots" content="noindex"><link rel="stylesheet" href="/engine/app.css">'));
-// the site's header and footer, shared by the home page and Privacy & terms
+// The site's footer, shared by the home page and Privacy & terms.
 const SITE_FOOT = '<footer class="foot"><p>Made with 🎲 by <a href="https://github.com/zkMenno" target="_blank" rel="noopener">Menno</a></p>'
   + '<p class="small">This is an unofficial fan project. Dungeon Tracker is not affiliated with Wizards of the Coast or D&amp;D Beyond.</p>'
   + '<p class="small"><a href="/legal.html">Privacy &amp; Terms</a> · Hosted by Hetzner in Germany.</p></footer>\n';
-// home: the public front page (src/landing.html, signed out) and the app's own screens (#main, drawn by web/index.js)
+// Home: the public front page (src/landing.html, signed out) and the app's own screens (#main, drawn by web/index.js).
 fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyond character at the table')
   + '<meta name="description" content="Dungeon Tracker turns your D&amp;D Beyond character into a quick play sheet: every roll one tap away, HP, spell slots and uses tracked as you play. Read-only, free, hosted in the EU.">\n'
   + '<link rel="stylesheet" href="/home.css">\n'
@@ -68,15 +85,18 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
   + R('src/landing.html') + '\n<p id="msg" class="msg"></p><main id="main"></main>\n'
   + SITE_FOOT
   + '<script src="/pocketbase.umd.js"></script>\n<script src="/index.js"></script>\n<script src="/home-dice.js" defer></script>\n<script src="/home-anim.js" defer></script>\n</body></html>');
-// front page dice (web/home-anim.js): the sheet's own 3D dice (src/engine/06-3d-dice.js) with the theme's dice sets, in one
-// closure so its names don't meet web/index.js. three.js is loaded by home-anim.js when it's needed, so the line that
-// loads it in the sheet is left out (the build stops if that line changes, rather than shipping two loaders).
+// ── Web app: front-page dice ───────────────────────────────────────────────────────────────────────────────
+// Front page dice (web/home-anim.js): the sheet's own 3D dice (src/engine/06-3d-dice.js) with the theme's dice sets,
+// in one closure so its names don't meet web/index.js. three.js is loaded by home-anim.js when it's needed, so the
+// line that loads it in the sheet is left out (the build stops if that line changes, rather than shipping two loaders).
 { const d3 = R('src/engine/06-3d-dice.js'), loader = /^\(function\(\)\{ try \{ const s = document\.createElement\('script'\);.*\n/m;
   if (!loader.test(d3)) throw new Error('home-dice: the three.js loader line in src/engine/06-3d-dice.js changed; update tools/build.js');
   fs.writeFileSync(out+'/web/home-dice.js', '// Built by tools/build.js from src/themes.js + src/engine/06-3d-dice.js + src/home-dice-api.js. Do not edit.\n(function(){\n' + R('src/themes.js')
     + '\nconst THEME = THEMES.pirate || THEMES[Object.keys(THEMES)[0]];\nconst ui = { dice: null };\nconst diceFx = (dice, done) => done();   // no WebGL: the result just shows\n'
     + d3.replace(loader, '') + '\n' + R('src/home-dice-api.js') + '})();\n'); }
-// privacy & terms: src/legal.html with the operator details from src/site.json
+// ── Web app: Privacy & terms ───────────────────────────────────────────────────────────────────────────────
+// Privacy & terms: src/legal.html with the operator details from src/site.json filled in for {{key}}. Values still
+// in [brackets] are placeholders: the build warns but carries on.
 { const site = JSON.parse(R('src/site.json'));
   for (const [k, v] of Object.entries(site)) if (/^\[.*\]$/.test(String(v))) console.warn('⚠️  src/site.json: "' + k + '" is still a placeholder (' + v + '): fill it in before inviting players');
   fs.writeFileSync(out+'/web/legal.html', head('Privacy & terms') + '<link rel="stylesheet" href="/home.css">\n'
@@ -84,7 +104,8 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
     + R('src/legal.html').replace(/<!--[\s\S]*?-->\n?/, '').replace(/\{\{(\w+)\}\}/g, (m, k) => (k in site ? site[k] : m)) + '\n' + SITE_FOOT
     + DICE_DEFS   // the dice shapes (<symbol>s)
     + '<script src="/home-anim.js" defer></script>\n</body></html>'); }
-// Cache-busting: each page asks for this build's copy of its scripts and stylesheets (?v=<hash of the build's files>).
+// ── Cache-busting ──────────────────────────────────────────────────────────────────────────────────────────
+// Each page asks for this build's copy of its scripts and stylesheets (?v=<hash of the build's files>).
 // The service worker serves files from its saved copy first, so without this a fresh page could run with the previous
 // build's CSS or engine for one visit after every deploy. sheet-boot.js passes the same tag to what it loads itself.
 { const crypto = require('crypto'), h = crypto.createHash('sha1'), files = [];
@@ -96,7 +117,9 @@ fs.writeFileSync(out+'/web/index.html', head('Dungeon Tracker: your D&amp;D Beyo
     const f = path.join(out, 'web', page);
     fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/(<(?:script|link)\b[^>]*?\b(?:src|href)=")(\/[^"?#]+\.(?:js|css))"/g, '$1$2?v=' + v + '"'));
   } }
-// offline: the service worker gets this build's file list and a version hash (a new build = a fresh cache)
+// ── Offline: service worker ────────────────────────────────────────────────────────────────────────────────
+// The service worker gets this build's file list and a version hash (a new build = a fresh cache). Last, so the hash
+// covers the finished pages.
 { const crypto = require('crypto'), files = [], walk = d => fs.readdirSync(path.join(out, 'web', d)).forEach(f => { const rel = d ? d+'/'+f : f;
     if (fs.statSync(path.join(out, 'web', rel)).isDirectory()) walk(rel); else files.push(rel); });
   walk(''); const keep = files.filter(f => !/^sw\.js$/.test(f) && !/^media\//.test(f)).sort(), h = crypto.createHash('sha1');   // media/: the front page's demo videos load only when seen, never precached
