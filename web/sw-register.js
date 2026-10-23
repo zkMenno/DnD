@@ -1,18 +1,25 @@
-// Theme (☰ → Theme, or Account): which look (data-skin: fantasy, space, woodland, gothic; none = pirate) and light/dark
+// Theme (☰ → Theme, or Account): which look (data-skin: fantasy, space, woodland, gothic, underdark, icewind, avernus; none = pirate) and light/dark
 // (data-theme; none = follow the device). Set here, in the page head, so the first paint already has the right colours.
 (function () {
   const d = document.documentElement, get = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
   // [key, name, emoji, swatch: dark background, accent, light background]
   const SKINS = [['pirate', 'Pirate', '🏴‍☠️', '#0C141C', '#E2B04A', '#ECE2CC'], ['fantasy', 'Dragon Keep', '🏰', '#171B36', '#E9C766', '#F1EBDD'],
-    ['space', 'Starfarer', '🚀', '#0D1424', '#4FE0EE', '#E9EEF5'], ['woodland', 'Feywild', '🍃', '#132119', '#DCB867', '#E6ECD8'], ['gothic', 'Ravenloft', '🦇', '#161118', '#D9B26A', '#E9E4E2']];
+    ['space', 'Starfarer', '🚀', '#0D1424', '#4FE0EE', '#E9EEF5'], ['woodland', 'Feywild', '🍃', '#132119', '#DCB867', '#E6ECD8'], ['gothic', 'Ravenloft', '🦇', '#161118', '#D9B26A', '#E9E4E2'],
+    ['underdark', 'Underdark', '🍄', '#0A0710', '#5EF0D2', '#E8E3EE'], ['icewind', 'Icewind', '❄️', '#08111A', '#9EDBFF', '#E8EFF3'], ['avernus', 'Avernus', '🔥', '#120806', '#FFB347', '#F0E4DA']];
+  // The front page (the one visitors see first) always wears the pirate look; only light/dark follows the choice.
+  // index.js calls Skin.front(true/false) when it shows or leaves it; here we guess for the first paint.
+  let front = location.pathname === '/' && (location.hash === '#front' || !get('pocketbase_auth'));
+  let cur = get('dt-skin');
   const apply = (s, m) => {
-    if (s && s !== 'pirate') d.setAttribute('data-skin', s); else d.removeAttribute('data-skin');
+    cur = s;
+    if (s && s !== 'pirate' && !front) d.setAttribute('data-skin', s); else d.removeAttribute('data-skin');
     if (m === 'light' || m === 'dark') d.setAttribute('data-theme', m); else d.removeAttribute('data-theme');
   };
   apply(get('dt-skin'), get('dt-mode'));
   window.Skin = {
     list: SKINS,
-    skin: () => d.getAttribute('data-skin') || 'pirate',
+    skin: () => cur || 'pirate',
+    front(on) { if (front === !!on) return; front = !!on; apply(cur, get('dt-mode')); },
     mode: () => d.getAttribute('data-theme') || 'auto',
     set(s, m) { try { localStorage.setItem('dt-skin', s); localStorage.setItem('dt-mode', m); } catch (_) {} apply(s, m); },
   };

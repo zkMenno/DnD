@@ -34,7 +34,7 @@
     const layer = document.querySelector('.bgdice'), dice = layer ? [...layer.querySelectorAll('.bd')] : [];
     const busy = 'a,button,input,textarea,select,label,summary,video,.sw,#tray,.phone,.clip,.card,.features li,.steps > li,.dicebox,.quicklink,.pc,.msg';
     const hit = (x, y, t) => { if (!t || (t.closest && t.closest(busy))) return null;
-      for (let i = dice.length - 1; i >= 0; i--) { const r = dice[i].getBoundingClientRect(), pad = Math.max(0, 22 - r.width / 2);
+      for (let i = dice.length - 1; i >= 0; i--) { const r = dice[i].getBoundingClientRect(), pad = Math.max(0, 22 - r.width / 2); if (!r.width) continue;   // another theme's symbol (hidden)
         if (x > r.left - pad && x < r.right + pad && y > r.top - pad && y < r.bottom + pad) return dice[i]; } return null; };
     const live = new Map();   // die → { x, y (top-left px in the layer), a (deg), vx, vy (px per frame), va, w, h, m, held }
     let held = null, hold = 0, hot = null, raf = 0, last = 0;
@@ -64,7 +64,7 @@
       for (const a of [...live.values()]) {
         if (!a.held && Math.abs(a.vx) + Math.abs(a.vy) < 0.05) continue;
         for (const d of dice) {
-          if (d === a.d) continue;
+          if (d === a.d || !d.clientWidth) continue;   // skip hidden theme symbols
           const b0 = live.get(d), ca = { x: a.x + a.w / 2, y: a.y + a.h / 2 }, cb = b0 ? { x: b0.x + b0.w / 2, y: b0.y + b0.h / 2 } : centre(d, L);
           const bw = b0 ? b0.w : d.clientWidth, min = (a.w + bw) * 0.42, dx = cb.x - ca.x, dy = cb.y - ca.y, dist = Math.hypot(dx, dy);
           if (dist >= min || dist < 0.01) continue;

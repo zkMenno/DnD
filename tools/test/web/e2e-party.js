@@ -9,7 +9,7 @@ const api = async (path, opt={}) => { const r = await fetch(B+path, {...opt, hea
   const player = async (email, link) => {
     const ctx = await b.newContext({viewport:{width:390,height:844}, colorScheme:'dark'}); const p = await ctx.newPage(); p.setDefaultTimeout(30000);
     const errs = []; watch(p, errs); p.errs = errs;
-    await p.goto(B+'/#signin'); await p.fill('input[name=email]', email); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-x1'); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('#pw2box').hidden = false; f.password2.value = f.password.value; }); await p.click('button[value=up]'); await p.waitForSelector('#add');
+    await p.goto(B+'/#signin'); await p.fill('input[name=email]', email); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'Passw0rd-x1'); await p.evaluate(() => { const f = document.querySelector('#login'); document.querySelector('[data-pwmode=up]').click(); f.password2.value = f.password.value; }); await p.click('#pwgo'); await p.waitForSelector('#add');
     await p.fill('#add input[name=url]', link); await p.click('#add button'); await watch.onboard(p); await p.waitForURL(/\/[a-z0-9-]+\/\d+$/); await p.waitForSelector('#vitals');
     await p.evaluate(() => window.SHEET.saved);   // the first save must land before the admin verifies (no lost update)
     p.cid = await p.evaluate(() => window.SHEET.character.id); return p;

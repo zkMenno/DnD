@@ -125,8 +125,9 @@ onRecordRequestOTPRequest((e) => {
 // signing in with an emailed code proves the address: mark it verified
 onRecordAuthWithOTPRequest((e) => {
   if (e.record && !e.record.verified()) { e.record.setVerified(true); $app.save(e.record); }
-  if (e.record) $app.store().set("otp-at:" + e.record.id, String(Date.now()));   // lets /api/account/first-password skip a second email
   e.next();
+  // remember when: lets /api/account/first-password skip a second email (a database field, so a restart doesn't lose it)
+  if (e.record) { const r = $app.findRecordById("users", e.record.id); r.set("otp_at", new DateTime()); $app.saveNoValidate(r); }
 }, "users");
 
 // ── Usernames ───────────────────────────────────────────────────────────────────────────────────────
@@ -143,6 +144,7 @@ onRecordCreateRequest((e) => {
 }, "users");
 onRecordUpdateRequest((e) => {
   e.record.set("pw_set", e.record.original().getBool("pw_set"));   // server-set only
+  e.record.set("otp_at", e.record.original().get("otp_at"));
   const n = e.record.getString("username");
   if (n !== e.record.original().getString("username")) e.record.set("username", require(`${__hooks}/ddb_utils.js`).checkUsername(n, e.record.id));
   e.next();

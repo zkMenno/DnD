@@ -17,7 +17,7 @@ SK={
     sea='#5B3FD6',**{'sea-ink':'#FFFFFF','sea-soft':'#E3DDFB'},brass='#0A7F95',**{'brass-soft':'#D2EEF3'},hp='#C42A5E',good='#1E7A52',aye='#1B6E4A',warn='#B45F06'),
   dark=dict(bg='#060A14',surface='#0D1424',raised='#131C32',ink='#E3EBFA',muted='#A3B2CD',line='#1F2C48',rope='#2B4170',chart='#08101E',
     sea='#A99BFF',**{'sea-ink':'#060A14','sea-soft':'#1C1A44'},brass='#4FE0EE',**{'brass-soft':'#0E3440'},hp='#FF6B9A',good='#5FE0A1',aye='#1C7A55',warn='#FFB65C'),
-  fonts=dict(title='"Orbitron","Exo 2",system-ui,sans-serif',display='"Exo 2",system-ui,sans-serif',body='"Exo 2",system-ui,-apple-system,"Segoe UI",sans-serif'),
+  fonts=dict(title='"Orbitron","Exo 2",system-ui,sans-serif'),
   orn='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g fill="none" stroke="#7FD6F0" stroke-opacity=".12" stroke-width="1"><circle cx="100" cy="100" r="34"/><ellipse cx="100" cy="100" rx="88" ry="26" transform="rotate(-18 100 100)"/><ellipse cx="100" cy="100" rx="70" ry="18" transform="rotate(-18 100 100)"/></g><g fill="#BFE9FF" fill-opacity=".22"><circle cx="20" cy="30" r="1"/><circle cx="170" cy="22" r="1.2"/><circle cx="150" cy="170" r="1"/><circle cx="35" cy="160" r=".8"/><circle cx="185" cy="120" r=".8"/><circle cx="60" cy="90" r=".6"/></g></svg>',
   line='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="8" viewBox="0 0 24 8"><path d="M0 4h9" stroke="#000" stroke-width="1.4"/><circle cx="14" cy="4" r="1.6" fill="#000"/><path d="M19 4h5" stroke="#000" stroke-width="1.4"/></svg>'),
  'woodland':dict(label='Feywild',
@@ -36,12 +36,33 @@ SK={
   fonts=dict(title='"Grenze Gotisch","Pirata One",Georgia,serif'),
   orn='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g fill="none" stroke="#C9A0B8" stroke-opacity=".11" stroke-width="1"><circle cx="100" cy="100" r="86"/><path d="M128 52a52 52 0 1 0 0 96a42 42 0 1 1 0-96z"/><path d="M40 60l8 4 6-6 6 6 8-4-6 10-8-3-8 3z"/><path d="M140 150l6 3 4-4 4 4 6-3-4 7-6-2-6 2z"/></g></svg>',
   line='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="8" viewBox="0 0 24 8"><path d="M0 6h4V2h4v4h8V2h4v4h4" fill="none" stroke="#000" stroke-width="1.4"/></svg>'),
+ 'underdark':dict(label='Underdark',
+  light=dict(bg='#E8E3EE',surface='#F4F1F8',raised='#FBFAFD',ink='#1E1828',muted='#5C5270',line='#D3CADF',rope='#8C7BA6',chart='#E0D9EA',
+    sea='#5B3C99',**{'sea-ink':'#FBFAFD','sea-soft':'#E4DCF5'},brass='#13756D',**{'brass-soft':'#D3EEEA'},hp='#B3264B',good='#2C7A45',aye='#2A6E40',warn='#9A5B00'),
+  dark=dict(bg='#0A0710',surface='#130E1C',raised='#1B1427',ink='#E8E1F2',muted='#B6A9CC',line='#2A2138',rope='#45345E',chart='#0E0A16',
+    sea='#B59CFF',**{'sea-ink':'#0A0710','sea-soft':'#251B3D'},brass='#5EF0D2',**{'brass-soft':'#0F3632'},hp='#FF6F91',good='#7FD89C',aye='#2B7647',warn='#E8AE55'),
+  fonts=dict(title='"Grenze Gotisch","Pirata One",Georgia,serif'),orn=None,line=None),
+ 'icewind':dict(label='Icewind',
+  light=dict(bg='#E8EFF3',surface='#F4F8FA',raised='#FFFFFF',ink='#142231',muted='#4F6475',line='#C9D8E2',rope='#8FAABD',chart='#DEE8EE',
+    sea='#4A5C8C',**{'sea-ink':'#FFFFFF','sea-soft':'#DDE3F2'},brass='#1F6E99',**{'brass-soft':'#D5E8F3'},hp='#B2303A',good='#2C7A45',aye='#2A6E40',warn='#9A5B00'),
+  dark=dict(bg='#08111A',surface='#0F1B27',raised='#152433',ink='#E6F0F7',muted='#A9BDCC',line='#213345',rope='#3A5268',chart='#0B1520',
+    sea='#C6CCFF',**{'sea-ink':'#08111A','sea-soft':'#1D2747'},brass='#9EDBFF',**{'brass-soft':'#13324A'},hp='#FF7A85',good='#7FD89C',aye='#2B7647',warn='#E8AE55'),
+  fonts=dict(title='"Cinzel","Alegreya SC",Georgia,serif'),orn=None,
+  line='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="8" viewBox="0 0 24 8"><path d="M0 2h24M4 2l2 5 2-5M14 2l1.5 4 1.5-4" fill="none" stroke="#000" stroke-width="1.3"/></svg>'),
+ 'avernus':dict(label='Avernus',
+  light=dict(bg='#F0E4DA',surface='#F8EFE8',raised='#FDF8F4',ink='#2A1410',muted='#6E4A40',line='#DEC6B8',rope='#B07A5E',chart='#E8D8CC',
+    sea='#7A2E1E',**{'sea-ink':'#FDF8F4','sea-soft':'#F1DCD4'},brass='#B4410E',**{'brass-soft':'#F6DCCB'},hp='#A3201B',good='#2C7A45',aye='#2A6E40',warn='#9A5B00'),
+  dark=dict(bg='#120806',surface='#1C0E0B',raised='#26130F',ink='#F3E3DA',muted='#CDAE9F',line='#3A1E17',rope='#5E2F22',chart='#170A08',
+    sea='#FF9A6B',**{'sea-ink':'#120806','sea-soft':'#3A1810'},brass='#FFB347',**{'brass-soft':'#3D2710'},hp='#FF5E57',good='#7FD89C',aye='#2B7647',warn='#FFB347'),
+  fonts=dict(title='"Grenze Gotisch","Pirata One",Georgia,serif'),orn=None,
+  line='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="8" viewBox="0 0 24 8"><path d="M0 7l4-5 4 5 4-5 4 5 4-5 4 5" fill="none" stroke="#000" stroke-width="1.3"/></svg>'),
 }
 def toks(d,dark):
     out=';'.join('--%s:%s'%(k,v) for k,v in d.items())
     if dark: out+=';--press:rgba(255,240,210,.14);--shadow:0 1px 2px rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.3);--grain:repeating-linear-gradient(0deg,rgba(255,240,210,.016) 0 1px,transparent 1px 3px);--glow:radial-gradient(ellipse 120% 60% at 50% 0%,color-mix(in srgb,'+d['brass']+' 9%,transparent),transparent 70%);color-scheme:dark'
     else: out+=';--press:rgba(40,30,60,.1);--glow:radial-gradient(ellipse 120% 70% at 50% 0%,rgba(255,255,255,.55),transparent 70%)'
     return out
+GRID='repeating-linear-gradient(0deg,transparent 0 119px,color-mix(in srgb,var(--rope) 9%,transparent) 119px 120px) fixed,repeating-linear-gradient(90deg,transparent 0 119px,color-mix(in srgb,var(--rope) 6%,transparent) 119px 120px) fixed,var(--glow),var(--grain),var(--bg)'
 css=['/* ============================================================================\n   SKINS — the extra looks players pick in ☰ → Theme (web app only; web/sw-register.js sets <html data-skin="…">).\n   Each skin swaps the theme tokens (same names as src/theme.css) for light and dark, the title fonts, the faint\n   ornament behind the sheet and the line under the header. Pirate is src/theme.css itself (no data-skin).\n   Generated by tools/gen-skins.py: edit the palettes there.\n   ============================================================================ */']
 for k,s in SK.items():
     sel=':root[data-skin="%s"]'%k
@@ -50,16 +71,34 @@ for k,s in SK.items():
     css.append('%s{%s;%s}'%(sel,toks(s['light'],False),ft))
     css.append('@media (prefers-color-scheme: dark){%s:not([data-theme="light"]){%s}}'%(sel,toks(s['dark'],True)))
     css.append('%s[data-theme="dark"]{%s}'%(sel,toks(s['dark'],True)))
-    bgimg=svg(s['orn'])
-    css.append('%s body:not(.front){background:%s center 42vh/min(560px,90vw) no-repeat fixed,repeating-linear-gradient(0deg,transparent 0 119px,color-mix(in srgb,var(--rope) 9%%,transparent) 119px 120px) fixed,repeating-linear-gradient(90deg,transparent 0 119px,color-mix(in srgb,var(--rope) 6%%,transparent) 119px 120px) fixed,var(--glow),var(--grain),var(--bg)}'%(sel,bgimg))
+    css.append('%s body:not(.front){background:'%sel+GRID+'}')
     if s['line']:
         m=svg(s['line'])
         css.append('%s .top::after{-webkit-mask:%s repeat-x center/24px 8px;mask:%s repeat-x center/24px 8px}'%(sel,m,m))
-# space: glass panels instead of parchment, no rivets
-gl='background-image:linear-gradient(160deg,color-mix(in srgb,var(--brass) 10%,transparent),transparent 45%),linear-gradient(0deg,color-mix(in srgb,var(--sea) 8%,transparent),transparent 60%)!important;box-shadow:0 18px 50px -12px rgba(0,0,0,.6),inset 0 0 0 1px color-mix(in srgb,var(--brass) 45%,transparent)!important'
-css.append(':root[data-skin="space"] .card::before{display:none}')
-css.append('@media (prefers-color-scheme: dark){:root[data-skin="space"]:not([data-theme="light"]) #dock .roll,:root[data-skin="space"]:not([data-theme="light"]) .bubble{%s}}'%gl)
-css.append(':root[data-skin="space"][data-theme="dark"] #dock .roll,:root[data-skin="space"][data-theme="dark"] .bubble{%s}'%gl)
+# pirate on the web: the same quiet grid instead of the big compass rose (the claude.ai sheets keep theirs)
+css.append(':root:not([data-skin]) body:not(.front){background:'+GRID+'}')
+# small theme symbols float with the background dice: only the current theme's set shows (src/bgdice.html)
+ALL=['pirate']+list(SK)
+css.append('.bdg{display:none}')
+css.append(':root:not([data-skin]) .bdg-pirate,'+','.join(':root[data-skin="%s"] .bdg-%s'%(k,k) for k in ALL)+'{display:block}')
+# roll sheet + tooltips: no parchment outside the pirate look. Light mode keeps the dark card (ink on paper, inverted);
+# dark mode gets a dark card too (a lifted, accent-tinted panel with light text) instead of a bright sheet. Done by
+# swapping --ink/--bg inside the card, so everything in it that reads "paper colour / text colour" follows.
+def mix(a,b,t):
+    a=[int(a[k:k+2],16) for k in (1,3,5)]; b=[int(b[k:k+2],16) for k in (1,3,5)]
+    return '#%02X%02X%02X'%tuple(round(x*(1-t)+y*t) for x,y in zip(a,b))
+for k,sk in SK.items():
+    sel=':root[data-skin="%s"]'%k; dk=sk['dark']
+    cards='%s #dock .roll,%s .bubble'
+    sheen='background-image:linear-gradient(160deg,color-mix(in srgb,var(--brass) 14%%,transparent),transparent 50%%)!important;border:1px solid color-mix(in srgb,var(--brass) 45%%,transparent)'
+    css.append((cards%(sel,sel))+'{'+sheen+'}')
+    css.append('%s .bubble::after{border:0}'%sel)
+    panel=mix(dk['raised'],dk['brass'],.10)
+    inv='--ink:%s;--bg:%s;--good:#7FD89C;--roll-hit:#8CC4DC;--roll-on:#1B140C;--roll-accent:#F08F5E;--roll-accent-ink:#F4A07A;box-shadow:0 18px 50px -12px rgba(0,0,0,.7),inset 0 0 0 1px color-mix(in srgb,var(--brass) 30%%,transparent)'%(panel,dk['ink'])
+    c1='%s:not([data-theme="light"]) #dock .roll,%s:not([data-theme="light"]) .bubble'%(sel,sel)
+    css.append('@media (prefers-color-scheme: dark){%s{%s}}'%(c1,inv))
+    css.append('%s[data-theme="dark"] #dock .roll,%s[data-theme="dark"] .bubble{%s}'%(sel,sel,inv))
+css.append(':root[data-skin] .roll .x,:root[data-skin] .bubble .bclose{opacity:1}')
 css.append(':root[data-skin="space"] h1,:root[data-skin="space"] h2,:root[data-skin="space"] .roll .title,:root[data-skin="space"] .bubble .bt{letter-spacing:.06em;font-weight:700}')
 open(R+'/src/skins.css','w').write('\n'.join(css)+'\n')
 print('ok', len('\n'.join(css)))

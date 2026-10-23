@@ -5,7 +5,7 @@ const B = process.argv[2] || 'http://127.0.0.1:8090';
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
   const ok = (n, c) => { if (!c) process.exitCode = 1; console.log((c ? 'PASS ' : 'FAIL ') + n); };
   const dev = async () => { const ctx = await b.newContext({viewport:{width:390,height:844}}); const p = await ctx.newPage(); p.errs = []; watch(p, p.errs); p.setDefaultTimeout(20000);
-    await p.goto(B + '/#signin'); await p.fill('input[name=email]', 'menno@example.test'); await p.click('.pwbox summary'); await p.fill('input[name=password]', 'Passw0rd-menno'); await p.click('button[value=in]');
+    await p.goto(B + '/#signin'); await p.fill('input[name=email]', 'menno@example.test'); await p.evaluate(() => { document.querySelector('.pwbox').open = true; }); await p.fill('input[name=password]', 'Passw0rd-menno'); await p.click('button[value=in]');
     await p.waitForSelector('.ch a.open'); await p.click('.ch a.open'); await p.waitForSelector('#vitals'); await p.waitForTimeout(1500); return p; };
   const p = await dev();
   await p.evaluate(() => document.querySelector('[data-tab="gear"]').click());

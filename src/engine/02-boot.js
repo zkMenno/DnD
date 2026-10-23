@@ -143,6 +143,9 @@ const SKIN_WORDS = {
   space:    { ok:'Confirm ✓', cancel:'Abort', log:'Mission log', clean:'✦ All systems nominal.', critIcon:'✦' },
   woodland: { ok:'Done ✓', cancel:'Not now', log:'Grove journal', clean:'🍃 All is well.', critIcon:'🍃' },
   gothic:   { ok:'So be it ✓', cancel:'Begone', log:'Journal', clean:'🕯️ All quiet.', critIcon:'🦇' },
+  underdark:{ cancel:'Retreat', log:'Expedition log', clean:'🍄 All quiet below.', critIcon:'🍄' },
+  icewind:  { cancel:'Hold', log:'Trail log', clean:'❄️ All clear.', critIcon:'❄️' },
+  avernus:  { ok:'Sealed ✓', cancel:'Refuse', log:'Infernal ledger', clean:'🔥 Debts settled.', critIcon:'🔥' },
 };
 const WORD = Object.assign({ ok:'Done ✓', cancel:'Cancel', log:'Notes', turn:'Your turn at a glance', clean:'✓ All clear.',
   notesHint: n => 'Who you met, what you found, what '+n+' wants next…', critIcon:'✦' }, SKIN && SKIN_WORDS[SKIN] ? SKIN_WORDS[SKIN] : THEME.words);

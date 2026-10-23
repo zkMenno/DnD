@@ -21,6 +21,20 @@ function msg(t, bad) {
   m.textContent = t || ''; m.className = 'msg' + (bad ? ' bad' : '') + (t ? ' show' : '');
   if (t && !/…$/.test(t)) msgTimer = setTimeout(() => { m.classList.remove('show'); setTimeout(() => { if (!m.classList.contains('show')) m.textContent = ''; }, 250); }, bad ? 12000 : 3500);
 }
+// a short centred pop-up for things that should feel finished (a password saved): a big ✓, gone after a moment or a tap
+function done(title, text) {
+  const old = $('#donepop'); if (old) old.remove();
+  const p = document.createElement('div'); p.id = 'donepop'; p.className = 'donepop'; p.setAttribute('role', 'status');
+  p.innerHTML = `<div class="donecard"><span class="donetick" aria-hidden="true">✓</span><b>${esc(title)}</b>${text ? `<span>${esc(text)}</span>` : ''}</div>`;
+  document.body.appendChild(p); requestAnimationFrame(() => p.classList.add('show'));
+  const bye = () => { p.classList.remove('show'); setTimeout(() => p.remove(), 250); };
+  p.onclick = bye; setTimeout(bye, 3200);
+}
+// emails that have a password, as far as this device knows: the sign-in page opens the password box for them
+const PWK = 'dt-pw-emails';
+const pwKnown = em => { try { return (JSON.parse(localStorage.getItem(PWK) || '[]')).includes(String(em || '').trim().toLowerCase()); } catch (_) { return false; } };
+const pwRemember = em => { try { const l = JSON.parse(localStorage.getItem(PWK) || '[]'), e = String(em || '').trim().toLowerCase();
+  if (e && !l.includes(e)) { l.push(e); localStorage.setItem(PWK, JSON.stringify(l.slice(-5))); } } catch (_) {} };
 // a D&D Beyond character id from a link (or a bare number), else null
 const ddbId = t => { const m = String(t || '').match(/characters\/(\d{4,12})/) || String(t || '').match(/^\s*(\d{4,12})\s*$/); return m ? +m[1] : null; };
 const ss = { get: k => { try { return sessionStorage.getItem(k); } catch (_) { return null; } }, set: (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (_) {} } };
@@ -32,7 +46,7 @@ function showLanding() {
   $('#who').innerHTML = pb.authStore.isValid ? '<a class="btn login toplogin" href="/" id="tohome">Your characters <span aria-hidden="true">→</span></a>'
     : '<a class="btn login toplogin" href="#signin" data-go="signin">Log in <span aria-hidden="true">→</span></a>';
   if (pb.authStore.isValid) $('#tohome').onclick = e => { e.preventDefault(); history.replaceState(null, '', '/'); renderHome(); window.scrollTo(0, 0); };
-  document.body.classList.add('front');
+  document.body.classList.add('front'); window.Skin && window.Skin.front(true);
 }
 $('#msg').addEventListener('click', () => msg(''));
 // clicks on "Get started" / "Sign in" anywhere on the page
@@ -51,7 +65,7 @@ document.querySelectorAll('form.quicklink').forEach(f => f.addEventListener('sub
 // ── Sign in ─────────────────────────────────────────────────────────────────────────────────────────
 let otpId = null, otpEmail = '', providers = null;
 async function renderLogin(mode) {
-  $('#landing').hidden = true; document.body.classList.remove('front'); $('#who').innerHTML = '';
+  $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(false); $('#who').innerHTML = '';
   if (location.hash !== '#signin') history.replaceState(null, '', '/#signin');
   if (providers === null) { try { const m = await pb.collection('users').listAuthMethods(); providers = (m.oauth2 && m.oauth2.enabled && m.oauth2.providers) || []; } catch (_) { providers = []; } }
   const pend = ss.get(PENDING);
@@ -73,20 +87,35 @@ async function renderLogin(mode) {
       ${otpId ? `<div id="codebox" class="codebox">
         <p>We sent a 6-digit code to <b>${esc(otpEmail)}</b>. It works for 10 minutes.</p>
         <div class="authrow"><input name="code" class="codein" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456" aria-label="Code">
-          <button class="btn primary" name="go" value="otp">Sign in</button></div>
+          <button class="btn primary" name="go" value="otp">Roll in <span aria-hidden="true">→</span></button></div>
         <div class="row authsub"><button class="btn" name="go" value="resend" formnovalidate>Send a new code</button><button class="btn" type="button" id="otpback">Use another email</button></div>
         <p class="small muted">Not there? Check your spam folder.</p>
       </div>` : '<p class="small muted authhint">We email you a 6-digit code. No password to remember.</p>'}
-      <details class="pwbox"><summary class="btn">🔑 Use a password instead</summary>
-        <label class="authlbl" for="authpw">Password</label>
-        <input id="authpw" name="password" type="password" autocomplete="current-password" minlength="8" placeholder="At least 8 characters">
-        <div id="pw2box" hidden><label class="authlbl" for="authpw2">Repeat the password</label>
-          <input id="authpw2" name="password2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again"></div>
-        <div class="row authsub"><button class="btn primary" name="go" value="in">Sign in</button><button class="btn" name="go" value="up">Create account</button></div>
+      <details class="pwbox"${pwKnown(otpEmail) || mode === 'signup-pw' ? ' open' : ''}><summary class="btn">🔑 Use a password instead <span class="xchev" aria-hidden="true"></span></summary>
+        <div class="pwpanel">
+          <div class="pwseg" role="group" aria-label="Sign in or make a new account">
+            <button type="button" data-pwmode="in" aria-pressed="true">I have a password</button><button type="button" data-pwmode="up" aria-pressed="false">New account</button></div>
+          <label class="authlbl" for="authpw">Password</label>
+          <input id="authpw" name="password" type="password" autocomplete="current-password" minlength="8" placeholder="Your password">
+          <div id="pw2box" hidden><label class="authlbl" for="authpw2">Repeat the password</label>
+            <input id="authpw2" name="password2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again"></div>
+          <div class="row authsub"><button class="btn primary" name="go" value="in" id="pwgo">Roll in <span aria-hidden="true">→</span></button></div>
+          <p class="pwerr" id="pwerr" role="alert" hidden></p>
+        </div>
       </details>
-      <div class="authfoot"><a class="btn" href="/" id="tofront">← Back to the front page</a></div>
+      <div class="authfoot"><a class="btn" href="/" id="tofront">← Roll back to home</a></div>
     </form>`;
   const back = $('#otpback'); if (back) back.onclick = e => { e.preventDefault(); otpId = null; renderLogin(mode); };
+  // the password box: sign in with one, or make a new account with it (asked twice)
+  const pwMode = m => { document.querySelectorAll('[data-pwmode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pwmode === m)));
+    $('#pw2box').hidden = m !== 'up'; $('#authpw').autocomplete = m === 'up' ? 'new-password' : 'current-password';
+    $('#authpw').placeholder = m === 'up' ? 'At least 8 characters' : 'Your password';
+    $('#pwgo').value = m; $('#pwgo').innerHTML = m === 'up' ? 'Create account <span aria-hidden="true">→</span>' : 'Roll in <span aria-hidden="true">→</span>'; };
+  document.querySelectorAll('[data-pwmode]').forEach(b => b.onclick = () => { pwMode(b.dataset.pwmode); $('#authpw').focus(); });
+  if (mode === 'signup') pwMode('up');
+  // an email this device knows has a password: open the password box straight away
+  const em = $('#authemail'), pwOpen = () => { if (pwKnown(em.value)) { const d = document.querySelector('.pwbox'); if (!d.open) { d.open = true; pwMode('in'); } } };
+  em.addEventListener('input', pwOpen); em.addEventListener('change', pwOpen); pwOpen();
   if (otpId) { const c = document.querySelector('[name=code]'); if (c) c.focus(); }
   $('#tofront').onclick = e => { e.preventDefault(); history.replaceState(null, '', '/'); msg(''); showLanding(); };
   document.querySelectorAll('[data-oauth]').forEach(b => b.onclick = async () => {
@@ -111,20 +140,21 @@ async function renderLogin(mode) {
       catch (err) { msg('That code didn’t work. Check it, or send a new one.', true); }
       return;
     }
+    const perr = (t, bad) => { const p = $('#pwerr'); if (!p) return msg(t, bad); msg(''); p.textContent = t || ''; p.hidden = !t; };
     const password = f.password.value, up = go === 'up';
-    if (password.length < 8) { f.querySelector('.pwbox').open = true; return msg('Passwords are at least 8 characters.', true); }
-    // a new account: ask for the password twice (the first press shows the second box)
-    if (up && $('#pw2box').hidden) { $('#pw2box').hidden = false; f.password.autocomplete = 'new-password'; $('#authpw2').focus(); return msg('Type the password once more to create your account.'); }
-    if (up && f.password2.value !== password) { $('#authpw2').focus(); return msg('The two passwords aren’t the same.', true); }
-    msg(up ? 'Creating your account…' : 'Signing in…');
+    if (!email) { f.email.focus(); return perr('Type your email first.', true); }
+    if (password.length < 8) { f.querySelector('.pwbox').open = true; return perr('Passwords are at least 8 characters.', true); }
+    if (up && f.password2.value !== password) { $('#authpw2').focus(); return perr('The two passwords aren’t the same.', true); }
+    perr(''); msg(up ? 'Creating your account…' : 'Signing in…');
     try {
       if (up) await pb.collection('users').create({ email, password, passwordConfirm: password });
       await pb.collection('users').authWithPassword(email, password);
-      msg(''); signedIn();
+      pwRemember(email); msg(''); signedIn();
     } catch (err) {
+      msg('');
       const taken = up && err && err.response && err.response.data && err.response.data.email;
-      if (taken) return msg('That email already has an account. Sign in with your password, or press “Email me a code” if you never set one: you can save a password on your account page after.', true);
-      msg(up ? 'Couldn’t create that account. Check the email, and use at least 8 characters for the password.'
+      if (taken) return perr('That email already has an account. Sign in with your password, or press “Email me a code” if you never set one: you can save a password on your account page after.', true);
+      perr(up ? 'Couldn’t create that account. Check the email, and use at least 8 characters for the password.'
         : 'Email or password not right. Never set a password? Press “Email me a code” to sign in, then save one on your account page.', true);
     }
   });
@@ -145,7 +175,7 @@ async function signedIn() {
 // ── New player: ① add your character ──────────────────────────────────────────────────────────────────
 function header() {
   const me = pb.authStore.record;
-  $('#landing').hidden = true; document.body.classList.remove('front');
+  $('#landing').hidden = true; document.body.classList.remove('front'); window.Skin && window.Skin.front(false);
   $('#who').innerHTML = '<span title="' + esc(me.email) + '">@' + esc(me.username || me.email) + '</span> · <a href="#" id="out">Sign out</a>';
   const brand = document.querySelector('.top .brand'); if (brand) brand.setAttribute('href', '/#front');   // the logo shows the front page
   $('#out').onclick = e => { e.preventDefault(); signOut(); };
@@ -218,7 +248,7 @@ async function renderHome() {
       <form id="add" class="addrow"><input name="url" placeholder="Add a character: paste its D&amp;D Beyond link" required autocomplete="off" inputmode="url" aria-label="D&amp;D Beyond character link"><button class="btn primary">Add</button></form>
       <p class="small muted visinfo"><b>Who can see your tracker?</b> <i>Only me</i>: just you. <i>My party can see</i>: other verified players whose characters are in the same D&amp;D Beyond campaign can look at it (read-only), and you share a party log under Notes. <i>Anyone signed in</i>: anyone with the link. Verify a character first to share it with your party.</p>
       <p class="small muted">The character must be public on D&amp;D Beyond (Character Settings → Character Privacy → Public). Dungeon Tracker only reads it.</p></section>
-    <div id="cont"></div></div>
+    </div>
     <div class="htab" data-tab="party"><section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + '</div>'
     + '<div class="htab" data-tab="account">' + (auto ? '' : nameCard(me)) + looksCard() + secCard(me) + '</div><div class="htab" data-tab="data">' + dataCard() + '</div>';
   const showTab = k => { document.querySelectorAll('.htab').forEach(t => { t.hidden = t.dataset.tab !== k; });
@@ -238,7 +268,7 @@ async function renderHome() {
 const INVITE = 'Hey! I found an awesome new way to track my D&D Beyond character, check it out!';
 const inviteCard = () => `<section class="card invite"><h2>Invite your party</h2>
     <p class="small muted">Playing with friends who use D&amp;D Beyond? Send them the link. Once their characters are in the same campaign, you can share trackers and a party log.</p>
-    <div class="row"><button class="btn primary" id="invshare">✉️ Share invite</button><button class="btn" id="invcopy">🔗 Copy link</button></div></section>`;
+    <div class="row saverow"><button class="btn" id="invcopy">🔗 Copy link</button><button class="btn primary" id="invshare">✉️ Share invite</button></div></section>`;
 function bindInvite() {
   const url = location.origin + '/';
   const copy = async () => { try { await navigator.clipboard.writeText(INVITE + ' ' + url); msg('Copied. Paste it in your group chat.'); } catch (_) { msg('Copy this link: ' + url); } };
@@ -249,11 +279,8 @@ function bindInvite() {
 }
 
 // "Continue with …": the last sheet opened on this device, if it's still in one of your lists
-function continueCard(list) {
-  let last = null; try { last = JSON.parse(localStorage.getItem('last-sheet')); } catch (_) {}
-  const c = last && list.find(x => x.id === last.id);
-  $('#cont').innerHTML = c ? `<a class="btn cta contbtn" href="${esc(sheetLink(c))}"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Continue with ${esc(c.name || last.name)}</a>` : '';
-}
+// sits in that character's row, on the right: 🎲 Continue →
+function lastSheetId() { try { const l = JSON.parse(localStorage.getItem('last-sheet')); return l && l.id; } catch (_) { return null; } }
 
 // a sheet's address: /<username>/<D&D Beyond id>
 const sheetLink = c => '/' + c.handle + '/' + c.ddb_id;
@@ -295,15 +322,16 @@ function pwPrompt(me) {
     <p class="small muted">Sign in straight away next time, without waiting for an email. You can still use emailed codes too.</p>
     <div class="pwpair"><input id="firstpw" type="password" autocomplete="new-password" minlength="8" placeholder="New password (at least 8 characters)" aria-label="New password">
       <input id="firstpw2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again" aria-label="Repeat the password"></div>
-    <div class="row authsub"><button class="btn primary" type="button" id="firstpwok">Save password</button>
-<button class="btn" type="button" id="firstpwno">Not now</button></div>`;
+    <div class="row authsub saverow"><button class="btn" type="button" id="firstpwno">Not now</button>
+<button class="btn primary" type="button" id="firstpwok">Save password ✓</button></div>`;
   const list = $('#mine') && $('#mine').closest('section'); (list ? list.parentNode.insertBefore(card, list) : $('#main').prepend(card));
   $('#firstpwno').onclick = () => { try { localStorage.setItem('pw-later-' + me.id, '1'); } catch (_) {} card.remove(); };
   $('#firstpwok').onclick = async () => {
     const pw = $('#firstpw').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
     if ($('#firstpw2').value !== pw) return msg('The two passwords aren’t the same.', true);
     try { const r = await pb.send('/api/account/first-password', { method: 'POST', body: { password: pw } });
-      pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email })); card.remove(); msg('Password saved. Next time, sign in with your email and password.'); }
+      pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email })); pwRemember(r.email); card.remove();
+      done('Password saved', 'Next time, sign in with your email and this password.'); }
     catch (e) { const t = (e && e.response && e.response.message) || '';
       if (t === 'fresh-code-needed') { card.remove(); $('#secpw').click(); $('#secpw').scrollIntoView({ block: 'center' }); msg('For safety we email you a code first. Press “Email me a code”.'); }
       else msg(t || 'Couldn’t save that. Try again.', true); }
@@ -343,7 +371,7 @@ function bindSec() {
         $('#emcode').focus();
         $('#emok').onclick = async () => {
           try { const r = await api('confirm', { code: $('#emcode').value }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
-            $('#secemail').textContent = r.email; $('#secembox').hidden = true; msg('Done. You now sign in with ' + r.email + '.'); }
+            $('#secemail').textContent = r.email; $('#secembox').hidden = true; $('#secem').setAttribute('aria-expanded', 'false'); done('Email changed', 'You now sign in with ' + r.email + '.'); }
           catch (e) { msg(err(e), true); } };
       } catch (e) { msg(err(e), true); }
     };
@@ -355,14 +383,15 @@ function bindSec() {
         $('#pwstep2').innerHTML = `<label class="authlbl" for="pwcode">Code</label><input id="pwcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
           <label class="authlbl" for="pwnew">New password</label><input id="pwnew" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
           <label class="authlbl" for="pwnew2">Repeat it</label><input id="pwnew2" type="password" autocomplete="new-password" minlength="8" placeholder="The same password again">
-          <div class="row authsub"><button class="btn primary" type="button" id="pwok">Save password</button></div>`;
+          <div class="row authsub saverow"><button class="btn primary" type="button" id="pwok">Save password ✓</button></div>`;
         $('#pwcode').focus();
         $('#pwok').onclick = async () => {
           const pw = $('#pwnew').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
           if ($('#pwnew2').value !== pw) return msg('The two passwords aren’t the same.', true);
           try { const r = await api('confirm', { code: $('#pwcode').value, password: pw }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
             try { localStorage.setItem('has-password-' + r.record.id, '1'); } catch (_) {}
-            $('#secpwbox').hidden = true; msg('Password saved. You can sign in with it or with an emailed code.'); }
+            pwRemember(r.email); $('#secpwbox').hidden = true; $('#secpw').setAttribute('aria-expanded', 'false');
+            done('Password saved', 'Sign in with it, or with an emailed code.'); }
           catch (e) { msg(err(e), true); } };
       } catch (e) { msg(err(e), true); }
     };
@@ -370,7 +399,10 @@ function bindSec() {
 }
 const dataCard = () => `<section class="card"><h2>Your data</h2>
     <p class="small muted">Everything this app keeps about you, stored in the EU.</p>
-    <div class="row"><button class="btn" id="export">⬇️ Download my data</button><button class="btn danger xbtn" id="delacct" aria-expanded="false">Delete my account <span class="xchev" aria-hidden="true"></span></button></div>
+    <div class="row"><button class="btn" id="export">⬇️ Download my data</button></div></section>
+  <section class="card dangerzone"><h2>The danger zone</h2>
+    <p class="small muted">Deleting your account removes your characters, trackers and notes for good. Download your data first if you want a copy.</p>
+    <div class="row"><button class="btn danger xbtn" id="delacct" aria-expanded="false">Delete my account <span class="xchev" aria-hidden="true"></span></button></div>
     <div id="delbox" hidden></div></section>`;
 async function exportData() {
   const me = pb.authStore.record, mine = { m: me.id };
@@ -422,7 +454,9 @@ async function loadLists() {
   catch (e) {   // offline: the last list this device saw (sheets opened before open offline too)
     try { list = JSON.parse(localStorage.getItem('sheet-list')) || []; } catch (_) { list = []; }
     msg(navigator.onLine ? 'Couldn’t load your characters.' : '📴 Offline: showing the sheets saved on this device.', navigator.onLine); }
+  const lastId = lastSheetId();
   const card = c => {
+    const cont = c.id === lastId && !c.archived ? `<a class="btn primary small contbtn" href="${esc(sheetLink(c))}" title="Open ${esc(c.name || 'this character')} again"><svg class="d20i" aria-hidden="true" viewBox="0 0 100 100"><use href="#d20"/></svg> Continue <span aria-hidden="true">→</span></a>` : '';
     const d = c.data || {}, cls = (d.classes || []).map(k => k.name + ' ' + k.level).join(' / ');
     const camp = d.campaign && d.campaign.name ? d.campaign.name : '';
     const own = c.owner === me;
@@ -431,14 +465,13 @@ async function loadLists() {
         ${c.archived ? '' : `<button class="btn small" data-move="${esc(c.id)}" data-d="-1">↑ Move up</button><button class="btn small" data-move="${esc(c.id)}" data-d="1">↓ Move down</button>`}
         <button class="btn small" data-arch="${esc(c.id)}">${c.archived ? '↩︎ Unarchive' : '🗄️ Archive'}</button>
         <button class="btn small danger" data-rm="${esc(c.id)}">Remove…</button></div></details>` : '';
-    return `<div class="ch${c.archived ? ' archived' : ''}">${tools}<a class="open" href="${esc(sheetLink(c))}"><b>${esc(c.name || 'Character')}</b>
+    return `<div class="ch${c.archived ? ' archived' : ''}">${tools}<a class="open" href="${esc(sheetLink(c))}"><b>${esc(c.name || 'Character')}${own && c.verified ? '<span class="vtick" tabindex="0" aria-label="Verified" data-tip="Verified: you proved this is your D&amp;D Beyond character, so you can share it with your party.">✓</span>' : ''}</b>
         <span class="small muted">${esc([d.race && d.race.name, cls].filter(Boolean).join(' · ') || 'Not synced yet')}${camp ? ' · ' + esc(camp) : ''}${!own && c.handle ? ' · @' + esc(c.handle) : ''}</span></a>
-      ${own ? `<div class="chctl">${c.verified ? '<span class="vbadge" title="You proved this is your D&amp;D Beyond character">✓ Verified</span>' : `<button class="btn small" data-claim="${esc(c.id)}">Verify</button>`}
+      ${own ? `<div class="chctl">${c.verified ? '' : `<button class="btn small" data-claim="${esc(c.id)}">Verify</button>`}
         <select data-vis="${esc(c.id)}" aria-label="Who can see the tracker">${Object.entries(VIS).map(([k, t]) => `<option value="${k}"${c.visibility === k ? ' selected' : ''}${k === 'party' && !c.verified ? ' disabled' : ''}>${t}${k === 'party' && !c.verified ? ' (verify first)' : ''}</option>`).join('')}</select></div>`
-        : `<span class="small muted">${esc(VIS[c.visibility] || '')}</span>`}${more}</div>
+        : `<span class="small muted">${esc(VIS[c.visibility] || '')}</span>`}${more}${cont}</div>
       <div class="claim" id="claim-${esc(c.id)}" hidden></div>`;
   };
-  continueCard(list);
   // your list: ⭐ playing now first, then your own order (sort), then by name; archived ones folded away below
   const order = (a, b) => (b.pinned - a.pinned) || ((a.sort || 1e6) - (b.sort || 1e6)) || String(a.name).localeCompare(String(b.name));
   const mine = list.filter(c => c.owner === me).sort(order), shared = list.filter(c => c.owner !== me);

@@ -61,8 +61,8 @@ routerAdd("POST", "/api/account/confirm", (e) => {
 routerAdd("POST", "/api/account/first-password", (e) => {
   const rec = $app.findRecordById("users", e.auth.id), pw = String((e.requestInfo().body || {}).password || "");
   if (rec.getBool("pw_set")) throw new BadRequestError("You already have a password. Change it under Sign-in & security.");
-  const at = Number($app.store().get("otp-at:" + rec.id) || 0);
-  if (!at || Date.now() - at > 24 * 60 * 60 * 1000) throw new BadRequestError("fresh-code-needed");
+  const at = rec.getDateTime("otp_at");
+  if (at.isZero() || Date.now() - at.unix() * 1000 > 24 * 60 * 60 * 1000) throw new BadRequestError("fresh-code-needed");
   if (pw.length < 8 || pw.length > 72) throw new BadRequestError("Passwords are 8 to 72 characters.");
   rec.setPassword(pw); rec.set("pw_set", true); $app.save(rec);
   return e.json(200, { ok: true, email: rec.email(), token: rec.newAuthToken(), record: rec });
