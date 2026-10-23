@@ -631,3 +631,9 @@ body > #msg.show{transform:translate(-50%,0)}
 body > #msg.bad{background:var(--ink);color:var(--bg);border:0;border-left:4px solid var(--hp);padding-left:38px}
 body > #msg.bad::before{top:9px}
 .chctl select{max-width:190px} .ch .open span{text-wrap:pretty}
+/* the character you played last stands out (gold edge, a soft glow); the "add a character" box only gets the gold
+   edge while your list is still empty */
+.ch.chlast{border:1.5px solid var(--brass);background:color-mix(in srgb,var(--brass) 8%,var(--raised));box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 14%,transparent),0 8px 24px -12px color-mix(in srgb,var(--brass) 60%,transparent)}
+.addrow input{border:1px solid var(--line)}
+section:not(:has(#mine .ch)) .addrow input{border:1.5px solid color-mix(in srgb,var(--brass) 75%,transparent)}
+.addrow input:focus{border-color:var(--brass)}
