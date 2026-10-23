@@ -1,35 +1,44 @@
 /// <reference path="../pb_data/types.d.ts" />
 // ── Account settings: set or change your password, change your email ──────────────────────────────
 // Most players sign in with emailed codes and never had a password, so neither change asks for the old one.
-// Instead both use a 6-digit code: for a password it goes to your current email, for a new email it goes to that
-// new address (proving you can read it). Codes live 10 minutes in memory, 5 tries, one new code per minute.
+// Instead both use 6-digit codes: for a password one goes to your current email; for a new email one goes to the new
+// address (proving you can read it) AND one to your current address (proving it's you, not someone holding your
+// signed-in phone), and the old address gets a notice afterwards. Codes live 10 minutes in memory, 5 tries, one
+// request per minute.
 //   POST /api/account/code     {purpose: "password"} | {purpose: "email", email}
-//   POST /api/account/confirm  {code, password?}  → sets the password, or the new (verified) email
+//   POST /api/account/confirm  {code, code2?, password?}  → sets the password, or the new (verified) email
 // (handlers run in their own VMs, so constants live inside them)
 routerAdd("POST", "/api/account/code", (e) => {
   const body = e.requestInfo().body || {}, me = e.auth;
   const purpose = body.purpose === "email" ? "email" : "password";
   let to = me.email();
+  // one request a minute, checked first (so the "already has an account" answer below can't be asked for in bulk)
+  const key = "acct:" + me.id, ask = "acct-ask:" + me.id, prev = Number($app.store().get(ask) || 0);
+  if (prev && Date.now() - prev < 60000) throw new BadRequestError("A code is on its way. Wait a minute before asking for another.");
   if (purpose === "email") {
     to = String(body.email || "").trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || to.length > 200) throw new BadRequestError("That doesn’t look like an email address.");
     if (to === me.email().toLowerCase()) throw new BadRequestError("That’s already your email.");
+  }
+  $app.store().set(ask, String(Date.now()));   // from here on the request counts (a typo above doesn't)
+  if (purpose === "email") {
     let taken = false; try { $app.findAuthRecordByEmail("users", to); taken = true; } catch (_) {}
     if (taken) throw new BadRequestError("That email already has a Dungeon Tracker account.");
   }
-  const key = "acct:" + me.id, prev = String($app.store().get(key) || "");
-  if (prev && Date.now() - JSON.parse(prev).at < 60000) throw new BadRequestError("A code is on its way. Wait a minute before asking for another.");
   const code = $security.randomStringWithAlphabet(6, "0123456789");
-  $app.store().set(key, JSON.stringify({ purpose, to, code, at: Date.now(), tries: 0 }));
-  const s = $app.settings().meta, what = purpose === "email" ? "change your email to this address" : "set a new password";
-  $app.newMailClient().send(new MailerMessage({
+  const code2 = purpose === "email" ? $security.randomStringWithAlphabet(6, "0123456789") : "";
+  $app.store().set(key, JSON.stringify({ purpose, to, code, code2, at: Date.now(), tries: 0 }));
+  const s = $app.settings().meta;
+  const mail = (addr, c, what) => $app.newMailClient().send(new MailerMessage({
     from: { address: s.senderAddress, name: s.senderName },
-    to: [{ address: to }],
-    subject: "Your Dungeon Tracker code: " + code,
-    html: "<p>Your code to " + what + " on Dungeon Tracker:</p><p style=\"font-size:28px;font-weight:700;letter-spacing:4px\">" + code + "</p>"
+    to: [{ address: addr }],
+    subject: "Your Dungeon Tracker code: " + c,
+    html: "<p>Your code to " + what + " on Dungeon Tracker:</p><p style=\"font-size:28px;font-weight:700;letter-spacing:4px\">" + c + "</p>"
       + "<p>It works for 10 minutes. Didn’t ask for this? Ignore this email: nothing changes without the code.</p>",
   }));
-  return e.json(200, { sent: to });
+  if (purpose === "email") { mail(to, code, "change your email to this address"); mail(me.email(), code2, "move your account to a new email address (" + to.replace(/[<>&"]/g, "") + ")"); }
+  else mail(to, code, "set a new password");
+  return e.json(200, { sent: to, current: purpose === "email" ? me.email() : "" });
 }, $apis.requireAuth("users"));
 
 routerAdd("POST", "/api/account/confirm", (e) => {
@@ -39,9 +48,9 @@ routerAdd("POST", "/api/account/confirm", (e) => {
   if (Date.now() - st.at > 10 * 60 * 1000) { $app.store().remove(key); throw new BadRequestError("That code has expired. Ask for a new one."); }
   const pw = String(body.password || "");
   if (st.purpose === "password" && (pw.length < 8 || pw.length > 72)) throw new BadRequestError("Passwords are 8 to 72 characters.");
-  if (String(body.code || "").trim() !== st.code) {
+  if (String(body.code || "").trim() !== st.code || (st.code2 && String(body.code2 || "").trim() !== st.code2)) {
     st.tries++; if (st.tries >= 5) $app.store().remove(key); else $app.store().set(key, JSON.stringify(st));
-    throw new BadRequestError(st.tries >= 5 ? "Too many wrong codes. Ask for a new one." : "That code isn’t right.");
+    throw new BadRequestError(st.tries >= 5 ? "Too many wrong codes. Ask for a new one." : (st.code2 ? "One of the codes isn’t right." : "That code isn’t right."));
   }
   const rec = $app.findRecordById("users", e.auth.id);
   if (st.purpose === "password") { rec.setPassword(pw); rec.set("pw_set", true); }
@@ -50,7 +59,14 @@ routerAdd("POST", "/api/account/confirm", (e) => {
     if (taken) { $app.store().remove(key); throw new BadRequestError("That email already has a Dungeon Tracker account."); }
     rec.setEmail(st.to); rec.setVerified(true);
   }
-  $app.save(rec); $app.store().remove(key);
+  const old = e.auth.email();
+  $app.save(rec); $app.store().remove(key); $app.store().remove("acct-ask:" + e.auth.id);   // done: a new request may follow straight away
+  if (st.purpose === "email") {   // a heads-up to the address the account just left
+    const s = $app.settings().meta;
+    try { $app.newMailClient().send(new MailerMessage({ from: { address: s.senderAddress, name: s.senderName }, to: [{ address: old }],
+      subject: "Your Dungeon Tracker account moved to a new email",
+      html: "<p>Your Dungeon Tracker account now signs in with <b>" + st.to.replace(/[<>&"]/g, "") + "</b> instead of this address.</p><p>If that wasn’t you, reply to this email straight away.</p>" })); } catch (_) {}
+  }
   // a new email or password signs out old sessions (PocketBase rotates the token key): hand this one a fresh token
   return e.json(200, { ok: true, purpose: st.purpose, email: rec.email(), token: rec.newAuthToken(), record: rec });
 }, $apis.requireAuth("users"));

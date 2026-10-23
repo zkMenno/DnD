@@ -96,5 +96,11 @@ q = '/api/collections/characters/records?filter=' + urllib.parse.quote("handle='
 s,l = req('GET',q,tok=tc); check('a link finds the sheet for someone it\'s shared with (public)', s==200 and len(l['items'])==1)
 req('PATCH','/api/collections/characters/records/'+wa['id'],{'visibility':'private'},ta)
 s,l = req('GET',q,tok=tc); check('…and not once it\'s private again', s==200 and len(l['items'])==0)
+# security review, 23 Oct: name and campaign are the server's on update too (the campaign decides who is your party)
+s,x = req('PATCH','/api/collections/characters/records/'+wa['id'],{'campaign':'SOMEONE-ELSES','name':'Not Wick'},ta)
+check('a player can\'t write another campaign or name into their character', s==200 and x['campaign']==C1 and x['name']!='Not Wick')
+# filters can't reach fields of other people's accounts
+s,l = req('GET','/api/collections/characters/records?filter='+urllib.parse.quote("owner.pw_set=true"),tok=tc)
+check('no filtering characters by their owner\'s account fields', s>=400 or all(i['owner']==ic for i in l.get('items',[])))
 print('ALL PASS' if ok else 'SOME FAILED')
 sys.exit(0 if ok else 1)

@@ -18,9 +18,10 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   // change email: wrong code refused, right code changes it
   await p.click('#secem'); await p.fill('#newemail', email2); await p.click('#emsend'); await p.waitForSelector('#emcode');
   const c1 = await codeFor(email2); ok('the email-change code goes to the new address', !!c1);
-  await p.fill('#emcode', c1 === '000000' ? '111111' : '000000'); await p.click('#emok'); await p.waitForTimeout(600);
-  ok('a wrong code is refused', /isn’t right/.test(await p.textContent('#msg')));
-  await p.fill('#emcode', c1); await p.click('#emok'); await p.waitForFunction(e => document.querySelector('#secemail').textContent === e, email2);
+  const c1b = await codeFor(email); ok('a second code goes to the current address', !!c1b && c1b !== c1);
+  await p.fill('#emcode', c1); await p.fill('#emcode2', c1b === '000000' ? '111111' : '000000'); await p.click('#emok'); await p.waitForTimeout(600);
+  ok('a wrong code for the current address is refused', /isn’t right/.test(await p.textContent('#msg')));
+  await p.fill('#emcode2', c1b); await p.click('#emok'); await p.waitForFunction(e => document.querySelector('#secemail').textContent === e, email2);
   ok('the email changes', await p.evaluate(() => pb.authStore.record.email) === email2);
   // set a password with a code sent to the (new) email
   await p.click('#secpw'); await p.click('#pwsend'); await p.waitForSelector('#pwcode');
@@ -53,6 +54,16 @@ const B = process.argv[2] || 'http://127.0.0.1:8090', MAIL = '/tmp/mailsink.txt'
   ok('a wrong password shows under the password box', /not right/.test(await q.textContent('#pwerr')));
   await q.fill('input[name=password]', 'Third-pass-789'); await q.click('#pwgo'); await q.waitForSelector('#mine, #add');
   ok('the right one signs in', await q.evaluate(() => pb.authStore.isValid));
+  // someone signs up with a password for an email that isn't theirs; the real owner then signs in with a code:
+  // that password stops working
+  const email4 = 'squat'+Date.now()+'@example.test';
+  await fetch(B + '/api/collections/users/records', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ email: email4, password:'Squatter-123', passwordConfirm:'Squatter-123' }) });
+  const z = await (await b.newContext()).newPage(); z.on('pageerror', e => errs.push(e.message));
+  await z.goto(B + '/#signin'); await z.fill('input[name=email]', email4); await z.click('button[value=code]'); await z.waitForSelector('input[name=code]');
+  const c4 = await (async () => { for (let i = 0; i < 40; i++) { const t = fs.readFileSync(MAIL, 'utf8'); const parts = t.split('=== TO ').filter(x => x.startsWith(email4)); const m = parts.length && parts[parts.length-1].replace(/=\r?\n/g, '').match(/<strong>(\d{6})<\/strong>/); if (m) return m[1]; await new Promise(r => setTimeout(r, 250)); } return null; })();
+  await z.fill('input[name=code]', c4); await z.click('button[value=otp]'); await z.waitForSelector('#add');
+  const r4 = await fetch(B + '/api/collections/users/auth-with-password', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ identity: email4, password: 'Squatter-123' }) });
+  ok('a password set before the owner proved the email stops working', !r4.ok);
   ok('no script errors', !errs.length);
   await b.close();
 })().catch(e => { console.error('ERR', e.message); process.exit(1); });

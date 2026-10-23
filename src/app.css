@@ -965,7 +965,7 @@ body{background:
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%23C9A55A' stroke-opacity='.10' stroke-width='1'%3E%3Ccircle cx='100' cy='100' r='92'/%3E%3Ccircle cx='100' cy='100' r='70'/%3E%3Cpath d='M100 2v196M2 100h196M31 31l138 138M169 31L31 169'/%3E%3C/g%3E%3Cg fill='%23C9A55A' fill-opacity='.10'%3E%3Cpath d='M100 8l9 92-9 92-9-92z'/%3E%3Cpath d='M8 100l92-9 92 9-92 9z'/%3E%3C/g%3E%3C/svg%3E") no-repeat right -90px bottom -60px/340px 340px fixed,
   repeating-linear-gradient(0deg,transparent 0 119px,color-mix(in srgb,var(--rope) 10%,transparent) 119px 120px) fixed,
   repeating-linear-gradient(90deg,transparent 0 119px,color-mix(in srgb,var(--rope) 7%,transparent) 119px 120px) fixed,
-  var(--glow),var(--grain),var(--bg)}
+  var(--glow) fixed no-repeat,var(--grain) fixed,var(--bg)}
 /* brass rivets on card corners */
 .card{position:relative}
 .card::before{content:"";position:absolute;inset:6px;pointer-events:none;border-radius:4px;
@@ -1601,3 +1601,10 @@ a.menulink.homelink:hover{background:var(--brass);color:var(--bg)} a.menulink.ho
 .skinmode{display:flex;gap:6px;margin-top:10px}
 .skinmode button{flex:1;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;font-weight:700;font-size:.9rem;cursor:pointer}
 .skinmode button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--bg)}
+/* every close ✕ clearly visible in every theme: full-strength colour on a faint round backing, stronger on hover */
+.x2{color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,transparent)}
+.roll .x,.bubble .bclose{opacity:1;color:var(--bg);background:color-mix(in srgb,var(--bg) 14%,transparent)}
+@media (hover:hover) and (pointer:fine){
+  .x2:hover{background:color-mix(in srgb,var(--ink) 18%,transparent)}
+  .roll .x:hover,.bubble .bclose:hover{background:color-mix(in srgb,var(--bg) 26%,transparent)}
+}

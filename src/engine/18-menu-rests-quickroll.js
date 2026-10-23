@@ -61,7 +61,7 @@ function paintMenu(){
     + (diceOpen ? diceBody : '')
     + (diceEdit ? '' : done);
 }
-// web app: ☰ → Theme — five looks (web/sw-register.js: window.Skin) and light / dark / follow the device
+// web app: ☰ → Theme — eight looks (web/sw-register.js: window.Skin) and light / dark / follow the device
 function skinRow(open, chev){
   const K = window.Skin; if (!K || !window.SHEET) return '';
   const cur = K.skin(), mode = K.mode(), it = K.list.find(x => x[0] === cur) || K.list[0], ML = {auto:'Auto', light:'Light', dark:'Dark'};

@@ -57,6 +57,9 @@ onRecordUpdateRequest((e) => {
   const u = require(`${__hooks}/ddb_utils.js`), o = e.record.original(), id = e.record.getInt("ddb_id");
   if (id !== o.getInt("ddb_id")) throw new BadRequestError("A sheet can't switch to another character.");
   e.record.set("pack", u.packFor(id)); e.record.set("handle", u.ownerHandle(e.record));
+  // name and campaign are the server's, never the browser's: the campaign decides who counts as your party, so a
+  // player must not be able to write someone else's campaign id into their own (verified) character
+  e.record.set("name", o.getString("name")); e.record.set("campaign", o.getString("campaign"));
   // a new copy of the sheet (☰ Pull): check it, and refresh name + campaign. A sharing change alone costs no fetch.
   if (e.record.getString("data") !== o.getString("data")) {
     u.assertNoMarkup(JSON.parse(e.record.getString("data") || "null"), "Character data");
@@ -124,7 +127,9 @@ onRecordRequestOTPRequest((e) => {
 }, "users");
 // signing in with an emailed code proves the address: mark it verified
 onRecordAuthWithOTPRequest((e) => {
-  if (e.record && !e.record.verified()) { e.record.setVerified(true); $app.save(e.record); }
+  // first proof of this address: anything set on the account before it (a password someone typed while signing up with
+  // an email that wasn't theirs) is dropped, so only the person who reads the mail gets in from now on
+  if (e.record && !e.record.verified()) { e.record.setRandomPassword(); e.record.set("pw_set", false); e.record.setVerified(true); $app.save(e.record); }
   e.next();
   // remember when: lets /api/account/first-password skip a second email (a database field, so a restart doesn't lose it)
   if (e.record) { const r = $app.findRecordById("users", e.record.id); r.set("otp_at", new DateTime()); $app.saveNoValidate(r); }

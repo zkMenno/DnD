@@ -20,7 +20,6 @@ input,select{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid 
 .boot{max-width:560px;margin:60px auto;padding:0 16px;text-align:center;color:var(--muted)}
 .chctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .btn.small{padding:6px 12px;font-size:.85rem}
-.vbadge{font-size:.8rem;font-weight:700;color:var(--good);white-space:nowrap}
 .claim{border:1px dashed var(--brass);border-radius:12px;padding:10px 12px;margin:-2px 0 6px}
 .claim ol{margin:6px 0;padding-left:20px;display:grid;gap:4px}
 .code{font-family:var(--f-num);font-weight:700;background:var(--brass-soft);padding:2px 6px;border-radius:6px;user-select:all}
@@ -272,7 +271,7 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .ifok{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:var(--brass);color:var(--sea-ink,#0c141c);font-size:1.8rem;font-weight:700}
 @media (prefers-reduced-motion:no-preference){ .ifd20{animation:ifspin .7s linear infinite} @keyframes ifspin{to{transform:rotate(360deg)}}
   .ifbox.done{animation:ifpop .25s cubic-bezier(.2,.8,.2,1.4)} @keyframes ifpop{from{transform:scale(.85)}} }
-.contbtn{width:100%;box-sizing:border-box;justify-content:center;margin:0 0 14px}
+
 .invite .row{flex-wrap:wrap}
 
 /* ── Your characters: ⭐ playing now, ⋯ menu (order, archive, remove), archived list (22 Oct) ───────────────────── */

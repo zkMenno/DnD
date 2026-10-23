@@ -164,7 +164,8 @@ async function renderLogin(mode) {
 async function signedIn() {
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   const next = new URLSearchParams(location.search).get('next');
-  if (next && /^\/(?![/\\])/.test(next)) { location.href = next; return; }   // only a path on this site ("/x", never "//other.site")
+  if (next) { try { const u = new URL(next, location.origin);   // only somewhere on this site (no "//other.site", no tricks with tabs or backslashes)
+    if (u.origin === location.origin) { location.href = u.pathname + u.search + u.hash; return; } } catch (_) {} }
   const pend = ss.get(PENDING); ss.set(PENDING, null);
   if (pend) return addById(+pend, true);
   let count = 1;
@@ -231,7 +232,7 @@ function renderUsernameStep(c) {
 // so the next person on a shared phone or laptop can't read them (the app files themselves stay cached)
 function signOut() {
   pb.authStore.clear();
-  try { Object.keys(localStorage).filter(k => /^(sheet-cache-|note-queue-|sheet-list$)/.test(k) || /-play-|-notes-/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+  try { Object.keys(localStorage).filter(k => /^(sheet-cache-|sheet-at-|note-queue-|sheet-list$|last-sheet$|has-password-|pw-later-|dt-pw-emails$)/.test(k) || /-play-|-notes-/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (_) {}
   msg(''); history.replaceState(null, '', '/'); showLanding();
 }
 
@@ -337,7 +338,7 @@ function pwPrompt(me) {
       else msg(t || 'Couldn’t save that. Try again.', true); }
   };
 }
-// Theme: the same five looks and light/dark as ☰ → Theme on a sheet (web/sw-register.js: window.Skin), saved on this device
+// Theme: the same eight looks and light/dark as ☰ → Theme on a sheet (web/sw-register.js: window.Skin), saved on this device
 const looksCard = () => `<section class="card looks"><h2>Theme</h2><p class="small muted">How Dungeon Tracker and your sheets look on this device.</p><div id="looks"></div></section>`;
 function bindLooks() {
   const K = window.Skin, box = $('#looks'); if (!K || !box) return;
@@ -363,14 +364,16 @@ function bindSec() {
     $('#secem').setAttribute('aria-expanded', String(!$('#secembox').hidden)); $('#secpw').setAttribute('aria-expanded', String(!$('#secpwbox').hidden)); return !b.hidden; };
   $('#secem').onclick = () => {
     if (!toggle('#secembox', `<label class="authlbl" for="newemail">New email</label><div class="authrow"><input id="newemail" type="email" autocomplete="email" placeholder="you@example.com"><button class="btn primary" type="button" id="emsend">Send a code</button></div>
-      <p class="small muted">We send a 6-digit code to the new address to check it’s yours.</p><div id="emstep2"></div>`, '#secpwbox')) return;
+      <p class="small muted">We send a 6-digit code to the new address and one to your current address, to check both are yours.</p><div id="emstep2"></div>`, '#secpwbox')) return;
     $('#emsend').onclick = async () => {
       const email = $('#newemail').value.trim(); if (!email) return msg('Type the new email first.', true);
-      try { await api('code', { purpose: 'email', email }); msg('Code sent to ' + email + '.');
-        $('#emstep2').innerHTML = `<div class="authrow"><input id="emcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456" aria-label="Code"><button class="btn primary" type="button" id="emok">Change email</button></div>`;
+      try { const sent = await api('code', { purpose: 'email', email }); msg('Codes sent to ' + email + ' and ' + (sent.current || 'your current email') + '.');
+        $('#emstep2').innerHTML = `<label class="authlbl" for="emcode">Code sent to ${esc(email)}</label><input id="emcode" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
+          <label class="authlbl" for="emcode2">Code sent to ${esc(sent.current || 'your current email')}</label><input id="emcode2" class="codein" inputmode="numeric" maxlength="6" placeholder="123456">
+          <div class="row authsub saverow"><button class="btn primary" type="button" id="emok">Change email ✓</button></div>`;
         $('#emcode').focus();
         $('#emok').onclick = async () => {
-          try { const r = await api('confirm', { code: $('#emcode').value }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
+          try { const r = await api('confirm', { code: $('#emcode').value, code2: $('#emcode2').value }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
             $('#secemail').textContent = r.email; $('#secembox').hidden = true; $('#secem').setAttribute('aria-expanded', 'false'); done('Email changed', 'You now sign in with ' + r.email + '.'); }
           catch (e) { msg(err(e), true); } };
       } catch (e) { msg(err(e), true); }
@@ -389,7 +392,6 @@ function bindSec() {
           const pw = $('#pwnew').value; if (pw.length < 8) return msg('Passwords are at least 8 characters.', true);
           if ($('#pwnew2').value !== pw) return msg('The two passwords aren’t the same.', true);
           try { const r = await api('confirm', { code: $('#pwcode').value, password: pw }); if (r.token) pb.authStore.save(r.token, Object.assign({}, r.record, { email: r.email }));
-            try { localStorage.setItem('has-password-' + r.record.id, '1'); } catch (_) {}
             pwRemember(r.email); $('#secpwbox').hidden = true; $('#secpw').setAttribute('aria-expanded', 'false');
             done('Password saved', 'Sign in with it, or with an emailed code.'); }
           catch (e) { msg(err(e), true); } };
