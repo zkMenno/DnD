@@ -60,7 +60,7 @@ elif [ -x "$PB_BIN" ]; then
   for _ in $(seq 1 20); do listening "$mp" && break; sleep 0.5; done
   listening "$mp" || { echo "FAIL mail server didn't start (pip install aiosmtpd)"; fail=1; }
   step "site admin (admin tick, emailed code, unlock)"; python3 tools/test/web/admintest.py "$B" | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1
-  for t in e2e e2e-items e2e-party e2e-codes e2e-shared e2e-offline e2e-merge e2e-move e2e-verify e2e-links e2e-account e2e-feedback e2e-legal; do step "web $t"; node tools/test/web/$t.js "$B" | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
+  for t in e2e e2e-items e2e-party e2e-codes e2e-shared e2e-offline e2e-merge e2e-look e2e-move e2e-verify e2e-links e2e-account e2e-feedback e2e-legal; do step "web $t"; node tools/test/web/$t.js "$B" | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1; done
   step "headers and rate limits (last: uses up this IP's sign-in allowance)"; python3 tools/test/web/limits.py "$B" | grep -v '^PASS'; [ "${PIPESTATUS[0]}" = 0 ] || fail=1
 else echo; echo "(web tests skipped: no PocketBase binary)"; fi
 

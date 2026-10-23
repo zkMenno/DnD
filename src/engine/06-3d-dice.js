@@ -298,13 +298,32 @@ function skinDiceSets(sd){
     const s = Object.assign({}, THEME.dice[spec.from] || {}, { font: sd.font, fscale: sd.fscale, bold: sd.bold || (THEME.dice[spec.from] || {}).bold }, spec);
     if (spec.col) { const [l, d, ink] = spec.col, a = hex(l), b = hex(d);
       const mid = [16, 8, 0].reduce((v, sh) => v | (Math.round((((a >> sh) & 255) + ((b >> sh) & 255)) / 2) << sh), 0);
-      Object.assign(s, { grad: [a, b], body: mid, ink, css: [l, d, ink] }); }
+      // the numeral's rim/halo must go the other way from the ink: a dark numeral gets a pale rim, a pale one a dark
+      // rim (the pirate set it came from may have the opposite, which drew a muddy border round dark numerals)
+      const lum = parseInt(ink.slice(1, 3), 16) * .299 + parseInt(ink.slice(3, 5), 16) * .587 + parseInt(ink.slice(5, 7), 16) * .114;
+      Object.assign(s, { grad: [a, b], body: mid, ink, css: [l, d, ink], rim: spec.rim || (lum < 128 ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.6)') }); }
     delete s.from; delete s.col; out[k] = s;
   }
   return out;
 }
+// Keeps every set's numerals readable: a numeral with too little contrast on its die's body colour (below 3:1) is
+// redrawn white or near-black, whichever reads better, with the rim the other way. Returns a new {key: set}.
+function d3Legible(sets){
+  const L = c => { const n = typeof c === 'number' ? c : parseInt(String(c).slice(1), 16), f = v => { v /= 255; return v <= .03928 ? v/12.92 : ((v+.055)/1.055) ** 2.4; };
+    return .2126*f(n >> 16 & 255) + .7152*f(n >> 8 & 255) + .0722*f(n & 255); };
+  const cr = (a, b) => { const x = L(a), y = L(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  const out = {};
+  for (const [k, s0] of Object.entries(sets)) {
+    const s = Object.assign({}, s0);
+    if (typeof s.ink === 'string' && /^#[0-9a-f]{6}$/i.test(s.ink) && s.body != null && cr(s.ink, s.body) < 3) {
+      const light = cr('#FFFFFF', s.body) >= cr('#140C06', s.body); s.ink = light ? '#FFFFFF' : '#140C06'; s.rim = light ? 'rgba(0,0,0,.6)' : 'rgba(255,255,255,.55)';
+    }
+    out[k] = s;
+  }
+  return out;
+}
 // the sets, their group labels, which look they belong to, and the first-time default
-const DICE_SETS = DICE_SKIN ? skinDiceSets(DICE_SKIN) : THEME.dice;
+const DICE_SETS = d3Legible(DICE_SKIN ? skinDiceSets(DICE_SKIN) : THEME.dice);
 const DICE_GROUPS = DICE_SKIN ? DICE_SKIN.groups : (THEME.diceGroups || {});
 const DICE_LOOK = DICE_SKIN ? SKIN : 'pirate';
 const DEFAULT_DICE = DICE_SKIN ? Object.keys(DICE_SETS)[0] : (THEME.defaultDice || Object.keys(DICE_SETS)[0]);

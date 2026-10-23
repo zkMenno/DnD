@@ -6,7 +6,7 @@
 // Uses: S, save, ui, saveUi (§3); RES, D, DATA, WORD, esc (§2); DICE_SETS, DICE_GROUPS, DICE_LOOK, DICE_PREVIEW (§6);
 //   rollStyleRow (§6b); fx, fxBusy (§5); showRoll, closeRoll, fitDock, deskFine, r (§4); G (§16); window.Skin (web/sw-register.js),
 //   window.SHEET (web app).
-// State: menuOpen, menuView ('main' | 'sync' | 'dice' | 'skin'), diceEdit, restMode, rollBoxOpen, restLog, restSpent.
+// State: menuOpen, menuView ('main' | 'sync' | 'dice' | 'skin' | 'rolling'), diceEdit, restMode, rollBoxOpen, restLog, restSpent.
 
 // ── ☰ Menu ─────────────────────────────────────────────────────────────────────────────────────────────────
 let menuOpen = false;
@@ -73,11 +73,11 @@ function paintMenu(){
     + (window.SHEET ? (webSync || '') : '<button class="menulink'+(syncOpen?' open':'')+'" data-act="menuview" data-v="sync" aria-expanded="'+syncOpen+'"><span class="mico" aria-hidden="true">🔄</span><span class="dst"><b>Sync D&amp;D Beyond</b><span>Last synced '+esc(when)+(pend ? ' · '+pend+' to push' : '')+(DATA_OLD ? ' · sync for new details' : '')+'</span></span>'+chev(syncOpen)+'</button>'
     + (syncOpen ? syncBody : ''))
     + skinRow(skinOpen, chev)
+    // Dice rolling: Throw it yourself · Automatic (§6b; only where that feature is on)
+    + (diceEdit ? '' : rollStyleRow(menuView === 'rolling', chev))
     + '<div style="height:8px"></div>'
     + '<button class="menulink'+(diceOpen?' open':'')+'" data-act="menuview" data-v="dice" aria-expanded="'+diceOpen+'">'+sw(DICE_SETS[cur]).replace('class="dsw"','class="dsw one"')+'<span class="dst"><b>Dice Sets</b><span>'+esc(DICE_SETS[cur].name)+'</span></span>'+chev(diceOpen)+'</button>'
     + (diceOpen ? diceBody : '')
-    // Rolling: Automatic · Throw it yourself (§6b; only where that feature is on)
-    + (diceEdit ? '' : rollStyleRow())
     // web app: report a bug or share an idea (web/feedback.js opens the box)
     + (window.SHEET && window.openFeedback && !diceEdit ? '<div style="height:8px"></div><button class="menulink" data-act="feedback"><span class="mico" aria-hidden="true">🐞</span><span class="dst"><b>Report a bug or share an idea</b><span>Goes straight to Menno, who builds Dungeon Tracker</span></span></button>' : '')
     + (diceEdit ? '' : done);
@@ -94,9 +94,57 @@ function skinRow(open, chev){
         + '<p class="small muted" style="margin:6px 2px 0">Saved on this device. Auto follows your phone or computer’s light/dark setting.</p></div>' : '');
 }
 // picks a look; a different look reloads the page (theme words and dice sets are read at load)
-function skinPick(k){ const K = window.Skin; if (!K) return; const was = K.skin(); K.set(k, K.mode()); if (k !== was) location.reload(); }
+function skinPick(k){ const K = window.Skin; if (!K) return; const was = K.skin(); K.set(k, K.mode());
+  const n = (K.list.find(x => x[0] === k) || [k, k])[1];
+  if (k !== was) { try { sessionStorage.setItem('dt-saved', 'Theme: '+n); } catch (_) {} location.reload(); } else settingSaved('Theme: '+n); }
+// ── Setting saved ────────────────────────────────────────────────────────────────────────────────────────
+// After any ☰ setting changes (theme, light/dark, dice set, dice rolling): a small sheet with a check that draws
+// itself and what changed ("Theme: Icebreaker"), gone after 2 seconds. A look change reloads the page, so its
+// message waits in sessionStorage (dt-saved) and shows once the page is back.
+function settingSaved(what){
+  const old = document.querySelector('.setsaved'); if (old) old.remove();
+  const el = document.createElement('div'); el.className = 'setsaved'; el.setAttribute('role', 'status');
+  el.innerHTML = '<svg class="setcheck" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5"/><path d="M7 12.5l3.2 3.2L17 9"/></svg><span><b>Saved</b> '+esc(what)+'</span>';
+  document.body.appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); }, 2000);
+}
+try { const m = sessionStorage.getItem('dt-saved'); if (m) { sessionStorage.removeItem('dt-saved'); setTimeout(() => settingSaved(m), 400); } } catch (_) {}
+// ── First visit: pick a look ─────────────────────────────────────────────────────────────────────────────
+// On a player's own sheet in the web app, the first time this device opens one with no look chosen yet: a window
+// with the theme tiles, light / dark / auto, and "Not now". Asked once per device (dt-look-asked), whatever they
+// pick; they can change it any time in ☰ → Theme. Picking a look reloads the page, like the menu does.
+function lookAskMaybe(){
+  const K = window.Skin, sh = window.SHEET; if (!K || !sh || sh.trial || sh.mine === false || VIEW) return;
+  if (navigator.webdriver && !window.LOOK_ASK_TEST) return;   // browser tests: not in the way of their clicks (e2e-look turns it on)
+  try { if (localStorage.getItem('dt-skin') || localStorage.getItem('dt-look-asked')) return; localStorage.setItem('dt-look-asked', '1'); } catch (_) { return; }
+  if (document.querySelector('.modal') || (document.querySelector('#dock') || {}).childElementCount) return;   // something else is open: skip this time
+  const prev = document.activeElement, wrap = document.createElement('div');
+  wrap.className = 'modal lookask'; wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true'); wrap.setAttribute('aria-label', 'Pick a theme');
+  const paint = () => {
+    const cur = K.skin(), mode = K.mode(), ML = {auto:'Auto', light:'Light', dark:'Dark'};
+    wrap.innerHTML = '<div class="mbox lookbox"><div class="cardhead"><h3>🎨 Pick a theme</h3><button class="x2" data-i="close" aria-label="Not now">×</button></div>'
+      + '<p class="small muted">How your sheet looks: colours, fonts, dice and a few words. Change it any time in ☰ → Theme.</p>'
+      + '<div class="skingrid">'+K.list.map(([k, n, e, dk, ac, lt, sea, hp]) => '<button class="skinopt'+(k===cur?' on':'')+'" data-i="look" data-k="'+k+'" aria-pressed="'+(k===cur)+'">'
+        + '<span class="skinsw" style="--sd:'+dk+';--sa:'+ac+';--sl:'+lt+';--ss:'+(sea||ac)+';--sh:'+(hp||ac)+'"><span class="skini" aria-hidden="true">'+e+'</span><i></i><i></i></span><span class="skinn">'+esc(n)+'</span></button>').join('')+'</div>'
+      + '<div class="skinmode" role="group" aria-label="Light or dark">'+['auto','light','dark'].map(m => '<button data-i="mode" data-m="'+m+'" aria-pressed="'+(m===mode)+'">'+(m==='auto'?'🖥️ ':m==='light'?'☀️ ':'🌙 ')+ML[m]+'</button>').join('')+'</div>'
+      + '<div class="mbtns"><button class="btn" data-i="close">Not now</button></div></div>';
+  };
+  const close = () => { document.removeEventListener('keydown', key, true); wrap.remove(); if (prev && prev.focus && prev.isConnected) try { prev.focus({preventScroll:true}); } catch(_){} };
+  const key = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+  wrap.addEventListener('click', e => {
+    if (e.target === wrap) return close();
+    const b = e.target.closest('[data-i]'); if (!b) return;
+    if (b.dataset.i === 'close') return close();
+    if (b.dataset.i === 'mode') { K.set(K.skin(), b.dataset.m); return paint(); }
+    if (b.dataset.i === 'look') { const was = K.skin(); K.set(b.dataset.k, K.mode()); if (b.dataset.k !== was) location.reload(); else close(); }
+  });
+  document.addEventListener('keydown', key, true);
+  paint(); document.body.appendChild(wrap);
+  try { wrap.querySelector('.skinopt.on, .skinopt').focus({preventScroll:true}); } catch(_){}
+}
+if (window.SHEET) setTimeout(lookAskMaybe, 1200);
 // light / dark / auto: no reload needed (CSS only)
-function skinMode(m){ const K = window.Skin; if (!K) return; K.set(K.skin(), m); paintMenu(); }
+function skinMode(m){ const K = window.Skin; if (!K) return; K.set(K.skin(), m); paintMenu(); settingSaved({auto:'Light / dark: follows your device', light:'Light mode', dark:'Dark mode'}[m] || m); }
 // Desktop windows (rest, menu, Quick roll) leave the way they arrived: fade, lift and shrink a touch; then done().
 function winOut(box, done){
   box.getAnimations && box.getAnimations().forEach(x => x.cancel());
@@ -144,14 +192,17 @@ function moveDiceSet(k, d){
   const i = keys.indexOf(k), j = keys.indexOf(same[b]); [keys[i], keys[j]] = [keys[j], keys[i]]; ui.diceOrder = keys; saveUi(); paintMenu();
 }
 // Previews a set: a sample throw (a d20 and two random other dice) in it, without selecting it.
+let previewNext = null;   // the set tapped while another preview was still rolling: it plays next
 function previewDiceSet(k){
   // a short press flash on the card, only on a real tap (never while scrolling the list)
   const row = document.querySelector('.dsprev[data-k="'+k+'"]'); const card = row && row.closest('.dsrow');
   if (card) { card.classList.add('tapped'); setTimeout(() => card.classList.remove('tapped'), 180); }
-  if (!DICE_SETS[k] || fxBusy) return;
+  if (!DICE_SETS[k]) return;
+  // a preview still rolling: this one goes next (tapping through sets felt dead while a throw played)
+  if (fxBusy) { if (DICE_PREVIEW) previewNext = k; return; }
   const others = [4,6,8,10,12].sort(() => Math.random() - .5).slice(0, 2).sort((x,y) => y - x);
   DICE_PREVIEW = k;
-  fx(null, () => { DICE_PREVIEW = null; }, [20].concat(others).map(sd => ({s:sd, v:r(sd)})));
+  fx(null, () => { DICE_PREVIEW = null; const n = previewNext; previewNext = null; if (n && menuOpen) setTimeout(() => previewDiceSet(n), 30); }, [20].concat(others).map(sd => ({s:sd, v:r(sd)})));
   if (!fxBusy) DICE_PREVIEW = null;   // reduced motion: nothing was thrown
 }
 // After a new player's first 3D throw (with the random set they were given): a small note offering the dice picker,
@@ -168,7 +219,8 @@ function dicePromptMaybe(){
 function closeDiceAsk(){ const el = document.querySelector('.diceask'); if (el) el.remove(); }
 // Selects a set (no throw: the row's preview does that). Remembered on this device, per look (ui.diceBySkin).
 function pickDiceSet(k){
-  if (!DICE_SETS[k]) return; ui.dice = k; ui.diceAuto = false; ui.diceBySkin = Object.assign({}, ui.diceBySkin, { [DICE_LOOK]: k }); saveUi(); paintMenu();
+  if (!DICE_SETS[k]) return; const same = ui.dice === k; ui.dice = k; ui.diceAuto = false; ui.diceBySkin = Object.assign({}, ui.diceBySkin, { [DICE_LOOK]: k }); saveUi(); paintMenu();
+  if (!same) settingSaved('Dice: '+DICE_SETS[k].name);
   const b = document.querySelector('.dspick.on'); if (b && b.animate && !reduceMotion()) b.animate([{transform:'scale(.6)'},{transform:'scale(1.15)'},{transform:'scale(1)'}], {duration:260, easing:'cubic-bezier(.2,.8,.2,1)'});
 }
 // ── Rest window: open and close ────────────────────────────────────────────────────────────────────────────

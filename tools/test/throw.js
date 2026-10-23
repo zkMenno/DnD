@@ -62,7 +62,7 @@ withBrowser(async browser => {
 
   // ── The setting ────────────────────────────────────────────────────────────────────────────────────────
   await p.evaluate(() => { FEATURES.throwDice = true; });
-  await p.click('#menubtn'); await p.waitForTimeout(300);
+  await p.click('#menubtn'); await p.waitForTimeout(300); await p.click('[data-act="menuview"][data-v="rolling"]'); await p.waitForTimeout(200);
   check('menu: Rolling shows Throw it yourself first, then Automatic (pressed: chosen above)', await p.evaluate(() => {
     const b = [...document.querySelectorAll('[data-act="rollstyle"]')]; return b.length === 2 && b[0].dataset.m === 'throw' && b[1].getAttribute('aria-pressed') === 'true'; }));
   check('default: with no choice saved, the dice wait to be thrown', await p.evaluate(() => { const was = ui.rolling; delete ui.rolling; const on = throwOn(); ui.rolling = was; return on; }));
@@ -144,7 +144,7 @@ withBrowser(async browser => {
   await p.evaluate(() => rollCheckMode('Charisma', 2, 'norm'));
   check('reduced motion: no waiting dice, the result is in at once', !(await everWaits(p, 1200)) && await p.evaluate(() => checkRoll.veil === false));
   await p.evaluate(() => closeRoll()); await p.emulateMedia({ reducedMotion: 'no-preference' }); await p.waitForTimeout(400);
-  await p.click('#menubtn'); await p.waitForTimeout(300);
+  await p.click('#menubtn'); await p.waitForTimeout(300); await p.click('[data-act="menuview"][data-v="rolling"]'); await p.waitForTimeout(200);
   await p.click('[data-act="rollstyle"][data-m="auto"]'); await p.waitForTimeout(200);
   await p.click('#menubox [data-act="menu"]'); await p.waitForTimeout(300);
   await p.evaluate(() => rollCheckMode('Charisma', 2, 'norm'));

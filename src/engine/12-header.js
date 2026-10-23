@@ -75,7 +75,7 @@ function termDrawer(term){
     + useBlock(term) + invBlock(term)
     + '<div class="hpfoot"><div class="ba">'+(g[3]||'')+'</div><button class="btn done" data-act="hpclose" aria-label="Done">'+WORD.ok+'</button></div></div>';
 }
-// Heroic Inspiration drawer: what it does, where it comes from, and a Used it / Gained one toggle
+// Heroic Inspiration drawer: what it does, where it comes from, and a Used it / ➕ Add toggle
 function inspDrawer(){
   return '<div class="tdr"><div class="bk">Reroll</div>'+dhead('⭐','Heroic Inspiration', S.insp ? 'Yes' : 'No', 'inspval')
     + '<div class="bx">Spend it right after a roll to <b>reroll any one die</b>: an attack, check, save or a damage die. You must keep the new roll, even if it’s worse. You can only hold one.</div>'
@@ -84,7 +84,7 @@ function inspDrawer(){
     + '<p class="small muted" style="margin:6px 0 0">If the bard gives you a <b>Bardic Inspiration die</b> instead (a d6 you add to a roll), that’s a different thing: it doesn’t go here.</p>'
     + '<div class="hpfoot"><div class="ba">'+(S.insp
         ? '<button class="btn insptog spend" data-act="insptoggle">🎲 Used it</button>'
-        : '<button class="btn insptog gain" data-act="insptoggle">⭐ Gained one</button>')
+        : '<button class="btn insptog gain" data-act="insptoggle">➕ Add Heroic Inspiration</button>')
     + '</div><button class="btn done" data-act="hpclose" aria-label="Done">'+WORD.ok+'</button></div></div>';
 }
 // desktop window close ✕ (hidden in the phone drawer)

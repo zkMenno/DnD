@@ -14,16 +14,8 @@ module.exports = {
   texture: [
     // scattered frost crystals
     { svg:'<svg xmlns="http://www.w3.org/2000/svg" width="90" height="90"><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M20 12v14M14 15.5l12 7M14 22.5l12-7" stroke-opacity=".08"/><path d="M66 52v10M61.7 54.5l8.6 5M61.7 59.5l8.6-5" stroke-opacity=".06"/><path d="M40 76v6M37.4 77.5l5.2 3M37.4 80.5l5.2-3" stroke-opacity=".05"/></g></svg>' },
-    { noise:{ freq:[.004, .18], octaves:3, alpha:.05, seed:5 } },   // a faint frost; the thick fog only puffs out on open (css below)
+    { noise:{ freq:[.004, .18], octaves:3, alpha:.05, seed:5 } },   // a faint frost (the freezer fog on opening was dropped on 23 Oct: too jarring)
     { noise:{ freq:[.9, .9], octaves:2, alpha:.04 } },
-  ],
-  // opening a roll sheet is like opening a freezer: a cold fog that clears within a second or so
-  css: (sel, noise) => [
-    sel+' #dock .roll{position:relative;isolation:isolate}',
-    sel+' #dock .roll::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:5;'
-      + 'background:'+noise({ freq:[.004, .18], octaves:3, alpha:.22, seed:5 })+',linear-gradient(180deg,rgba(235,248,255,.45),rgba(235,248,255,.1) 70%,transparent);animation:freezerfog 1.3s ease-out forwards}',
-    '@keyframes freezerfog{0%{opacity:1;transform:translateY(0)}35%{opacity:.85}100%{opacity:0;transform:translateY(-14px)}}',
-    '@media (prefers-reduced-motion:reduce){'+sel+' #dock .roll::before{display:none}}',
   ],
   // the few words this look says its own way (left out: plain English)
   words: { cancel:'Hold', log:'Trail log', clean:'❄️ All clear.', critIcon:'❄️' },

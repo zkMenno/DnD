@@ -19,11 +19,11 @@ withBrowser(async browser => {
   for (const width of [390, 1400]) {
     const at = '@'+width+' ';
     // ── Rogue / Fighter (fixture: Rogue 3, Battle Master 3): Rogue + Battle Master riders ──────────────────
-    // Steady Aim is named on the advantage choice; Sneak Attack and Menacing are offered with advantage, the total
+    // Steady Aim is named in the advantage tooltip (When might you have advantage?); Sneak Attack and Menacing are offered with advantage, the total
     // adds up, a superiority die is spent and comes back when Menacing is removed; no Sneak Attack with disadvantage.
     let p = await openSheet(browser, 'rogue-fighter', width);
     await p.evaluate(() => attackSetup('Shortbow')); await p.waitForTimeout(400);
-    check(at+'Rogue/Fighter (Rogue 3): Steady Aim named on the advantage choice', /Steady Aim/.test(await p.evaluate(() => document.querySelector('#dock .atkopt.adv').innerText)));
+    check(at+'Rogue/Fighter (Rogue 3): Steady Aim named in the advantage tooltip', /Steady Aim/.test(await p.evaluate(() => (G['When you have advantage'] || [])[1] + ' ' + (document.querySelector('#dock .atkwhen') || {}).innerText)));
     await p.click('#dock [data-act="close"]'); await p.waitForTimeout(500);
     await attack(p, 'Shortbow', 'adv');
     check(at+'Rogue/Fighter: Sneak Attack and Menacing offered with advantage', JSON.stringify(await riders(p)) === '["sneak","menacing"]', await riders(p));
@@ -81,9 +81,9 @@ withBrowser(async browser => {
     check(at+'Sacred Weapon: a Channel Divinity use spent, switched on, strip on the Combat tab', await p.evaluate(() => S.active.sacred && S.cd === 2 && !!document.querySelector('.activebar')));
     await p.click('#dock [data-act="close"]'); await p.waitForTimeout(500);
     await p.evaluate(() => attackSetup('Glaive, +1')); await p.waitForTimeout(400);
-    check(at+'Reckless Attack named on the advantage choice', /Reckless Attack/.test(await p.evaluate(() => document.querySelector('#dock .atkopt.adv').innerText)));
+    check(at+'Reckless Attack named in the advantage tooltip', /Reckless Attack/.test(await p.evaluate(() => (G['When you have advantage'] || [])[1] + ' ' + (document.querySelector('#dock .atkwhen') || {}).innerText)));
     // Steady Aim is a Rogue feature: never offered to a sheet without Rogue levels
-    check(at+'no Steady Aim on a non-Rogue sheet', !/Steady Aim/.test(await p.evaluate(() => document.querySelector('#dock .atkopt.adv').innerText)));
+    check(at+'no Steady Aim on a non-Rogue sheet', !/Steady Aim/.test(await p.evaluate(() => (G['When you have advantage'] || [])[1] + ' ' + (document.querySelector('#dock .atkwhen') || {}).innerText)));
     await p.click('#dock .atkopt.norm'); await wait(p);
     check(at+'Sacred Weapon adds +1 to the Glaive roll', await p.evaluate(() => curHit() === cur.t.pick + cur.w.hit + 1 && !!cur.hrid.sacred));
     await p.evaluate(() => closeRoll()); await p.waitForTimeout(700);

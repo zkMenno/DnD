@@ -62,10 +62,10 @@ function boostBox(items){
 }
 // a boost's name as a tappable term (its tooltip from the glossary, §16), plain bold when there's none
 const bterm = n => '<b>'+(G[n] ? '<button type="button" class="term" data-term="'+esc(n)+'">'+esc(n)+'</button>' : esc(n))+'</b>';
-// Heroic Inspiration row for the boost box: Reroll if you have it, ✓ Gained if not, nothing once used on this roll
+// Heroic Inspiration row for the boost box: Reroll if you have it, ➕ Add if not (the DM just gave it), nothing once used on this roll
 const inspItem = (act, what, used) => used ? null : S.insp
   ? [ob(act,'🎲 Reroll'), bterm('Heroic Inspiration')+': reroll your lowest '+what+'. Uses it up.']
-  : [ob('inspgain','✓ Gained'), bterm('Heroic Inspiration')+' from the DM? Mark it, then reroll.'];
+  : [ob('inspgain','➕ Add'), bterm('Heroic Inspiration')+' from the DM? Add it, then reroll.'];
 // Bless row for the boost box (save = word it for a saving throw)
 const blessItem = save => [ob('boost','🎲 Roll d4',' data-k="bless" data-s="4"'), bterm('Bless')+': add a d4'+(save?' to this save':'')+'.'];
 // Guidance row for the boost box
@@ -227,6 +227,21 @@ function rollView(v){
 }
 // swipe direction → step: right = back to the hit, left = on to the damage
 function rollNav(dir){ return dir==='right' ? rollView('hit') : rollView('dmg'); }
+// ── How are you rolling? (advantage · normal · disadvantage) ────────────────────────────────────────────────
+// The three option cards say only the mode and one plain line of what to roll, so they stay two lines. This roll's
+// own reasons for advantage / disadvantage go in tooltips, opened from one line under the cards ("When might you
+// have advantage or disadvantage?"): glossary entries made for this roll, keyed "When: <mode> · <what>".
+const MODE_PLAIN = { adv: 'Roll two d20s, keep the higher one.', norm: 'Roll one d20.', dis: 'Roll two d20s, keep the lower one.' };
+// One option card. act + attrs: the card's data-act and data-* attributes (attacks and checks differ).
+const modeOpt = (m, icon, t, act, attrs) => '<button class="restopt atkopt '+m+(m==='norm'?' last':'')+'" data-act="'+act+'" data-m="'+m+'"'+attrs+'><b>'+icon+' '+t+'</b><span>'+MODE_PLAIN[m]+'</span></button>';
+// The line under the cards: the reasons (". "-separated text per mode) as tooltips for this roll (what).
+function modeWhen(what, advWhy, disWhy){
+  const term = (t, why) => { const r = String(why || '').split(/\.\s+|\.$/).map(x => x.trim()).filter(Boolean); if (!r.length) return '';
+    const key = 'When you have '+t.toLowerCase(); G[key] = [t, '**When you might have '+t.toLowerCase()+' here:**\n'+r.map(x => '• '+x).join('\n')];
+    return '<button type="button" class="term" data-term="'+esc(key)+'">'+t.toLowerCase()+'</button>'; };
+  const a = term('Advantage', advWhy), d = term('Disadvantage', disWhy);
+  return a || d ? '<p class="small atkwhen">When might you have '+[a, d].filter(Boolean).join(' or ')+'?</p>' : '';
+}
 // Step 0 for an attack: pick how you roll (advantage / normal / disadvantage, with reasons that fit this weapon),
 // and the ammunition when there's magic ammo for it. One tap on a mode rolls (pickMode). Clears any open roll.
 function attackSetup(name, again){
@@ -234,7 +249,9 @@ function attackSetup(name, again){
   cur = null; checkRoll = null;
   const am = ammoChoices(w), pick = ammoPick(w);
   // Normal is highlighted as the usual pick; Disadvantage gets its own warning colour
-  const opt = (m, icon, t, why) => '<button class="restopt atkopt '+m+(m==='norm'?' last':'')+'" data-act="atkmode" data-m="'+m+'" data-w="'+esc(w.name)+'"><b>'+icon+' '+t+'</b><span>'+why+'</span></button>';
+  const opt = (m, icon, t) => modeOpt(m, icon, t, 'atkmode', ' data-w="'+esc(w.name)+'"');
+  const advWhy = w.spell ? 'Hidden, or the target can’t see you' : [MODS.map(m => m.advNote ? m.advNote(w) : '').filter(Boolean).join('. '), 'Hidden, or the target can’t see you', w.mastery === 'Vex' ? 'Vex from your last hit on this target' : ''].filter(Boolean).join('. ')+(saOK(w)?'. Sneak Attack is on.':'');
+  const disWhy = w.spell ? (w.ranged ? 'An enemy within 1.5 m of you' : 'You can’t see the target') : 'Beyond normal range, or an enemy within 1.5 m of you'+(saOK(w)?'. No Sneak Attack.':'');
   showRoll('<div class="head"><span class="title">'+esc(w.name)+'</span><button class="x" data-act="close" aria-label="Close">×</button></div>'
     + (am.length ? '<div class="ammopick"><span class="optlb">🏹 Ammunition</span><div class="chips">'
         + [{name:'', label:'Plain '+w.ammoKind.toLowerCase()+'s', left: w.ammoKind === 'Arrow' ? arrowsLeft() : null}].concat(am.map(a => ({name:a.name, label:a.name, left:a.left})))
@@ -242,10 +259,8 @@ function attackSetup(name, again){
         + '</div>'+(pick ? '<p class="small" style="margin:6px 0 0">'+ammoNote(pick)+'</p>' : '')+'</div>' : '')
     + '<div class="stepnote"><b>🎲 How are you rolling?</b> Tap one to roll to hit.</div>'
     + '<div class="restpick atkpick">'
-    + opt('adv','⬆️','Advantage', w.spell ? 'Hidden, or the target can’t see you' : [MODS.map(m => m.advNote ? m.advNote(w) : '').filter(Boolean).join('. '), 'Hidden, or the target can’t see you', w.mastery === 'Vex' ? 'Vex from your last hit on this target' : ''].filter(Boolean).join('. ')+(saOK(w)?'. Sneak Attack is on.':''))
-    + opt('norm','🎯','Normal','No edge either way')
-    + opt('dis','⬇️','Disadvantage', w.spell ? (w.ranged ? 'An enemy within 1.5 m of you' : 'You can’t see the target') : 'Beyond normal range, or an enemy within 1.5 m of you'+(saOK(w)?'. No Sneak Attack.':''))
-    + '</div>'
+    + opt('adv','⬆️','Advantage') + opt('norm','🎯','Normal') + opt('dis','⬇️','Disadvantage')
+    + '</div>' + modeWhen(w.name, advWhy, disWhy)
     , again);
 }
 // ── Magic ammunition ───────────────────────────────────────────────────────────────────────────────────────
@@ -355,10 +370,10 @@ function rollCheck(label, bonus){
   const why = init ? ['Invisible, or a feature says so','No edge either way','Surprised']
     : save ? ['Brave vs Frightened, or a feature says so','No edge either way','Restrained (Dex saves), or a feature says so']
     : ['An ally helps, or a feature says so','No edge either way','Frightened or Poisoned'];
-  const opt = (m, icon, t, i) => '<button class="restopt atkopt '+m+(m==='norm'?' last':'')+'" data-act="chkmode" data-m="'+m+'" data-l="'+esc(label)+'" data-b="'+bonus+'"><b>'+icon+' '+t+'</b><span>'+why[i]+'</span></button>';
+  const opt = (m, icon, t) => modeOpt(m, icon, t, 'chkmode', ' data-l="'+esc(label)+'" data-b="'+bonus+'"');
   showRoll('<div class="head"><span class="title">'+esc(label)+'</span><button class="x" data-act="close" aria-label="Close">×</button></div>'
     + '<div class="stepnote"><b>🎲 How are you rolling?</b> Roll d20 '+sgn(bonus)+'</div>'
-    + '<div class="restpick atkpick">'+opt('adv','⬆️','Advantage',0)+opt('norm','🎯','Normal',1)+opt('dis','⬇️','Disadvantage',2)+'</div>');
+    + '<div class="restpick atkpick">'+opt('adv','⬆️','Advantage')+opt('norm','🎯','Normal')+opt('dis','⬇️','Disadvantage')+'</div>'+modeWhen(label, why[0], why[2]));
 }
 // roll the check with the picked mode: veiled sheet, then the check (or initiative) burst and dice, then the total
 function rollCheckMode(label, bonus, mode){

@@ -246,7 +246,7 @@ function pipsHtml(max, used, key){ const left = max - used;
 // Surge…, via USE_RES), with its button when the term is the resource itself; Heroic Inspiration gets a toggle.
 // '' for terms without one.
 function useBlock(term){
-  if (term==='Heroic Inspiration') return '<div class="binv buse" data-use="'+esc(term)+'"><span><b>'+(S.insp?'⭐ You have it':'⭐ None right now')+'</b></span><button class="btn small" data-act="insptoggle">'+(S.insp?'Used it':'Gained one')+'</button></div>';
+  if (term==='Heroic Inspiration') return '<div class="binv buse" data-use="'+esc(term)+'"><span><b>'+(S.insp?'⭐ You have it':'⭐ None right now')+'</b></span><button class="btn small" data-act="insptoggle">'+(S.insp?'Used it':'➕ Add')+'</button></div>';
   const k = USE_RES[term], r = k && resBy(k);
   if (!r) return '';
   return '<div class="binv buse" data-use="'+esc(term)+'"><span class="ulb"><b>🔋 Uses</b>'+(r.die?' <span class="small">('+r.die+')</span>':'')+'</span>'+pipsHtml(r.max, S[k], k)

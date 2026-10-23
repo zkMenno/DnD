@@ -41,18 +41,22 @@ const throwOn = () => !!FEATURES.throwDice && ui.rolling !== 'auto';
 // True when the next dice animation should wait for the player: the setting is on, it isn't a dice-set preview from
 // the menu (those always roll by themselves), motion is allowed and the 3D dice can run. Otherwise fx() uses dice3d().
 const throwWanted = () => throwOn() && !DICE_PREVIEW && !reduceMotion() && d3Ready();
-// The ☰ menu row under Dice Sets: "Rolling: Automatic · Throw it yourself". Empty where the feature is off.
-function rollStyleRow(){
+// The ☰ menu row "Dice rolling" (above Dice Sets), styled like Theme and Dice Sets: the current choice and a line on
+// what it means; open, the two choices. Empty where the feature is off. open: this row is the open one (menuView
+// 'rolling'); chev: the menu's open/closed chevron.
+function rollStyleRow(open, chev){
   if (!FEATURES.throwDice) return '';
   const on = throwOn(), b = (m, t, pressed) => '<button data-act="rollstyle" data-m="'+m+'" aria-pressed="'+pressed+'">'+t+'</button>';
-  return '<div class="rollstyle"><h4 class="menuh">Rolling</h4>'
-    + '<div class="skinmode" role="group" aria-label="Rolling">'+b('throw', '🤚 Throw it yourself', on)+b('auto', '🎲 Automatic', !on)+'</div>'
-    + '<p class="small muted" style="margin:6px 2px 0">'+(on ? 'The dice wait for you: flick them, or tap for a gentle toss.' : 'The dice roll by themselves.')+' Saved on this device.</p></div>';
+  return '<div style="height:8px"></div><button class="menulink'+(open?' open':'')+'" data-act="menuview" data-v="rolling" aria-expanded="'+!!open+'"><span class="mico" aria-hidden="true">'+(on ? '🤚' : '🎲')+'</span>'
+    + '<span class="dst"><b>Dice rolling</b><span>'+(on ? 'Throw it yourself: flick the dice, or let them roll for you' : 'Automatic: the dice roll by themselves')+'</span></span>'+(chev ? chev(!!open) : '')+'</button>'
+    + (open ? '<div class="msub rollstyle"><div class="skinmode" role="group" aria-label="Dice rolling">'+b('throw', '🤚 Throw it yourself', on)+b('auto', '🎲 Automatic', !on)+'</div>'
+      + '<p class="small muted" style="margin:6px 2px 0">'+(on ? 'The dice wait for you: flick them, tap for a gentle toss, or press Roll for me.' : 'Every roll throws its own dice.')+' Saved on this device.</p></div>' : '');
 }
 // Picks the rolling style ('auto' or 'throw') for this device and redraws the menu.
 function setRollStyle(m){
   if (!FEATURES.throwDice) return;
   ui.rolling = m === 'throw' ? 'throw' : 'auto'; saveUi(); paintMenu();
+  if (typeof settingSaved === 'function') settingSaved(ui.rolling === 'throw' ? 'Dice rolling: throw it yourself' : 'Dice rolling: automatic');
 }
 
 // ── Throw tuning ───────────────────────────────────────────────────────────────────────────────────────────

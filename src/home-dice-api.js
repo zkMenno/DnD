@@ -33,8 +33,8 @@ function homeThumb(k, px){
 // keyed "<look>:<set>" so names can't clash. Returns [[label, [keys]]] like homeOrder and the sets by key.
 function homePick(){
   const all = {}, look = {}, names = Object.fromEntries(((window.Skin && window.Skin.list) || []).map(l => [l[0], l[1]]));
-  Object.entries(THEME.dice).forEach(([k, s]) => { all['pirate:' + k] = s; look['pirate:' + k] = 'Pirate'; });
-  Object.entries(THEME.skinDice || {}).forEach(([lk, sd]) => { try { Object.entries(skinDiceSets(sd)).forEach(([k, s]) => { all[lk + ':' + k] = s; look[lk + ':' + k] = names[lk] || lk; }); } catch (_) {} });
+  Object.entries(d3Legible(THEME.dice)).forEach(([k, s]) => { all['pirate:' + k] = s; look['pirate:' + k] = 'Pirate'; });
+  Object.entries(THEME.skinDice || {}).forEach(([lk, sd]) => { try { Object.entries(d3Legible(skinDiceSets(sd))).forEach(([k, s]) => { all[lk + ':' + k] = s; look[lk + ':' + k] = names[lk] || lk; }); } catch (_) {} });
   // hue (0–360) and how colourful a set's main colour is, from its css colours [light, dark, ink]
   const hue = k => { const c = (all[k].css || ['#888888'])[0], n = parseInt(c.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
     const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return { h: 0, s: 0 };

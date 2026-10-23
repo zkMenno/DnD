@@ -354,6 +354,7 @@ body > .top,body > main,body > .foot,body > #landing{position:relative;z-index:1
   background:var(--brass-soft);box-shadow:0 0 0 2px var(--brass);color:var(--ink);font-family:var(--f-display,var(--f-body));font-weight:700;font-size:.95rem}
 .chpic::before{content:attr(data-i);grid-area:1/1}
 .chpic img{grid-area:1/1;width:100%;height:100%;object-fit:cover;display:block;position:relative}
+.chpic:has(img){border-radius:10px}   /* a portrait: a rounded square, like D&D Beyond's (the initials stay round) */
 .archlist{margin-top:10px}
 .archlist > summary{cursor:pointer;color:var(--muted);padding:8px 12px;border:1px dashed var(--line);border-radius:12px;list-style:none;display:flex;align-items:center;gap:8px;transition:border-color .15s,color .15s,background .15s}
 .archlist > summary::-webkit-details-marker{display:none}
