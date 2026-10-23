@@ -31,10 +31,12 @@
      actives(D)      → [{ key, chip, desc, off }] on/off states switched on by a resource button (activate: key)
      advNote(w)      → a reason this weapon attack can have advantage, shown on the attack setup (Reckless Attack)
      longRestNote  → string, a reminder on the long-rest drawer
+     subs          → the subclass names (or parts of them) this module tracks; any other subclass gets a note
    ============================================================================ */
 const CLASS_MODULES = {
   // ---- Fighter (Henry: Battle Master) ----
   Fighter: {
+    subs: ['Battle Master'],   // subclasses with their own tracking (subclassNote, §11); others show as text
     // Second Wind (heal 1d10 + level), Action Surge, superiority dice (d8 → d12 by level), Extra Attack at 5
     derive: x => {
       const f = x.lvl('Fighter'), sw = x.act('Second Wind'), surge = x.act('Action Surge'), sup = x.act('Superiority Dice');
@@ -85,6 +87,7 @@ const CLASS_MODULES = {
   },
   // ---- Rogue (Henry) ----
   Rogue: {
+    subs: [],   // subclasses with their own tracking (subclassNote, §11); others show as text
     // Sneak Attack dice: 1d6 per two Rogue levels, rounded up
     derive: x => { const r = x.lvl('Rogue'); return { rogue: r, sneakDice: Math.ceil(r/2) }; },
     // Steady Aim (Rogue 3): bonus action, advantage on your next attack if you haven't moved this turn
@@ -98,6 +101,7 @@ const CLASS_MODULES = {
   },
   // ---- Martial classes (built around AppTester-02: Barbarian / Paladin / Monk / Ranger) ----
   Barbarian: {
+    subs: ['Berserker'],   // subclasses with their own tracking (subclassNote, §11); others show as text
     // Rage uses (from D&D Beyond, or by level), rage damage +2/+3/+4, Berserker subclass, Extra Attack at 5
     derive: x => { const b = x.lvl('Barbarian'), r = x.act('Rage (Enter)') || x.act('Rage'), k = x.c.classes.find(c => c.name === 'Barbarian');
       return { barbarian: b, attacksPerAction: b >= 5 ? 2 : 1, rageDmg: b >= 16 ? 4 : b >= 9 ? 3 : 2, berserker: /Berserker/.test(k && k.sub || ''),
@@ -121,6 +125,7 @@ const CLASS_MODULES = {
     longRestNote: 'all Rages come back'
   },
   Monk: {
+    subs: ['Open Hand'],   // subclasses with their own tracking (subclassNote, §11); others show as text
     // Focus Points, martial arts die (d6 → d12), save DC, Open Hand subclass, Wholeness of Body, Uncanny Metabolism
     derive: x => { const m = x.lvl('Monk'), f = x.act('Focus Points'), wb = x.act('Wholeness of Body'), um = x.act('Uncanny Metabolism');
       return { monk: m, attacksPerAction: m >= 5 ? 2 : 1, focusDC: 8 + x.pb + x.mod.wis, openHand: x.c.classes.some(c => c.name === 'Monk' && /Open Hand/.test(c.sub || '')),
@@ -152,6 +157,7 @@ const CLASS_MODULES = {
     }
   },
   Paladin: {
+    subs: ['Devotion'],   // subclasses with their own tracking (subclassNote, §11); others show as text
     // Lay on Hands pool (5 × level), Channel Divinity, Sacred Weapon bonus (CHA, at least 1), Devotion subclass
     derive: x => { const p = x.lvl('Paladin'), l = x.act('Lay On Hands: Healing Pool') || x.act('Lay on Hands'), cd = x.act('Channel Divinity');
       return { paladin: p, attacksPerAction: p >= 5 ? 2 : 1, loh: { max: (l && l.max) || 5*p, used: l ? l.used : 0 },
@@ -182,6 +188,7 @@ const CLASS_MODULES = {
     longRestNote: 'Lay on Hands refills'
   },
   Ranger: {
+    subs: ['Hunter'],   // subclasses with their own tracking (subclassNote, §11); others show as text
     // Extra Attack at 5, Colossus Slayer, free Hunter's Mark casts
     derive: x => { const r = x.lvl('Ranger'), hm = x.act('Hunter’s Mark') || x.act("Hunter's Mark");
       return { ranger: r, attacksPerAction: r >= 5 ? 2 : 1, colossus: !!x.act('Colossus Slayer'), hmFree: hm ? { max: hm.max, used: hm.used } : null }; },

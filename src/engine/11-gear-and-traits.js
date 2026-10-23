@@ -147,8 +147,8 @@ async function loadItems(){
   ITEMS = el ? JSON.parse(el.textContent) : await (await fetch(window.withV ? window.withV('/items.json') : '/items.json')).json();
   return ITEMS;
 }
-// the picker's category chips
-const IT_CATS = [['all','All'],['weapon','⚔️ Weapons'],['armor','🛡️ Armour'],['gear','🎒 Gear'],['tool','🧰 Tools'],['potion','🧪 Potions'],['magic','✨ Magic']];
+// the picker's category chips (none picked = everything; tapping the picked one again unpicks it)
+const IT_CATS = [['weapon','⚔️ Weapons'],['armor','🛡️ Armour'],['gear','🎒 Gear'],['tool','🧰 Tools'],['potion','🧪 Potions'],['magic','✨ Magic']];
 // picker category of a catalogue item (packs and ammunition count as gear)
 const itCat = it => it.k === 'pack' || it.k === 'ammo' ? 'gear' : it.k;
 // pounds → kilograms, one decimal
@@ -341,7 +341,7 @@ async function openItemPicker(){
     const b = e.target.closest('[data-i]'); if (!b) return;
     switch (b.dataset.i) {
       case 'close': return close();
-      case 'cat': cat = b.dataset.k; box.querySelectorAll('[data-i="cat"]').forEach(c => { const on = c.dataset.k === cat; c.classList.toggle('on', on); c.setAttribute('aria-pressed', on); }); return paintList();
+      case 'cat': cat = cat === b.dataset.k ? 'all' : b.dataset.k; box.querySelectorAll('[data-i="cat"]').forEach(c => { const on = c.dataset.k === cat; c.classList.toggle('on', on); c.setAttribute('aria-pressed', on); }); return paintList();
       case 'pick': { scroll = box.querySelector('.ilist').scrollTop; pick = list.find(x => x.n === b.dataset.n); qty = pick.q || 1;
         base = /^Shield \+\d/.test(pick.n) ? list.find(x => x.k==='armor' && x.arm===4) || null : null;   // Shield +1: it's a shield
         eq = pick.k === 'weapon' || pick.k === 'armor' || pick.k === 'magic'; return paint(); }
@@ -428,6 +428,18 @@ function traitBody(text){
 }
 // Traits tab: filter card, then traits grouped by where they come from (species, each class with Battle Master
 // maneuvers, feats and weapon masteries, background). Class texts fill in level-based numbers (fillTpl).
+// Classes and subclasses the sheet has no special tracking for yet: their features still show (as text, below),
+// but nothing counts their uses. One short note on the Traits tab says so. '' when everything is covered.
+function supportNote(){
+  const mods = typeof CLASS_MODULES === 'object' ? CLASS_MODULES : {};
+  const plain = [];
+  DATA.classes.forEach(k => { const m = mods[k.name];
+    if (!m) plain.push(k.name);
+    else if (k.sub && Array.isArray(m.subs) && !m.subs.some(x => k.sub.includes(x))) plain.push(k.sub.replace(/\s*\(.*\)/, '')+' ('+k.name+')'); });
+  if (!plain.length) return '';
+  const list = plain.length === 1 ? plain[0] : plain.slice(0, -1).join(', ')+' and '+plain[plain.length-1];
+  return '<section class="card supnote"><p class="small" style="margin:0"><b>'+esc(list)+'</b> features show as text here; tracking for them is coming. Count their uses in D&amp;D Beyond for now.</p></section>';
+}
 function traitsPanel(){
   const sec = (emo, title, src, rows) => rows.length ? '<section class="card trsec" data-src="'+esc(src)+'"><h2><span class="emo" aria-hidden="true">'+emo+'</span>'+title+'</h2><div class="trlist">'+rows.join('')+'</div></section>' : '';
   const srcs = [['species', 'Species']].concat(DATA.classes.map(k => [k.name, k.name])).concat([['feats','Feats'],['background','Background']]);
@@ -442,7 +454,7 @@ function traitsPanel(){
     + chips('trf', [['A','⚔️ Action'],['B','⚡ Bonus'],['R','🛡️ Reaction'],['P','🌀 Passive']], f)
     + chips('trs', srcs, so)
     + '<p class="small muted trnone" hidden>No trait matches. Clear a filter or the search.</p></section>';
-  return finder
+  return supportNote() + finder
     + sec('🍀', 'Species: '+esc(DATA.race.name), 'species', DATA.race.traits.map(t => traitRow(t.name, t.text, 'species')))
     + cls
     + sec('🏅', 'Feats & masteries', 'feats', D.realFeats.map(x => traitRow(x.name, x.text, 'feats'))

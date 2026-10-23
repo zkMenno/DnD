@@ -1760,3 +1760,18 @@ button.btn:not(:disabled):is(:active,.pressing),.restopt:is(:active,.pressing),.
 .iexp > div{display:block}
 .iexp dt{font-weight:700}
 .iexp dd{margin:-8px 0 0;color:var(--muted);line-height:1.45}
+
+/* ── Search boxes: visible on every look ─────────────────────────────────────────────────────────────────────
+   A faint accent border at rest, the full accent with a soft ring while typing. */
+.qrsearch{border:1.5px solid color-mix(in srgb,var(--brass) 45%,var(--line));transition:border-color .15s,box-shadow .15s}
+.qrsearch::placeholder{color:var(--muted);opacity:1}
+.qrsearch:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 30%,transparent)}
+@media (hover:hover) and (pointer:fine){ .qrsearch:hover:not(:focus){border-color:color-mix(in srgb,var(--brass) 75%,var(--line))} }
+/* the item picker's category chips: one line on wider screens */
+@media (min-width:600px){
+  .mbox.ibox{max-width:620px}
+  .ibox .spfilters{flex-wrap:nowrap}
+  .ibox .spfilters .chip{white-space:nowrap}
+}
+/* the "no tracking yet" note on the Traits tab */
+.supnote{border-left:4px solid var(--brass);padding-top:10px;padding-bottom:10px}
