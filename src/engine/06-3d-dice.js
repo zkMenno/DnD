@@ -438,7 +438,10 @@ function dice3d(dice, done){
     wrap.classList.add('out');
     setTimeout(() => { objs.forEach(o => { D3.scene.remove(o.die); o.mat.dispose(); o.die.children.forEach(c => { c.geometry.dispose(); c.material.dispose(); }); }); wrap.remove(); }, 160);
     done();
-    if (typeof dicePromptMaybe === 'function') dicePromptMaybe();
+    // first throw with a random set: offer another set, but not mid-roll — once the roll sheet has closed (§04
+    // closeRoll); a throw without an open roll sheet asks straight away
+    if (typeof dicePromptMaybe === 'function') { const dk = document.getElementById('dock');
+      if (dk && !dk.hidden && dk.querySelector('.roll')) dicePromptAfterRoll = true; else dicePromptMaybe(); }
   })(t0);
 }
 // ── Roll-card helpers ──────────────────────────────────────────────────────────────────────────────────────

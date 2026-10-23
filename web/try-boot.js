@@ -31,7 +31,8 @@ window.withV = withV;
     async pull() { throw new Error('This is a try-out character. Import your own from D&amp;D Beyond to sync it.'); },
   };
   const bar = document.createElement('div'); bar.className = 'trialbar wrap';
-  bar.innerHTML = '<div class="trialin"><span>🎲 <b>Try-out character sheet.</b> Tap around: your changes stay on this device.</span><a class="btn" href="/#signin">Use my own character →</a></div>';
+  bar.innerHTML = '<div class="trialin"><span class="trialtxt">🎲 <b>Try-out character sheet.</b> Tap around: your changes stay on this device.</span>'
+    + '<span class="trialshort" title="Your changes stay on this device">🎲 <b>Try-out sheet</b></span><a class="btn" href="/#signin">Use my own character →</a></div>';
   document.body.insertBefore(bar, app);
   // a script that doesn't load (bad connection, a deploy mid-way) or an engine that stops before drawing the sheet:
   // say so with a way out, instead of leaving "Opening your sheet…" up forever

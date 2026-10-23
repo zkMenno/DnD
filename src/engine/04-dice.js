@@ -99,10 +99,15 @@ function showRoll(html, again, trans){
   if (roll.querySelector('.n:not(.still), .die.flip')) { roll.classList.add('inked','landed'); return; }
   roll.classList.add('landed');
 }
-// Slide the result card out ('left', 'right', else down) and hide the dock. Doesn't touch cur / checkRoll (§8).
+// set by the 3D dice (§06) when the first throw happened inside a roll sheet: the "different dice?" note waits for it
+let dicePromptAfterRoll = false;
+// Slides the roll sheet out ('left', 'right', else down) and hides the dock (× or Done/Confirm at the end of a roll);
+// doesn't touch cur / checkRoll (§8). If the first
+// throw asked to offer another dice set, that note appears once the sheet has gone.
 function closeRoll(dir){
   clearInterval(rollTimer);
   const dk = $('#dock'), roll = dk.querySelector('.roll');
+  if (dicePromptAfterRoll && typeof dicePromptMaybe === 'function') { dicePromptAfterRoll = false; setTimeout(dicePromptMaybe, 450); }
   if (!roll || reduceMotion()) { dk.hidden = true; return; }
   const to = dir === 'left' ? 'translateX(-120%)' : dir === 'right' ? 'translateX(120%)' : 'translateY(140%)';
   roll.classList.remove('stepup','reveal','rolling'); roll.style.animation = 'none';

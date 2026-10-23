@@ -47,3 +47,12 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
    colours above) */
 .trialin{color:var(--bg)} .trialin .btn{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .trialin .btn:hover{background:var(--bg);color:var(--ink);border-color:var(--bg)}
+/* ── Try-out bar: the button always on the right; on phones a one-line short message ─────────────────────────── */
+.trialin .btn{margin-left:auto}
+.trialshort{display:none}
+@media (max-width:600px){
+  .trialtxt{display:none}
+  .trialshort{display:inline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:.9rem}
+  .trialin{flex-wrap:nowrap;padding:6px 6px 6px 12px}
+  .trialin .btn{padding:6px 10px;font-size:.8rem}
+}
