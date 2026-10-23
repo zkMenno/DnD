@@ -1,13 +1,22 @@
 /* ============================================================================
    §14 QUICK JUMP AND SECTION ORDER
+   The floating ↕ Sections button (#jumpbtn) opens #jumpmenu: jump to a card on the open tab, or ↕ Reorder to move
+   cards up and down (and, on the Combat tab, attacks). Card order is saved per tab in ui.secOrder (this device only).
+   Defines: jumpSecs, secBlocks, applySecOrder, applyAllSecOrder, moveSec, paintJump, closeJump, jumpAnim, openJump,
+   jumpTo, showTab. Uses: ui/saveUi (§03), $ and esc (§02), reduceMotion (§04), atkItems (§10), WORD.
+   showTab sits here, not in §15, because every tab switch repaints the jump button. It calls tabEdges and
+   paintPager (§15); that's fine because nothing calls showTab before the whole script has loaded.
    ============================================================================ */
-// quick jump: a floating button listing the sections (cards) of the tab you're on
+
+// ── Sections of the open tab ───────────────────────────────────────────────────────────────────────────────
+// The sections the jump menu lists: titled blocks of the open panel that are on screen, as {el, t}.
 function jumpSecs(){
   const panel = document.querySelector('.panel.on'); if (!panel) return [];
   return secBlocks(panel).filter(b => b.t && b.els[0].offsetParent).map(b => ({el:b.els[0], t:b.t}));
 }
-// Section order per tab (saved on this device). A block = a top-level element with a heading, plus any
-// heading-less elements right after it (e.g. a combo list under its section header).
+// Split a panel into blocks, as [{t: heading text, els: [elements]}]. A block is a top-level element with a heading
+// plus any heading-less elements right after it (e.g. a combo list under its section header). Leading elements
+// without a heading form a block with t ''. The pager and nav are skipped.
 function secBlocks(panel){
   const out = [];
   [...panel.children].forEach(el => {
@@ -19,17 +28,19 @@ function secBlocks(panel){
   });
   return out;
 }
-// apply this device's saved card order to one panel
+// ── Card order ─────────────────────────────────────────────────────────────────────────────────────────────
+// Apply this device's saved card order to one panel. Blocks not in the saved list keep their relative order and go
+// after the listed ones; everything is re-inserted before the pager so it stays last.
 function applySecOrder(panel){
   const ord = (ui.secOrder || {})[panel.dataset.panel]; if (!ord || !ord.length) return;
   const blocks = secBlocks(panel), pos = b => { const i = ord.indexOf(b.t); return i < 0 ? 999 : i; };
   const anchor = panel.querySelector(':scope > nav.pager');
   blocks.map((b,i)=>[b,i]).sort((a,b2) => (pos(a[0]) - pos(b2[0])) || (a[1]-b2[1])).forEach(([b]) => b.els.forEach(el => panel.insertBefore(el, anchor || null)));
 }
-// apply saved card order on every panel
+// Apply the saved card order on every panel.
 function applyAllSecOrder(){ document.querySelectorAll('main .panel').forEach(applySecOrder); }
-let jumpEdit = false;
-// move a section card up/down and remember it
+let jumpEdit = false;   // true while the menu shows the Reorder view
+// Swap titled section i with its neighbour (d = -1 up, +1 down), save the new order and redraw the Reorder view.
 function moveSec(i, d){
   const panel = document.querySelector('.panel.on'); if (!panel) return;
   const blocks = secBlocks(panel).filter(b => b.t), j = i + d; if (j < 0 || j >= blocks.length) return;
@@ -37,9 +48,11 @@ function moveSec(i, d){
   ui.secOrder = Object.assign({}, ui.secOrder, {[panel.dataset.panel]: titles}); saveUi();
   applySecOrder(panel); openJump(true);
 }
-// show the ↕ Sections button when a tab has 2+ sections
+// ── The ↕ Sections menu ────────────────────────────────────────────────────────────────────────────────────
+// Show the ↕ Sections button only when the open tab has two or more sections; closes the menu.
 function paintJump(){ const b = $('#jumpbtn'); if (!b) return; b.hidden = jumpSecs().length < 2; closeJump(); }
-// close the jump menu
+// Close the jump menu (and leave Reorder). Animated: the menu is emptied once it has shrunk, unless it reopened
+// in the meantime.
 function closeJump(){
   jumpEdit = false; const m = $('#jumpmenu'), b = $('#jumpbtn');
   if (b) b.setAttribute('aria-expanded','false');
@@ -48,9 +61,9 @@ function closeJump(){
   if (reduceMotion() || !m.animate) return hide();
   jumpAnim(m, false).finished.then(() => { if (b && b.getAttribute('aria-expanded') !== 'true') hide(); }, () => {});
 }
-// The menu grows out of the ↕ Sections button and shrinks back into it: scale from the button's centre.
-let jumpA = null;
-// open/close animation of the ↕ Sections menu, growing from its button
+let jumpA = null;   // the running menu animation, cancelled when a new one starts
+// Open/close animation: the menu grows out of the ↕ Sections button and shrinks back into it (scaled from the
+// button's centre), and the button gives a small press. Returns the Animation.
 function jumpAnim(m, open){
   const b = $('#jumpbtn'); if (jumpA) jumpA.cancel();
   if (b) { const mr = m.getBoundingClientRect(), br = b.getBoundingClientRect();
@@ -62,7 +75,8 @@ function jumpAnim(m, open){
   if (b && b.animate) b.animate([{transform:'scale(1)'},{transform:'scale(.92)'},{transform:'scale(1)'}], {duration:200, easing:'ease-out'});
   return jumpA;
 }
-// open the jump menu (with reorder arrows)
+// Open the jump menu, or close it when it's already open. keep = redraw in place (after a move) instead of toggling.
+// Two views: Jump to (a button per section) and Reorder (▲ ▼ per section, plus the attack order on Combat).
 function openJump(keep){
   const m = $('#jumpmenu'), b = $('#jumpbtn'); if (!m) return;
   if (!m.hidden && !keep && b.getAttribute('aria-expanded') === 'true') return closeJump();
@@ -83,7 +97,7 @@ function openJump(keep){
     + secs.map((s,i) => '<button class="jumpi" data-act="jumpto" data-i="'+i+'"><span class="je">'+emo(s)+'</span>'+esc(s.t.replace(emo(s),'').trim())+'</button>').join('');
   m.hidden = false; b.setAttribute('aria-expanded','true'); if (wasShut && !reduceMotion() && m.animate) jumpAnim(m, true);
 }
-// scroll to a section below the sticky header
+// Scroll section i to just below the sticky header and flash it (i < 0 = top of the page).
 function jumpTo(i){
   closeJump();
   if (i < 0) return window.scrollTo({top:0, behavior: reduceMotion() ? 'auto' : 'smooth'});
@@ -92,8 +106,12 @@ function jumpTo(i){
   window.scrollTo({top: s.el.getBoundingClientRect().top + window.scrollY - hb - 10, behavior: reduceMotion() ? 'auto' : 'smooth'});
   s.el.classList.add('jumped'); setTimeout(() => s.el.classList.remove('jumped'), 900);
 }
+// a click anywhere outside the menu and its button closes the menu (capture phase, before other handlers)
 document.addEventListener('click', e => { if (!e.target.closest('#jumpmenu,#jumpbtn')) closeJump(); }, true);
-// switch to a tab (no re-render)
+
+// ── Showing a tab ──────────────────────────────────────────────────────────────────────────────────────────
+// Switch to tab k without re-rendering: toggle panels and tab states, save it, scroll the tab strip so the tab shows,
+// and refresh the strip edges, pager and jump button. On desktop Stats is the sidebar, so it opens Combat instead.
 function showTab(k){
   if (k==='stats' && window.matchMedia('(min-width:1040px)').matches) k = 'combat';
   ui.tab = k; saveUi();

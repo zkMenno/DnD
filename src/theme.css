@@ -1,10 +1,15 @@
 /* ============================================================================
    THEME TOKENS — "pirate" (a sea captain's chart)
    Light = sun-bleached chart paper with ink, oxblood and doubloon gold; dark = night at sea, parchment text, lantern gold.
+   The colours, fonts and textures every engine style reads (src/app.css). Inlined as <style id="theme-css"> in the
+   claude.ai sheets, served as /engine/theme.css in the web app, where src/skins.css overrides these same tokens for
+   the other looks (<html data-skin>, set by web/sw-register.js).
    To reskin the sheet, replace this whole block with another theme's tokens (same variable names), and set
    PACK.theme to a matching entry in THEMES (#themes script) for wording, fonts and dice.
-   Three blocks: light (default), dark via the OS setting, dark forced by [data-theme="dark"].
+   Three blocks: light (default), dark via the OS setting, dark forced by [data-theme="dark"]. The two dark blocks
+   must stay identical.
    ============================================================================ */
+/* ── Light (default) ───────────────────────────────────────────────────────────────────────────────────── */
 :root{
   --bg:#ECE2CC; --surface:#F6EFDD; --raised:#FBF7EC; --ink:#2A2119; --muted:#6E5D47; --line:#D6C6A5;
   --rope:#B08F5E; --chart:#E4D7BA;
@@ -18,6 +23,7 @@
   --grain:repeating-linear-gradient(0deg,rgba(110,80,30,.035) 0 1px,transparent 1px 3px);
   --glow:radial-gradient(ellipse 120% 70% at 50% 0%,rgba(255,250,235,.55),transparent 70%);
 }
+/* ── Dark: follows the device, unless light is chosen ──────────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0C141C; --surface:#122030; --raised:#18293A; --ink:#EDE3CC; --muted:#CFC0A2; --line:#2A3B4C;
   --rope:#6E5734; --chart:#0F1A25;
@@ -25,6 +31,7 @@
   --hp:#E26A5C; --press:rgba(255,240,210,.14); --good:#6CC48A; --aye:#2B7343; --warn:#E3A44B; --shadow:0 1px 2px rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.3);
   --grain:repeating-linear-gradient(0deg,rgba(255,240,210,.018) 0 1px,transparent 1px 3px);
   --glow:radial-gradient(ellipse 120% 60% at 50% 0%,rgba(226,176,74,.08),transparent 70%); color-scheme:dark}}
+/* ── Dark: chosen (☰ → Theme in the web app) ───────────────────────────────────────────────────────────── */
 :root[data-theme="dark"]{
   --bg:#0C141C; --surface:#122030; --raised:#18293A; --ink:#EDE3CC; --muted:#CFC0A2; --line:#2A3B4C;
   --rope:#6E5734; --chart:#0F1A25;

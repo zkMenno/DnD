@@ -1,6 +1,17 @@
 /* ============================================================================
-   §19 AMMO, COINS, TOUCH AND KEYBOARD — arrows
+   §19 AMMO, COINS, TOUCH AND KEYBOARD
+   The quiver card (arrows, recovery) and the purse (coin buttons, the amount box, change-making), plus page-wide
+   input polish: press feedback that survives a repaint, and on-screen keyboard handling on phones.
+   Defines: paintAmmo, coinKind/coinNeed, coinValue, fmtGp, METAL, coinSvg, paintCoins, pickCoin, spendCoins,
+   gainCoins, quickCoin, coinAmt, coinLog, makeChange, isField, blurField; at load it adds the touch and key listeners.
+   Uses: S, save, normalizeState, COINS, ARROW_N, arrowsLeft (§03), D, DATA (§02), SIG_W (§09), paintRes (§10).
+   Coin amounts live in S.coins ({pp, gp, ep, sp, cp}); COINS rows are [key, name, value in copper].
    ============================================================================ */
+
+// ── Quiver ─────────────────────────────────────────────────────────────────────────────────────────────────
+// Draw the quiver card in #ammobox: arrows left with ± buttons, fired since the last pickup, Recover (half of what
+// was fired), and D&D Beyond's count at the last sync. msg is an optional line of feedback (plain text).
+// 20 arrows per equipped quiver (at least one).
 function paintAmmo(msg){
   const box = $('#ammobox'); if (!box) return;
   const quivers = DATA.inventory.filter(i => i.name === 'Quiver' && i.equipped).length || 1;
@@ -17,15 +28,17 @@ function paintAmmo(msg){
     + '<p class="small muted" style="margin:8px 0 0">D&amp;D Beyond lists '+esc(ddb)+' = '+D.ammo+' at the last sync. Rolling to hit with '+(SIG_W && SIG_W.ranged ? 'the '+esc(SIG_W.name.toLowerCase()) : 'a ranged weapon')+' spends an arrow.</p>';
 }
 
-/* ---- coins ---- */
+// ── Purse ──────────────────────────────────────────────────────────────────────────────────────────────────
+// coinKind: the coin the amount box spends or adds. coinNeed: {k, n} while a payment waits for "Pay using change".
 let coinKind = 'gp', coinNeed = null;
-// total value of a purse in copper
+// The total value of a purse in copper.
 const coinValue = c => COINS.reduce((t,[k,,v]) => t + (c[k]||0)*v, 0);
-// copper → "12.5 gp"
+// Copper → "12.5 gp" (up to two decimals, a trailing 0 dropped).
 const fmtGp = cp => { const g = cp/100; return (Number.isInteger(g) ? g : g.toFixed(2).replace(/0$/,'')) + ' gp'; };
-// struck coins with an anchor, one metal per denomination
+// Gradient colours per denomination (highlight, body, edge) for the coin icons.
 const METAL = {pp:['#F4F6F8','#C9CED6','#6E7682'], gp:['#FFF1B8','#E2B04A','#7E5812'], ep:['#F6F0CC','#CFC48A','#6E6538'], sp:['#FFFFFF','#C3C9D1','#636B76'], cp:['#F8CDA8','#C2703D','#62300F']};
-// little coin icon
+// A small coin icon as SVG: a struck coin with a milled rim and an anchor, in the metal of k. The gradient id
+// includes the size, so icons of different sizes on one page don't share (and clash over) a gradient.
 function coinSvg(k, size){
   const m = METAL[k] || METAL.gp, id = 'cg-'+k+'-'+(size||22);
   return '<svg class="coinico" width="'+(size||22)+'" height="'+(size||22)+'" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
@@ -34,7 +47,9 @@ function coinSvg(k, size){
     + '<circle cx="12" cy="12" r="8.3" fill="none" stroke="'+m[2]+'" stroke-opacity=".6" stroke-width=".9" stroke-dasharray="1.1 1.3"/>'
     + '<g fill="none" stroke="'+m[2]+'" stroke-width="1.4" stroke-linecap="round" stroke-opacity=".85"><circle cx="12" cy="7.4" r="1.3"/><path d="M12 8.7V17.4M9.6 10.4h4.8M8 14.6q1 3 4 3t4-3"/></g></svg>';
 }
-// repaint the coin purse card
+// Repaint the purse card in #coinbox: a tile per coin (gp, sp, cp always; pp and ep only when you have some) with
+// −1 +1 −5 +5 buttons, the amount box with Spend / Gain, the "pay using change" offer, a message line and the last
+// five coin moves. msg is plain text (escaped here).
 function paintCoins(msg){
   const box = $('#coinbox'); if (!box) return;
   const shown = COINS.filter(([k]) => ['gp','sp','cp'].includes(k) || S.coins[k]);
@@ -52,9 +67,10 @@ function paintCoins(msg){
     + '<p class="small muted" id="coinmsg" style="margin:8px 0 0">'+(msg ? esc(msg) : 'Tap a coin to pick it for the amount box. Tap its name for what it’s worth.')+'</p>'
     + (S.coinLog && S.coinLog.length ? '<ul class="coinlog">'+S.coinLog.slice(-5).reverse().map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>' : '');
 }
-// choose which coin the amount box spends/adds
+// Pick the coin the amount box spends or adds. Repaints the purse, keeping what was typed in the amount box.
 function pickCoin(k){ if (coinKind === k) return; coinKind = k; coinNeed = null; const v = ($('#coin-amt')||{}).value; paintCoins(); const i = $('#coin-amt'); if (i && v) i.value = v; }
-// pay an amount, making change from bigger coins when needed
+// Spend n coins of kind k. Not enough of that coin but enough money in total: offer "Pay using change" (coinNeed);
+// the payment itself then happens in makeChange. Not enough money at all: say so.
 function spendCoins(k, n){
   if ((S.coins[k]||0) < n) {
     const need = n * COINS.find(c=>c[0]===k)[2];
@@ -63,10 +79,11 @@ function spendCoins(k, n){
   }
   S.coins[k] -= n; coinLog('−'+n+' '+k); coinNeed = null; save(); paintRes(); return paintCoins('Spent '+n+' '+k+'.');
 }
-// add coins
+// Add n coins of kind k, log it and save.
 function gainCoins(k, n){ S.coins[k] = (S.coins[k]||0) + n; coinLog('+'+n+' '+k); coinNeed = null; save(); paintRes(); return paintCoins('Added '+n+' '+k+'.'); }
 
-// ± one coin
+// The ±1 buttons on a coin tile (d > 0 gains, else spends). Spending a coin you're out of breaks the smallest
+// bigger coin you have into change, one step at a time, and notes it in the log. Electrum is never made as change.
 function quickCoin(k, d){
   if (!S.coins) S = normalizeState(S);
   const name = COINS.find(c=>c[0]===k)[1].toLowerCase();
@@ -84,11 +101,13 @@ function quickCoin(k, d){
   }
   S.coins[k] -= 1; coinLog('−1 '+k+note); coinNeed = null; save(); paintRes(); paintCoins('Spent 1 '+name+note+'.');
 }
-// read the amount box (focus it when empty)
+// Read the amount box: a whole number ≥ 1 (and the keyboard closes), or 0 with the box focused so you can type one.
 function coinAmt(){ const i = $('#coin-amt'); const n = parseInt(i && i.value, 10); if (!n || n < 1) { if (i) i.focus(); return 0; } blurField(); return n; }
-// remember the last 20 coin moves
+// Add a line to the coin log in S (keeps the last 20; the card shows five). The caller saves.
 function coinLog(t){ S.coinLog = (S.coinLog || []).concat(t).slice(-20); }
-// break a bigger coin into smaller ones
+// Pay n coins of kind k from the whole purse and recount what's left: platinum is kept where possible, the rest is
+// counted out as gold, silver and copper (electrum becomes 0). Returns false, changing nothing, if it's not enough.
+// The caller saves and logs.
 function makeChange(k, n){
   let total = coinValue(S.coins) - n * COINS.find(c=>c[0]===k)[2];
   if (total < 0) return false;
@@ -98,14 +117,19 @@ function makeChange(k, n){
   S.coins = {pp, gp, ep:0, sp, cp:rest}; return true;
 }
 
-/* ---- touch feedback: keep a pressed look visible for a moment even if the tap re-renders the button ---- */
+// ── Touch feedback ─────────────────────────────────────────────────────────────────────────────────────────
+// Press feedback that survives a repaint: buttons get .pressing on pointerdown and keep it at least MIN ms. Many taps
+// redraw their own button (coins, HP, pips), so if the pressed element is gone we find its twin by its data-*
+// attributes and flash that instead.
 (() => {
-  // Press feedback that survives a repaint: many taps redraw their own button (coins, HP, pips),
-  // so if the pressed element is gone we find its twin by its data-* attributes and flash that.
-  let held = null, t0 = 0, sig = null;
+  let held = null, t0 = 0, sig = null;   // the pressed element, when, and its selector
   const MIN = 160;
+  // A selector that finds the same button after a repaint: all its data-* attributes (except the list index
+  // data-i / data-r), or its id. null when it has neither.
   const signature = el => { const d = el.dataset || {}; const keys = Object.keys(d).filter(k => !/^(i|r)$/.test(k)); return keys.length ? keys.map(k => '[data-'+k.replace(/[A-Z]/g, m => '-'+m.toLowerCase())+'="'+CSS.escape(d[k])+'"]').join('') : (el.id ? '#'+CSS.escape(el.id) : null); };
+  // show the pressed look on el for ms
   const flash = (el, ms) => { el.classList.add('pressing'); setTimeout(() => el.classList.remove('pressing'), ms); };
+  // Pointer up: drop .pressing once MIN ms have passed since the press, or flash the twin if the button was replaced.
   const release = () => {
     if (!held) return; const el = held, s0 = sig, wait = Math.max(0, MIN - (Date.now() - t0)); held = null; sig = null;
     setTimeout(() => {
@@ -115,21 +139,27 @@ function makeChange(k, n){
     // the click handler may repaint right after pointerup: re-check on the next frame too
     requestAnimationFrame(() => { if (!el.isConnected && s0) { const twin = document.querySelector(s0); if (twin && !twin.classList.contains('pressing')) flash(twin, Math.max(120, wait)); } });
   };
+  // Pointer down on a button or coin tile: remember it and press it. A glossary word on one line gets .onebox, so its
+  // press can scale it without the text reflowing.
   document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('button,[data-pick]'); if (!b || b.disabled) return; held = b; t0 = Date.now(); try { sig = signature(b); } catch(_) { sig = null; } if (b.classList.contains('term') && !b.classList.contains('onebox') && b.getClientRects().length === 1) b.classList.add('onebox'); b.classList.add('pressing'); }, {passive:true});
   ['pointerup','pointercancel'].forEach(ev => document.addEventListener(ev, release, {passive:true}));
   document.addEventListener('pointerleave', e => { if (e.target === document.documentElement) release(); }, {passive:true});
+  // an empty touch listener: iOS Safari only applies :active styles on pages that listen for touches
   document.addEventListener('touchstart', () => {}, {passive:true});
 })();
 
-/* ---- on-screen keyboard hygiene ----
-   On phones a focused field can leave the page stuck after the keyboard closes. So:
-   the header stops being sticky while you type, a tap outside the field closes the keyboard,
-   and when the keyboard goes away the field lets go of focus. */
+// ── On-screen keyboard ─────────────────────────────────────────────────────────────────────────────────────
+// On phones a focused field can leave the page stuck after the keyboard closes. So the header stops being sticky
+// while you type (body.typing), a tap outside the field closes the keyboard, and when the keyboard goes away the
+// field lets go of focus.
+// true for text-like fields (inputs other than checkboxes and radios, textareas, selects)
 const isField = el => !!(el && el.matches && el.matches('input:not([type=checkbox]):not([type=radio]),textarea,select'));
-// dismiss the on-screen keyboard
+// Close the on-screen keyboard by blurring the focused field, if any.
 function blurField(){ const a = document.activeElement; if (isField(a)) a.blur(); }
+// typing on a touch screen: body.typing unpins the header; it comes back once focus leaves all fields
 document.addEventListener('focusin', e => { if (isField(e.target) && matchMedia('(pointer:coarse)').matches) document.body.classList.add('typing'); });
 document.addEventListener('focusout', e => { if (isField(e.target)) setTimeout(() => { if (!isField(document.activeElement)) document.body.classList.remove('typing'); }, 60); });
+// a tap outside the focused field (and not on a label) closes the keyboard
 document.addEventListener('touchstart', e => {
   const a = document.activeElement;
   if (isField(a) && !isField(e.target) && !(e.target.closest && e.target.closest('label'))) {
@@ -138,6 +168,7 @@ document.addEventListener('touchstart', e => {
     a.blur();
   }
 }, {passive:true, capture:true});
+// the visible area grows by more than 120 px: the keyboard went away, so the field lets go too
 if (window.visualViewport) {
   let vh = visualViewport.height;
   visualViewport.addEventListener('resize', () => {
@@ -146,7 +177,9 @@ if (window.visualViewport) {
     vh = h;
   });
 }
+// Enter in a number box closes the keyboard instead of submitting anything
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target && e.target.matches && e.target.matches('input[type=number]')) { e.preventDefault(); e.target.blur(); }
 });
+// coin tiles are radio buttons: Enter or Space picks one (and keeps focus on it after the repaint)
 document.addEventListener('keydown', e => { const t = e.target; if ((e.key === 'Enter' || e.key === ' ') && t && t.dataset && t.dataset.pick) { e.preventDefault(); pickCoin(t.dataset.pick); const n = document.querySelector('[data-pick="'+t.dataset.pick+'"]'); if (n) n.focus(); } });

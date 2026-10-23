@@ -1,20 +1,28 @@
 /* ============================================================================
    §22 MOVE — take a claude.ai sheet's tracker and notes over to the web app
+   claude.ai sheet: ☰ → Sync → 📦 Move to the web app gives a code (plain JSON with a marker in front).
+   Web app, own sheet of the same character: ☰ → Sync → 📥 Bring over from claude.ai takes it. Nothing is sent
+   anywhere in between: the player copies and pastes. The server checks what's saved like any other save.
+   Defines: MOVE_TAG, MOVE_MAX, NOTE_FIELDS, noteOnly, moveCode, readMoveCode, moveOut, copyText, moveIn.
+   Uses: S, save, normalizeState, VIEW, DB (§03), NOTES, noteScope, pendingIds, NCACHE, confirmBox (§17),
+   setMsg (§15), addedChanged (§11), render (§13), ADDED, DATA, ls, esc (§02).
+   Only called from taps (§20), so it can come after §21 has started the sheet.
    ============================================================================ */
-// claude.ai sheet: ☰ → Sync → 📦 Move to the web app gives a code (plain JSON with a marker in front).
-// Web app, own sheet of the same character: ☰ → Sync → 📥 Bring over from claude.ai takes it. Nothing is sent
-// anywhere in between: the player copies and pastes. The server checks what's saved like any other save.
 const MOVE_TAG = 'SHEETMOVE1 ', MOVE_MAX = 2000000;   // marker + version; the biggest code accepted (characters)
-const NOTE_FIELDS = ['text', 'kind', 'done', 'at', 'session'];
+const NOTE_FIELDS = ['text', 'kind', 'done', 'at', 'session'];   // the note fields that travel
+// A copy of a note with only NOTE_FIELDS (no id, author or anything else).
 const noteOnly = n => { const o = {}; NOTE_FIELDS.forEach(k => { if (n && k in n) o[k] = n[k]; }); return o; };
 
-// what goes over: the tracker as it is now, and the character's own notes (not the party log)
+// ── claude.ai side: the code ───────────────────────────────────────────────────────────────────────────────
+// The code: MOVE_TAG + JSON of the character's id, name and last sync, the tracker as it is now, and the character's
+// own notes (not the party log). Notes still saving are left out; while the party log shows, the cached own notes go.
 function moveCode(){
   const notes = noteScope === 'own' ? NOTES.filter(n => !pendingIds.has(n.id)).map(noteOnly) : (ls.get(NCACHE) || []).map(noteOnly);
   return MOVE_TAG + JSON.stringify({ ddb: DATA.id, name: DATA.name, syncedAt: DATA.syncedAt, at: Date.now(), state: S, notes });
 }
 
-// read a pasted code: { ok, data } or { ok:false, why } in words for the player
+// Check a pasted code: { ok: true, data } or { ok: false, why } with why in words for the player (HTML-safe).
+// Refuses empty, oversized, untagged, cut-short or incomplete codes, and codes for another character.
 function readMoveCode(text){
   const t = String(text || '').trim();
   if (!t) return { ok: false, why: 'Paste the code first.' };
@@ -26,7 +34,7 @@ function readMoveCode(text){
   return { ok: true, data: d };
 }
 
-// claude.ai: show the code, copy it on the button (or press and hold it to copy by hand)
+// claude.ai: 📦 Move. Show the code in a dialog; its button copies it (or press and hold the code to copy by hand).
 async function moveOut(){
   const code = moveCode(), n = noteScope === 'own' ? NOTES.length : 0;
   const ok = await confirmBox('📦 Move to the web app',
@@ -37,14 +45,18 @@ async function moveOut(){
   const copied = await copyText(code);
   setMsg(copied ? '📋 Code copied. Paste it in the web app.' : 'Couldn’t copy by itself. Open 📦 Move again, press and hold the code, and copy it.');
 }
-// clipboard, with the old-browser fallback (some embedded views block the clipboard API)
+// Copy text to the clipboard, with the old execCommand fallback (some embedded views block the clipboard API).
+// Resolves true when it worked.
 async function copyText(t){
   try { await navigator.clipboard.writeText(t); return true; } catch (_) {}
   try { const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
     const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (_) { return false; }
 }
 
-// web app: paste, check, confirm, then the tracker is replaced and the notes are added (skipping ones already here)
+// ── Web app side: bringing it in ───────────────────────────────────────────────────────────────────────────
+// 📥 Bring over: paste, check, confirm, then the tracker is replaced and the notes are added (skipping ones already
+// here, matched on time + text). The tracker takes this copy's sync stamp, so it isn't reset as out of date.
+// Needs the stored tracker (DB) and your own sheet, not a shared view.
 async function moveIn(){
   if (VIEW || !DB) return setMsg('Open your own copy of this sheet in the web app to bring a tracker over.');
   let pasted = '';

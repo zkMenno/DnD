@@ -1,8 +1,14 @@
 /* ============================================================================
-   ENGINE STYLES — theme-agnostic: everything here reads colours/fonts from the tokens in #theme-css.
-   Layout: sticky vitals header → tab strip; desktop mirrors D&D Beyond (abilities/saves | skills | tabbed panel),
-   phone stacks one panel at a time. Sections below are grouped by the UI part they style.
+   ENGINE STYLES (src/app.css): every sheet's layout and components, theme-agnostic.
+   Colours, fonts and textures come from the tokens in src/theme.css (and src/skins.css in the web app). Inlined as
+   <style id="css"> in the claude.ai sheets, served as /engine/app.css in the web app (web/sheet.css adds a little).
+   Layout: sticky header (name, vitals tiles, tab strip) over the panels. Desktop (1040px+) mirrors D&D Beyond:
+   abilities and saves | skills | the tabbed panel. Phones show one panel at a time.
+   Breakpoints: 700px (wider phones, tablets), 1040px (desktop; with pointer:fine for mouse-only changes), 1300px+.
+   Order matters: the file grew in layers and later rules deliberately override earlier ones (the pirate dressing,
+   the "more sea dog" layer, and the feature blocks towards the end). Don't move or merge rules.
    ============================================================================ */
+/* ── Base: reset, type scale, utility classes ──────────────────────────────────────────────────────────── */
 *{box-sizing:border-box}
 html{font-size:18px}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1rem;line-height:1.45;-webkit-text-size-adjust:100%}
@@ -17,7 +23,7 @@ h3{font-size:1.05rem}
 .small{font-size:.86rem}
 :focus-visible{outline:2px solid var(--sea);outline-offset:2px;border-radius:6px}
 
-/* header */
+/* ── Header: sticky top bar, name and crest, buttons ───────────────────────────────────────────────────── */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
 .top .wrap{padding-block:12px 10px;display:grid;gap:10px}
 .idrow{display:flex;align-items:center;gap:12px;min-width:0}
@@ -32,6 +38,7 @@ h3{font-size:1.05rem}
 .btn.small{padding:4px 10px;min-height:30px;font-size:.82rem}
 .btn[disabled]{opacity:.55;cursor:default}
 
+/* vitals tiles (HP, AC, speed, initiative, inspiration) and the HP editor */
 .vitals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .vt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 8px;text-align:center;min-width:0}
 .vt .k{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
@@ -46,6 +53,7 @@ h3{font-size:1.05rem}
 .insp.on{background:var(--brass-soft);border-color:var(--brass)}
 .insp.on .v{color:var(--brass)}
 
+/* tab strip: scrolls sideways on phones; fades and ‹ › arrows show where there are more tabs (tabEdges, §15) */
 .tabwrap{position:relative;min-width:0}
 .tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;scroll-behavior:smooth;scroll-padding-inline:32px}
 .tabwrap::before,.tabwrap::after{content:"";position:absolute;top:0;bottom:2px;width:56px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:1}
@@ -60,7 +68,7 @@ h3{font-size:1.05rem}
 .tab{flex:none;border:0;background:transparent;padding:8px 12px;border-radius:999px;font-weight:700;color:var(--muted);cursor:pointer;font-size:.95rem}
 .tab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 
-/* main grid */
+/* ── Main grid, panels and cards ───────────────────────────────────────────────────────────────────────── */
 main .wrap{padding-block:14px 120px}
 .grid{display:grid;gap:14px}
 .col-stats,.col-skills{display:none}
@@ -70,6 +78,7 @@ main .wrap{padding-block:14px 120px}
 .card > h2,.card > h3{margin-bottom:8px}
 .cardhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 
+/* ability tiles */
 .abil{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .ab{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:8px 6px;text-align:center;cursor:pointer}
 .ab:hover{border-color:var(--sea)}
@@ -78,6 +87,7 @@ main .wrap{padding-block:14px 120px}
 .ab .s{font-family:var(--f-num);font-size:.8rem;color:var(--muted)}
 .ab .s small{display:inline!important;margin:0 0 0 5px!important;vertical-align:1px}
 .ab .m small,.ab .s small{display:block;font-family:var(--f-body);font-size:.56rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-top:1px}
+/* list rows (saves, skills, senses) with proficiency dots; key/value lists */
 .list{display:grid}
 .row{display:flex;align-items:center;gap:10px;padding:5px 4px;border-bottom:1px solid var(--line);background:transparent;border-left:0;border-right:0;border-top:0;width:100%;text-align:left}
 .row:last-child{border-bottom:0}
@@ -91,6 +101,7 @@ main .wrap{padding-block:14px 120px}
 .kv dt{color:var(--muted)}
 .kv dd{margin:0}
 
+/* chips (weapon properties, spell tags…); .toggle = an on/off filter */
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 9px;font-size:.78rem;font-weight:700;background:var(--sea-soft);color:var(--ink);border:1px solid transparent}
 .chip.brass{background:var(--brass-soft)}
@@ -99,12 +110,14 @@ main .wrap{padding-block:14px 120px}
 .chip.toggle{cursor:pointer;border-color:var(--line);background:var(--raised);font-size:.85rem;padding:6px 12px}
 .chip.toggle.on{background:var(--sea);color:var(--sea-ink);border-color:var(--sea)}
 
+/* segmented toggles and option rows */
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--raised)}
 .seg button{border:0;background:transparent;padding:6px 12px;cursor:pointer;font-weight:700;font-size:.85rem;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .mode{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .modeinfo{font-size:.8rem}
 
+/* attack cards (Combat tab), with the ★ favourite button */
 .atk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--raised)}
 .atk.hero{border-color:var(--brass);box-shadow:var(--shadow);background:linear-gradient(90deg,var(--brass-soft),var(--raised) 60%)}
 .dragmode .dragging .atk,.dragmode .spell.dragging,.dragmode .qrrow.dragging{border-color:var(--sea)}
@@ -125,6 +138,7 @@ main .wrap{padding-block:14px 120px}
 .atk .go{align-self:center}
 .atklist{display:grid;gap:8px}
 
+/* action economy: the Action / Bonus / Reaction / Free / Move tags */
 .econ{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .tag{display:inline-block;font-size:.66rem;letter-spacing:.08em;font-weight:700;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--line);color:var(--ink);vertical-align:middle}
 .tag.A{background:var(--sea);color:var(--sea-ink)}
@@ -133,6 +147,7 @@ main .wrap{padding-block:14px 120px}
 .tag.F{background:var(--line)}
 .tag.M{background:var(--sea-soft)}
 
+/* resources: use pips and steppers */
 .res{display:grid;gap:10px}
 .resrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .pips{display:flex;gap:6px}
@@ -142,6 +157,7 @@ main .wrap{padding-block:14px 120px}
 .stepper output{font-family:var(--f-num);min-width:2.2em;text-align:center}
 .rest{display:flex;gap:8px;flex-wrap:wrap}
 
+/* combos: numbered steps with action tags */
 .combo{display:grid;gap:10px}
 .combo .why{color:var(--muted);font-size:.92rem}
 .steps{display:grid;gap:6px;margin:0;padding:0;list-style:none;counter-reset:s}
@@ -168,6 +184,7 @@ main .wrap{padding-block:14px 120px}
 .steps.opts li{padding:8px 0;border-top:1px dashed var(--line)}
 .steps.opts li:first-child{border-top:0;padding-top:2px}
 
+/* gear list, coin line, callout notes, feature list */
 .items{display:grid}
 .item{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:7px 2px;border-bottom:1px solid var(--line);font-size:.95rem}
 .item:last-child{border-bottom:0}
@@ -205,6 +222,7 @@ main .wrap{padding-block:14px 120px}
 .feat:last-child{border-bottom:0}
 .feat b{display:block}
 .feat p{margin:2px 0 0;color:var(--muted);font-size:.92rem}
+/* level roadmap; two columns on wider screens */
 .road{display:grid;gap:0;margin:0;padding:0;list-style:none}
 .road li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .road li:last-child{border-bottom:0}
@@ -212,7 +230,7 @@ main .wrap{padding-block:14px 120px}
 .road li.goal .lv{color:var(--brass)}
 .two{display:grid;gap:14px}
 
-/* glossary */
+/* ── Glossary words and tooltip bubbles (§16) ──────────────────────────────────────────────────────────── */
 .term{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:help;text-decoration:underline dotted;text-decoration-color:var(--sea);text-underline-offset:3px;text-decoration-thickness:1.5px;display:inline;text-align:inherit}
 .term:hover,.term[aria-expanded="true"]{color:var(--sea)}
 .chip .term{text-decoration-color:currentColor}
@@ -228,7 +246,7 @@ main .wrap{padding-block:14px 120px}
 .bubble .bt{font-family:var(--f-display);font-weight:700;font-size:1.05rem;margin:1px 0 3px}
 @media (prefers-reduced-motion:no-preference){ .bubble{animation:pop .14s ease-out} }
 
-/* roll dock */
+/* ── Roll dock: the roll card at the bottom of the screen (§04) ────────────────────────────────────────── */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;pointer-events:none}
 .dock .wrap{padding-block:0;display:flex;justify-content:flex-end}
 #dock .roll{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-width:0;margin-bottom:0;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}   /* the roll sheet sits on the bottom edge of the screen */
@@ -241,8 +259,10 @@ main .wrap{padding-block:14px 120px}
 .roll .n small{font-size:.75rem;opacity:.7;margin-left:4px;font-family:var(--f-body);letter-spacing:.06em;text-transform:uppercase}
 .roll .bd{font-family:var(--f-num);font-size:.78rem;opacity:.8;overflow-wrap:anywhere}
 .roll .flag{color:var(--brass);font-weight:700;font-size:.85rem}
+/* the message line under the header (setMsg, §15) */
 .syncmsg{font-size:.85rem;padding:8px 12px;border-radius:8px;background:var(--brass-soft);border:1px solid var(--brass)}
 
+/* ── Responsive grid: wider screens and desktop columns ────────────────────────────────────────────────── */
 @media (min-width:700px){
   .econ{grid-template-columns:repeat(4,minmax(0,1fr))}
   .abil{grid-template-columns:repeat(6,minmax(0,1fr))}
@@ -282,13 +302,14 @@ main .wrap{padding-block:14px 120px}
 @media (min-width:1300px){ .econ{grid-template-columns:repeat(4,minmax(0,1fr))} }
 @media (prefers-reduced-motion:no-preference){ .roll{animation:pop .18s ease-out} @keyframes pop{from{transform:translateY(8px);opacity:.4}to{transform:none;opacity:1}} }
 
+/* tip lines under cards */
 .tip{margin:8px 0 0;font-size:.86rem;color:var(--muted);border-left:3px solid var(--brass);padding:2px 0 2px 10px}
 
-/* changes since sync */
+/* ── Change list: differences from D&D Beyond ──────────────────────────────────────────────────────────── */
 .changes{border:1px solid var(--brass);background:var(--brass-soft);border-radius:var(--r);padding:10px 12px;margin-bottom:14px}
 .changes ul{margin:0;padding-left:18px;font-size:.92rem}
 .changes.ok{display:flex;gap:8px;align-items:center;border-color:var(--line);background:transparent;font-size:.9rem;color:var(--muted)}
-/* notes */
+/* ── Notes tab ─────────────────────────────────────────────────────────────────────────────────────────── */
 .composer{display:grid;gap:8px}
 .composer textarea,#note-edit{width:100%;min-height:84px;resize:vertical;border:1px solid var(--line);border-radius:var(--r);background:var(--raised);color:var(--ink);padding:10px 12px;font:inherit;line-height:1.45}
 .composer textarea:focus,#note-edit:focus{outline:2px solid var(--sea);outline-offset:1px}
@@ -304,6 +325,7 @@ main .wrap{padding-block:14px 120px}
 .check[aria-pressed="true"]{background:var(--brass)}
 .storymark{width:10px;height:10px;border-radius:50%;background:var(--sea);margin:8px 0 0 8px}
 
+/* tappable header tiles; tooltip body (fmtTip markup) and footer (trackers, inventory, buttons) */
 .vt.tile{cursor:help;font:inherit;color:inherit}
 .tile .k{text-decoration:underline dotted;text-decoration-color:var(--sea);text-underline-offset:3px}
 .vt.tile:hover,.vt.tile[aria-expanded="true"]{border-color:var(--sea)}
@@ -325,6 +347,7 @@ main .wrap{padding-block:14px 120px}
 .bx .tl li::before{content:'';position:absolute;left:3px;top:.62em;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.55}
 .bubble .binv .btn{background:var(--bg);color:var(--ink);border-color:var(--bg)}
 .item [data-act="useitem"]{align-self:center;white-space:nowrap}
+/* roll card buttons, the step-up animation, option rows and the next-step row */
 .roll .btn{background:var(--bg);color:var(--ink);border-color:var(--brass)}
 .roll .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--bg);font-size:1rem;min-height:44px;padding:8px 18px}
 .roll.again{animation:none!important}
@@ -341,6 +364,7 @@ main .wrap{padding-block:14px 120px}
 .roll .optlb{font-weight:700;font-size:.86rem}
 .roll .optlb:empty{display:none}
 .roll .nextrow{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}
+/* weapon grid button, maneuver buttons */
 .wgrid .wm .go{min-height:40px;padding:6px 16px;font-size:.95rem}
 #maneuverBtns .btnrow{justify-content:flex-end}
 #maneuverBtns > .btn{display:block;margin-left:auto}
@@ -356,7 +380,7 @@ main .wrap{padding-block:14px 120px}
 .ab .k{text-transform:none;letter-spacing:.01em;font-size:.8rem;white-space:nowrap}
 @media (min-width:1040px){ .abil{grid-template-columns:repeat(2,minmax(0,1fr))} }
 
-/* rests */
+/* ── Drawers: rests, Quick roll, ☰ menu (.restbox) ─────────────────────────────────────────────────────── */
 .hbtns{display:flex;gap:6px}
 .restbox{background:var(--surface);border:1px solid var(--sea);border-radius:var(--r);padding:12px 14px;box-shadow:var(--shadow);max-height:70vh;max-height:max(260px,calc(100dvh - 170px));overflow:auto}
 /* more below: a fading strip with an arrow, pinned to the bottom of a drawer that scrolls */
@@ -369,9 +393,10 @@ main .wrap{padding-block:14px 120px}
 .restopt:hover{border-color:var(--sea)}
 .restopt span{color:var(--muted);font-size:.88rem}
 .restlog{margin:10px 0 0;padding-left:18px;font-size:.9rem}
+/* visually hidden, for screen readers */
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-/* touch feedback */
+/* ── Touch feedback: press states ──────────────────────────────────────────────────────────────────────── */
 button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .08s ease-out,box-shadow .12s ease-out,background-color .12s ease-out}
 button:active,button.pressing{transform:scale(.95);box-shadow:inset 0 0 0 999px var(--press)}
 .vt:active,.vt.pressing,.ab:active,.ab.pressing,.restopt:active,.restopt.pressing,.row:active,.row.pressing,.atk .go:active{transform:scale(.97)}
@@ -379,6 +404,7 @@ button:active,button.pressing{transform:scale(.95);box-shadow:inset 0 0 0 999px 
 .term:not(.onebox):active,.term:not(.onebox).pressing{transform:none;box-shadow:none}
 .tabarrow:active,.tabarrow.pressing{transform:translateY(calc(-50% - 1px)) scale(.92)}
 @media (prefers-reduced-motion:reduce){ button:active,button.pressing,.vt:active,.ab:active,.row:active{transform:none} }
+/* the tooltip's close ✕ */
 .bubble{padding-right:40px}
 .bubble .bclose{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;border:0;background:transparent;color:var(--bg);opacity:.7;font-size:1.25rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 2px}
 .bubble .bclose{padding:0}
@@ -386,7 +412,7 @@ button:active,button.pressing{transform:scale(.95);box-shadow:inset 0 0 0 999px 
 .bubble .bclose:hover,.bubble .bclose:active,.bubble .bclose.pressing{opacity:1;box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--bg) 18%,transparent)}
 .bubble .bw,.bubble .ba{margin-right:-28px}
 
-/* coins */
+/* ── Purse and quiver (§19) ────────────────────────────────────────────────────────────────────────────── */
 .purse{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:8px;margin-bottom:12px}
 .coin{display:grid;justify-items:center;gap:2px;padding:10px 6px;border-radius:var(--r);border:1px solid var(--line);background:var(--raised)}
 .coin .cv{font-size:1.35rem;line-height:1.1}
@@ -401,12 +427,14 @@ button:active,button.pressing{transform:scale(.95);box-shadow:inset 0 0 0 999px 
 .cstep{display:flex;gap:6px;margin-top:4px}
 .cstep .iconbtn{width:34px;height:34px}
 .purse{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))}
+/* the crest and name as reload buttons (the crest spins while the page reloads) */
 button.crest{border:0;cursor:pointer;font:inherit;font-family:var(--f-display);font-weight:700;font-size:1.05rem;padding:0}
 .namebtn{border:0;background:none;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left;letter-spacing:inherit}
 .namebtn:active,.namebtn.pressing{transform:none;box-shadow:none;opacity:.7}
 .crest.spin{animation:crestspin .6s linear infinite}
 @keyframes crestspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){ .crest.spin{animation:none;opacity:.6} }
+/* d20 roll pills on list rows */
 .row .nm .term{text-align:left}
 .rollpill{display:inline-flex;align-items:center;gap:5px;min-width:64px;justify-content:center;padding:5px 10px;border-radius:999px;border:1.5px solid var(--sea);background:var(--sea-soft);color:var(--ink);font-family:var(--f-num);font-size:.95rem;cursor:pointer;line-height:1}
 .rollpill .d20{color:var(--sea);flex:none}
@@ -415,12 +443,13 @@ button.crest{border:0;cursor:pointer;font:inherit;font-family:var(--f-display);f
 .d20{vertical-align:-2px}
 .nt.saving{opacity:.75}
 .kv dd .term{white-space:nowrap}
+/* quiver card */
 .ammo{display:grid;grid-template-columns:minmax(110px,140px) minmax(0,1fr);gap:12px;align-items:center}
 .ammoinfo{display:grid;gap:6px;justify-items:start}
 .coin.c-arrows{border-color:var(--sea);background:var(--sea-soft)}
 .coin.c-arrows .cv{color:var(--sea);font-size:1.6rem}
 
-/* ---- pirate dressing ---- */
+/* ── Pirate dressing: the first theme layer over the base styles ───────────────────────────────────────── */
 body{background:var(--glow),var(--grain),var(--bg);background-attachment:fixed}
 h1,h2{font-family:var(--f-pirate);font-weight:400;letter-spacing:.02em}
 .who h1{font-size:1.9rem;line-height:1}
@@ -463,7 +492,7 @@ h2{font-size:1.45rem}
 .note{border-left-color:var(--hp)}
 .coin.c-gp{background:radial-gradient(circle at 50% 30%,var(--brass-soft),var(--raised))}
 
-/* section paging */
+/* ── Panels: pager dots and the ‹ › step buttons ───────────────────────────────────────────────────────── */
 .panes{overflow-x:clip;min-width:0}
 .panel{will-change:auto}
 .pager{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px}
@@ -478,7 +507,7 @@ h2{font-size:1.45rem}
   .tabstep{display:flex;flex:none}
 }
 
-/* roll result: tumble + swipe away */
+/* ── Roll card: die tumble and landing; sideways swipes move between steps (§04) ───────────────────────── */
 .roll{touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;max-height:calc(100vh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 20px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .roll .head{justify-content:flex-start}
 .roll .head .x{margin-left:auto}
@@ -493,12 +522,12 @@ h2{font-size:1.45rem}
 .roll.landed .bd{animation:fadein .25s ease-out}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
 
-/* HP lives at the top of the page, not in the sticky bar */
+/* room under the header; tall tooltips scroll (later replaced by the .bscroll rules) */
 main .wrap{padding-top:12px}
 .bubble{max-height:min(72vh,600px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .bubble .bx,.bubble .bw{user-select:none;-webkit-user-select:none}
 
-/* roll breakdown */
+/* ── Roll card: breakdown lines, step colours, boosts ──────────────────────────────────────────────────── */
 .roll .n{font-weight:700}
 .roll .dmgn{color:var(--brass)}
 .roll .n small .term.dt{color:inherit;text-decoration-color:var(--brass);font:inherit;letter-spacing:inherit;text-transform:inherit}
@@ -512,6 +541,7 @@ main .wrap{padding-top:12px}
 .roll .mod{font-family:var(--f-num)}
 .roll .rn{font-size:.8rem;opacity:.7;flex-basis:100%;padding-left:calc(5.5em + 6px)}
 .roll .bd.optrow,.roll .nextrow{border-top:1px solid rgba(0,0,0,.18);padding-top:10px;margin-top:8px}
+/* --roll-hit: the hit step's blue; --roll-on: text on it (light and dark) */
 :root{--roll-hit:#8CC4DC}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--roll-hit:#1F5C7C}}
 :root[data-theme="dark"]{--roll-hit:#1F5C7C}
@@ -558,6 +588,7 @@ main .wrap{padding-top:12px}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .bubble{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .09' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .28 0 0 0 0 .1 0 0 0 .3 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='500'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .32 0 0 0 0 .1 0 0 0 1.1 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),radial-gradient(ellipse 90px 60px at 88% 82%,rgba(140,90,30,.16),rgba(140,90,30,.06) 60%,transparent 72%),radial-gradient(ellipse 140px 90px at 70% 12%,rgba(150,100,40,.10),transparent 70%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .24 0 0 0 0 .1 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .1 0 0 0 .22 -.04'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 35%,transparent 55%,rgba(120,72,18,.2) 100%),radial-gradient(circle at 18% 10%,rgba(255,255,255,.22),transparent 45%);background-size:600px 300px,700px 500px,100% 100%,100% 100%,180px 180px,420px 420px,100% 100%,100% 100%;box-shadow:0 12px 32px rgba(0,0,0,.45),inset 0 0 18px rgba(120,70,20,.28),inset 0 0 60px rgba(110,64,18,.16)}}
 :root[data-theme="dark"] .bubble{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .09' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .28 0 0 0 0 .1 0 0 0 .3 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='500'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .32 0 0 0 0 .1 0 0 0 1.1 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),radial-gradient(ellipse 90px 60px at 88% 82%,rgba(140,90,30,.16),rgba(140,90,30,.06) 60%,transparent 72%),radial-gradient(ellipse 140px 90px at 70% 12%,rgba(150,100,40,.10),transparent 70%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .24 0 0 0 0 .1 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .1 0 0 0 .22 -.04'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 35%,transparent 55%,rgba(120,72,18,.2) 100%),radial-gradient(circle at 18% 10%,rgba(255,255,255,.22),transparent 45%);background-size:600px 300px,700px 500px,100% 100%,100% 100%,180px 180px,420px 420px,100% 100%,100% 100%;box-shadow:0 12px 32px rgba(0,0,0,.45),inset 0 0 18px rgba(120,70,20,.28),inset 0 0 60px rgba(110,64,18,.16)}
 
+/* Sneak Attack row, Bardic Inspiration row, attack-mode and slot pickers */
 .roll .bd.sarow{gap:0;padding-top:8px;margin-top:6px}
 .roll .sarow .od{line-height:1.3}
 .roll .sarow .od b{font-size:.92rem}
@@ -586,6 +617,7 @@ main .wrap{padding-top:12px}
 .roll.kept .autobar{display:none}
 .roll.paused .autobar{animation-play-state:paused;opacity:.45}
 @keyframes autobar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+/* Done button, the pulsing ✓, the ➜ on Roll damage, damage buttons */
 .roll .btn.done{background:var(--aye);border-color:var(--aye);color:#fff;font-size:1rem;min-height:44px;padding:8px 20px}
 .roll .nextrow [data-act="rolldmg"]::after{content:"➜";display:inline-block;margin-left:7px;font-size:.9em;opacity:.85;animation:nudge 1.6s ease-in-out infinite}
 .okmk{display:inline-block;margin-left:2px;animation:okpulse 1.6s ease-in-out infinite}
@@ -601,7 +633,7 @@ main .wrap{padding-top:12px}
 .roll .stepnote{margin:2px 0 4px}
 .roll .sub{font-weight:700;font-size:.85rem;opacity:.8;margin-top:4px}
 
-/* HP tile in the sticky bar */
+/* ── Vitals: the HP tile and its drawer ────────────────────────────────────────────────────────────────── */
 .vitals{grid-template-columns:minmax(0,1.35fr) repeat(4,minmax(0,1fr));gap:6px}
 .vt .k{font-size:clamp(.54rem,2.5vw,.66rem);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vt{padding:6px 4px}
@@ -617,6 +649,7 @@ main .wrap{padding-top:12px}
 .hpq .btn{min-height:44px;font-family:var(--f-num);font-size:1.05rem;padding:6px 0}
 .hpq .btn.primary{font-family:var(--f-body)}
 @media (min-width:700px){ .vitals{grid-template-columns:minmax(0,1.4fr) repeat(4,minmax(0,1fr));gap:8px} }
+/* the line under the name; header fit on narrow phones */
 .subbtn{display:block;width:100%;border:0;background:none;padding:0;margin:0;font:inherit;font-size:.9rem;color:var(--muted);text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .subbtn:active,.subbtn.pressing{transform:none;box-shadow:none;opacity:.6}
 .who h1{font-size:clamp(1.35rem,6.4vw,1.9rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -624,11 +657,13 @@ main .wrap{padding-top:12px}
 @media (max-width:380px){ .vitals{grid-template-columns:minmax(0,1.2fr) repeat(4,minmax(0,1fr));gap:5px} .vt{padding:6px 2px} }
 .hpmenu{overflow:hidden}
 .hpmenu .winx{display:none}
+/* drawer footer: Done and the buttons */
 .hpfoot{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .hpfoot .ba{order:2}
 .hpfoot .done{order:1}
 .btn.done{background:var(--aye);border-color:var(--aye);color:#fff;font-size:1.05rem;min-height:46px;padding:8px 26px}
 .btn.done:hover{filter:brightness(1.08)}
+/* the HP editor row */
 .hpedit{flex-wrap:nowrap}
 .hpedit input{width:64px;min-width:0}
 @media (max-width:360px){ .hpedit{flex-wrap:wrap} }
@@ -636,12 +671,14 @@ main .wrap{padding-top:12px}
 .hpedit .btn{white-space:nowrap;padding:4px 9px}
 .hpedit input{flex:1 1 44px;width:auto;min-width:40px;max-width:80px}
 .hpedit label{white-space:nowrap}
+/* change list rows */
 .chbtns{display:flex;gap:6px;flex-shrink:0}
 .changes ul.chlist{list-style:none;padding:0;display:grid;gap:8px}
 .chlist li{display:grid;gap:2px;padding-left:12px;border-left:2px solid var(--brass)}
 .chlist .cht{font-weight:700}
 .chlist .chw{font-size:.86rem;color:var(--muted)}
 #notechanges .changes{margin:0;border:0;background:transparent;padding:0}
+/* ── Confirm dialog (.modal, confirmBox §17) ───────────────────────────────────────────────────────────── */
 .btn.danger{border-color:var(--hp);color:var(--hp)}
 .modal{position:fixed;inset:0;z-index:100;background:rgba(4,8,12,.62);display:flex;align-items:center;justify-content:center;padding:16px;animation:mfade .14s ease-out}
 .mbox{background:var(--raised);color:var(--ink);border:1px solid var(--rope);border-radius:var(--r);padding:18px 18px 14px;max-width:360px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.45);animation:mpop .16s cubic-bezier(.2,.8,.2,1)}
@@ -657,6 +694,7 @@ main .wrap{padding-top:12px}
 @keyframes mfade{from{opacity:0}}
 @keyframes mpop{from{transform:translateY(8px) scale(.97);opacity:0}}
 @media (prefers-reduced-motion:reduce){.modal,.mbox{animation:none}}
+/* ── Tile drawers: AC, speed, initiative (termDrawer, §12) ─────────────────────────────────────────────── */
 .tdr .bk{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--muted)}
 .tdr .bt{font-family:var(--f-pirate);font-size:1.4rem;line-height:1.1;margin:2px 0 6px;color:var(--brass)}
 .tdr .bx{white-space:pre-line;line-height:1.45}
@@ -673,12 +711,13 @@ main .wrap{padding-top:12px}
 .tdr .ba{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .tdr .ba .btn{min-height:46px;padding:8px 16px}
 .vt.tile[aria-expanded="true"]{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
+/* note composer: header and session counter */
 .comphead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .sess{display:flex;align-items:center;gap:6px}
 .sess output{min-width:2ch;text-align:center;font-weight:700;font-size:1.1rem}
 .sessin{width:64px;border:1px solid var(--line);border-radius:8px;background:var(--raised);color:var(--ink);padding:6px 8px;font:inherit}
 
-/* action animations */
+/* ── Action animations (§05) ───────────────────────────────────────────────────────────────────────────── */
 .fx{position:fixed;inset:0;z-index:70;display:grid;place-items:center;pointer-events:none;animation:fxin .12s ease-out;background:radial-gradient(circle at 50% 50%,rgba(8,12,18,.6) 0,rgba(8,12,18,.35) 32%,rgba(8,12,18,0) 62%)}
 .fx.out{animation:fxout .16s ease-in forwards}
 @keyframes fxin{from{opacity:0}} @keyframes fxout{to{opacity:0;transform:scale(1.08)}}
@@ -750,8 +789,10 @@ main .wrap{padding-top:12px}
 .fx-potion .glow,.fx-wind .glow{background:radial-gradient(circle,rgba(110,200,120,.5),rgba(110,200,120,0) 70%)}
 .fx .sweep{animation:fxsweep var(--d) ease-out both}
 @keyframes fxsweep{0%{transform:translate(-160%,-50%) scale(.6);opacity:0}40%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-40%,-50%) scale(1)}}
+/* a "Who benefits" block that is also body text */
 .bw.bx{border-top:0!important;padding-top:0!important;margin-top:0!important}
 .bw.bx > span{display:block}
+/* ── ☰ menu and Quick roll drawers (§18) ───────────────────────────────────────────────────────────────── */
 .menubtn{display:inline-grid;place-items:center;padding:6px 12px}
 #menubox{margin-top:8px}
 .qrtop{position:sticky;top:-12px;z-index:3;background:var(--surface);margin:-12px -14px 8px;padding:12px 14px 10px;border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
@@ -781,7 +822,7 @@ main .wrap{padding-top:12px}
 .qrdragging,.dragmode{cursor:grabbing}
 .dragmode .dragging{cursor:grabbing;border-radius:10px;position:relative;z-index:6;box-shadow:0 12px 28px -8px rgba(0,0,0,.6),0 0 0 1px var(--sea)!important;transition:none!important}
 @media (hover:hover) and (pointer:fine){ .qrfav .qrrow{cursor:grab} .qrfav .qrrow button{cursor:pointer} }
-/* themed scrollbars: thin brass thumb on a faint track, everywhere */
+/* ── Scrollbars ────────────────────────────────────────────────────────────────────────────────────────── */
 /* themed scrollbars: a slim brass thumb, no arrow buttons. Chrome/Safari use the ::-webkit-scrollbar rules
    (setting scrollbar-color there would switch back to the standard bar with arrows), Firefox uses scrollbar-color */
 @supports not selector(::-webkit-scrollbar){
@@ -796,6 +837,7 @@ main .wrap{padding-top:12px}
   html::-webkit-scrollbar-thumb:hover,.restbox::-webkit-scrollbar-thumb:hover,#hpedit::-webkit-scrollbar-thumb:hover,.qrlist::-webkit-scrollbar-thumb:hover,.spells::-webkit-scrollbar-thumb:hover,.bubble .bscroll::-webkit-scrollbar-thumb:hover,.roll::-webkit-scrollbar-thumb:hover{background:var(--brass);background-clip:padding-box}
   html::-webkit-scrollbar-corner{background:transparent}
 }
+/* Quick roll button; attack card tools and reorder arrows */
 .qrgo{flex:none;min-width:86px}
 .cardhead:has(.atktools){flex-wrap:nowrap;align-items:center}
 .atktools{white-space:nowrap;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
@@ -806,6 +848,7 @@ main .wrap{padding-top:12px}
 .reord .btn:disabled{opacity:.3}
 .reordwrap.moved > .atk{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass)}
 .atklist.editing .atkbtn{display:none}
+/* ── ↕ Sections button and jump menu (§14) ─────────────────────────────────────────────────────────────── */
 .jumpbtn{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:25;border:1px solid var(--brass);background:var(--surface);color:var(--ink);border-radius:999px;padding:10px 16px;font:inherit;font-weight:700;font-size:.92rem;box-shadow:0 6px 20px rgba(0,0,0,.4);cursor:pointer}
 body.tipopen .jumpbtn{opacity:0;pointer-events:none}
 .jumpbtn{transition:opacity .15s}
@@ -827,8 +870,10 @@ body.tipopen .jumpbtn{opacity:0;pointer-events:none}
 .jumpi .je{width:1.4em;text-align:center}
 section.card.jumped{box-shadow:0 0 0 2px var(--brass);transition:box-shadow .3s}
 .card.sechead{padding-bottom:12px}
+/* Save buttons: their own green */
 :root{--save:#2F7A63;--save-ink:#FFFFFF}
 .btn.savebtn,.bubble .ba .btn.savebtn,.tdr .ba .btn.savebtn{background:var(--save);border-color:var(--save);color:var(--save-ink)}
+/* ── ☰ menu rows and the dice-set picker ───────────────────────────────────────────────────────────────── */
 .menulink{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;cursor:pointer}
 .menulink .chev{font-size:1.6rem;line-height:1;color:var(--muted)}
 .dsopt{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;cursor:pointer}
@@ -868,7 +913,7 @@ div.dsgh{margin:14px 0 6px;padding:6px 8px;border-radius:10px;background:color-m
 .syncopt:disabled{opacity:.5;cursor:default}
 .dst span{font-size:.84rem;color:var(--muted)}
 .dsck{color:var(--brass);font-weight:800;font-size:1.2rem}
-/* rolling dice */
+/* ── Dice: 3D canvas, flat fallback dice, inked results (§06) ──────────────────────────────────────────── */
 .dice3d{position:fixed;inset:0;display:block;pointer-events:none}
 
 .fxdice{background:radial-gradient(circle at 50% 50%,rgba(8,12,18,.7) 0,rgba(8,12,18,.45) 40%,rgba(8,12,18,.1) 75%)}
@@ -894,6 +939,7 @@ div.dsgh{margin:14px 0 6px;padding:6px 8px;border-radius:10px;background:color-m
 .roll.inked .n:not(.still){animation:inkin .6s .22s cubic-bezier(.3,.7,.3,1) both}
 @keyframes dieflip{0%{transform:rotateY(90deg) scale(.6);opacity:.2}60%{transform:rotateY(-12deg) scale(1.18);opacity:1}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.fx{display:none}.roll .die.flip{animation:none}}
+/* ── Level plan and "or" dividers ──────────────────────────────────────────────────────────────────────── */
 .plan{list-style:none;padding:0;margin:4px 0 0}
 .pstep{padding:12px 0;border-top:1px solid var(--line)}
 .pstep:first-child{border-top:0;padding-top:4px}
@@ -907,6 +953,7 @@ div.dsgh{margin:14px 0 6px;padding:6px 8px;border-radius:10px;background:color-m
 .pdesc p{margin:0 0 4px}
 /* roll buttons: a size up from the rest */
 .btn[data-weapon],.btn[data-combo],.btn.rollbtn,.btn[data-act="rollinit"],.btn[data-tool]{font-size:1rem;min-height:44px;padding:8px 20px}
+/* gear rows */
 .item .iname{font-weight:700;font-size:1.06rem;color:var(--ink)}
 .item .qty{font-family:var(--f-num);font-weight:700;color:var(--brass);font-size:.9rem;white-space:nowrap}
 .item{padding:9px 0}
@@ -920,6 +967,7 @@ div.dsgh{margin:14px 0 6px;padding:6px 8px;border-radius:10px;background:color-m
   50%{background-color:#9E1B1B;border-color:#FF6A55;box-shadow:0 0 14px 2px rgba(226,60,48,.55)}
 }
 @media (prefers-reduced-motion:reduce){ .hptile.low{border-color:#FF6A55!important} }
+/* tile icons */
 .vt .v .ico{width:.62em;height:.62em;vertical-align:.04em;margin-right:.1em;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round;opacity:.75}
 .vt .v .ico .thin{stroke-width:1.6}
 .vt.tile .v .ico{color:var(--sea);opacity:.9}
@@ -937,12 +985,14 @@ h3 .emo{font-size:.9em}
 .bt.hassub{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:10px;row-gap:2px}
 .bsub{font-family:var(--f-num);font-weight:700;font-size:.8rem;letter-spacing:0;opacity:.85;white-space:nowrap}
 .bt.hassub + .bx{margin-top:10px}
-/* type cues in running text */
+/* type cues in running text (decorate, §16). Dice are brass everywhere outside tooltips and roll cards:
+   the sheet exists to make the next real-life roll easy to spot */
 .dice{font-family:var(--f-num);font-weight:700;color:var(--brass);white-space:nowrap;font-size:.94em}
 .dc{font-family:var(--f-num);font-weight:700;font-size:.82em;white-space:nowrap;padding:0 .4em;border:1px solid currentColor;border-radius:4px;color:var(--sea);display:inline-block;line-height:1.35}
 .dist{font-weight:700;white-space:nowrap;color:var(--ink)}
 .bubble .dice,.bubble .dist,.bubble .dc{color:inherit}
 .roll .dice{color:inherit}
+/* drawer header: emoji, title, value */
 .dhead{display:flex;align-items:baseline;gap:.4em;margin:2px 0 8px;font-size:1.4rem;line-height:1.15}
 .dhead .emo{font-size:1em;margin:0}
 .dhead .dtitle{font-family:var(--f-pirate);color:var(--brass)}
@@ -959,7 +1009,7 @@ h3 .emo{font-size:.9em}
 .iconbtn[data-d]:not([data-d^="-"]):active,.btn[data-act="coingain"]:active,.iconbtn[data-d]:not([data-d^="-"]).pressing,.btn[data-act="hpadj"]:not([data-n^="-"]).pressing{background:color-mix(in srgb,var(--good) 32%,var(--raised))}
 .iconbtn[data-d],.btn[data-act="hpadj"]{font-weight:700;box-shadow:inset 0 1px 0 rgba(255,246,216,.08)}
 
-/* ---- more sea dog ---- */
+/* ── More sea dog: the second theme layer ──────────────────────────────────────────────────────────────── */
 /* sea chart behind everything: faint latitude lines and a compass rose */
 body{background:
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%23C9A55A' stroke-opacity='.10' stroke-width='1'%3E%3Ccircle cx='100' cy='100' r='92'/%3E%3Ccircle cx='100' cy='100' r='70'/%3E%3Cpath d='M100 2v196M2 100h196M31 31l138 138M169 31L31 169'/%3E%3C/g%3E%3Cg fill='%23C9A55A' fill-opacity='.10'%3E%3Cpath d='M100 8l9 92-9 92-9-92z'/%3E%3Cpath d='M8 100l92-9 92 9-92 9z'/%3E%3C/g%3E%3C/svg%3E") no-repeat right -90px bottom -60px/340px 340px fixed,
@@ -1005,6 +1055,7 @@ input,textarea,select{font-size:max(16px,1em)}
 .coin.sel:is(.c-sp,.c-cp,.c-ep,.c-pp){border-color:var(--cc);box-shadow:0 0 0 1px var(--cc),0 0 14px -4px var(--cc);background:radial-gradient(circle at 50% 25%,color-mix(in srgb,var(--cc) 18%,transparent),var(--raised))}
 .coin.sel:is(.c-sp,.c-cp,.c-ep,.c-pp) .cv{color:var(--cc)}
 .coin:focus-visible{outline:2px solid var(--sea);outline-offset:2px}
+/* coin ± buttons and the amount box */
 .cstep{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:4px;width:100%;max-width:96px}
 .cstep .iconbtn{width:auto;height:34px;font-family:var(--f-num);font-size:.85rem;padding:0}
 .coinform{display:grid;gap:6px}
@@ -1030,17 +1081,15 @@ input,textarea,select{font-size:max(16px,1em)}
 .atk{grid-template-columns:minmax(0,1fr);gap:6px}
 .atk .chips{margin-top:2px}
 .atk .tip{margin:4px 0 0}
-/* Sneak Attack: a proper switch, not a chip */
 /* resources: text left, controls right, quiet separators */
 .resrow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px dashed color-mix(in srgb,var(--rope) 55%,transparent)}
 .resrow:last-of-type{border-bottom:0}
 .rctl{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 .rctl.col{flex-direction:column;align-items:flex-end;gap:6px}
 .rctl.chips{max-width:150px}
+/* action buttons on resource rows */
 .btn.actbtn{font-size:1rem;min-height:44px;padding:8px 18px;white-space:nowrap}
 .btn.actbtn:disabled{opacity:.45}
-/* calmer colour in descriptive sections: keep the type cue, drop the gold */
-/* Dice notation is always brass, everywhere outside tooltips: the sheet exists to make the next real-life roll easy to spot. */
 /* action-economy labels: tinted, not solid */
 .tag.term{font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:3px 9px;border-radius:5px;border:1px solid transparent;line-height:1.3}
 .tag.A{background:color-mix(in srgb,var(--sea) 14%,transparent);color:var(--sea);border-color:color-mix(in srgb,var(--sea) 40%,transparent)}
@@ -1048,8 +1097,10 @@ input,textarea,select{font-size:max(16px,1em)}
 .tag.R{background:color-mix(in srgb,var(--hp) 14%,transparent);color:var(--hp);border-color:color-mix(in srgb,var(--hp) 40%,transparent)}
 .tag.F{background:transparent;color:var(--muted);border-color:color-mix(in srgb,var(--muted) 40%,transparent)}
 .tag.M{background:color-mix(in srgb,var(--sea) 8%,transparent);color:var(--ink);border-color:var(--line)}
+/* glossary words: a firmer dotted underline */
 .term{text-decoration-color:color-mix(in srgb,var(--sea) 62%,transparent);text-decoration-thickness:1.75px}
 .term:hover,.term[aria-expanded="true"]{text-decoration-color:var(--sea)}
+/* action tags: a tinted outline */
 .tag.term{border:1px solid transparent}
 .tag.A{border-color:color-mix(in srgb,var(--sea) 40%,transparent)}
 .tag.B{border-color:color-mix(in srgb,var(--brass) 40%,transparent)}
@@ -1116,9 +1167,10 @@ button:not(:disabled):active,button:not(:disabled).pressing,[data-pick].pressing
   border:1px solid currentColor;border-radius:50%;opacity:.8;vertical-align:-.3em}
 .steps li::before{flex:none;margin-top:2px}
 .steps li .tag{width:5.4em;min-width:0;justify-content:center;text-align:center;padding-left:0;padding-right:0}
-/* rest panel: slides, swipes away (left, right or up) */
+/* ── Rest drawer: short and long rest screens ──────────────────────────────────────────────────────────── */
 .restbox{touch-action:pan-y}
 .restbox h3{font-family:var(--f-pirate);font-weight:400;font-size:1.35rem;letter-spacing:.02em}
+/* short rest: HP line, hit dice rows, free features, what comes back */
 .srhp{display:flex;gap:12px;align-items:baseline;margin:0 0 8px;font-size:1.05rem}
 .srmiss{color:var(--hp)} .srfull{color:var(--good)}
 .srdice{display:grid;gap:8px;padding:10px 12px;border-radius:var(--r);background:color-mix(in srgb,var(--brass) 8%,var(--raised));border:1px solid color-mix(in srgb,var(--brass) 35%,transparent)}
@@ -1178,20 +1230,21 @@ button:not(:disabled):active,button:not(:disabled).pressing,[data-pick].pressing
 .dmg{align-items:center;gap:6px 12px}
 .dmgthrow{display:inline-flex;flex-wrap:wrap;align-items:baseline;row-gap:4px}
 .dmg .small{flex-basis:100%}
+/* weapon stat grid */
 .wgrid{display:grid;grid-template-columns:auto auto minmax(0,1fr);column-gap:12px;row-gap:4px;align-items:baseline;margin:2px 0}
 .wgrid .wl{font-size:.88rem;color:var(--muted);white-space:nowrap}
 .wgrid .wm{font-size:.82rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wgrid .wm.dmgcell{display:inline-flex;align-items:center;gap:8px;overflow:visible;text-overflow:clip;flex-wrap:wrap}
 .srbtns .pipwrap{align-items:flex-end}
 
-/* ---- desktop: a roomier roll card, three mode options in one row ---- */
+/* ── Desktop: a roomier roll card, the three mode options in one row ───────────────────────────────────── */
 @media (min-width:700px){
   .roll{max-width:560px;padding:16px 20px}
   .atkpick{grid-template-columns:repeat(3,minmax(0,1fr))}
   .atkpick .atkopt{padding:12px 14px}
 }
 @media (min-width:1040px) and (pointer:fine){ #dock .roll{zoom:1.15;max-height:calc((100dvh - 20px) / 1.15)} }
-/* ---- hover and keyboard focus (mouse and trackpad only; touch keeps its press states) ---- */
+/* ── Hover and keyboard focus (mouse and trackpad only; touch keeps its press states) ──────────────────── */
 button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,border-color .15s,box-shadow .15s,color .15s,filter .15s,opacity .15s,transform .15s}
 @media (hover:hover) and (pointer:fine){
   .btn:not(:disabled):hover{filter:brightness(1.07);box-shadow:0 2px 10px -4px rgba(0,0,0,.45)}
@@ -1233,7 +1286,7 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 /* resource pips wrap after five so long counters (Sorcery Points, many hit dice) don't squeeze the text */
 .res .pips{flex-wrap:wrap;justify-content:flex-end;max-width:166px}
 
-/* Spells tab */
+/* ── Spells tab (§08b) ─────────────────────────────────────────────────────────────────────────────────── */
 .castgrid{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .caster{display:grid;gap:2px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--raised)}
 .splist{display:grid}
@@ -1305,6 +1358,7 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 @media (max-width:600px){ .slotcols.two .slotcol + .slotcol{padding-left:14px} .slotcols.two .resrow > div:first-child{min-height:22px} .slotcols.two .resrow > div:first-child > b{line-height:22px} }
 @media (max-width:600px){ .slotcols.two .lvw{display:none} .slotcols.two{column-gap:14px} .slotcols.two .pips{max-width:110px;gap:5px} .slotcols.two .pip{width:22px!important;height:22px!important;font-size:.7rem} .slotcols.two .resrow .small.muted{display:none} }
 
+/* spell tags, icons and extra lines */
 .dtag{font-size:.82rem;color:var(--muted);white-space:nowrap}
 .chip.ic{padding:1px 6px;font-size:.85rem;background:transparent;border:1px solid var(--line)}
 .spels{margin-top:6px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--rope) 55%,transparent)}
@@ -1324,7 +1378,6 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
   .boosts summary:hover .chev{filter:brightness(1.12)}
 }
 
-/* desktop: the rest drawer is as wide as the right-hand column, lined up with it */
 /* desktop: rests and the ☰ menu open as a centred window over a dimmed screen, like a game's settings menu */
 @media (min-width:1040px) and (pointer:fine){
   #restbox:not([hidden]),#menubox:not([hidden]),#rollbox:not([hidden]),#hpedit:not([hidden]){position:fixed;left:50%;top:calc(var(--hdrB, 200px) + 14px);transform:translateX(-50%);width:min(780px,calc(100vw - 64px));
@@ -1345,6 +1398,7 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 }
 @keyframes modalin{from{opacity:0;transform:translate(-50%,-10px) scale(.97)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
 
+/* Spells finder heading */
 .spfind h2{margin-bottom:10px}
 
 /* ☰ menu sections fold open in place */
@@ -1391,7 +1445,7 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 /* when the text scrolls, a hairline marks where the footer begins */
 .bubble.bscrolls .bfoot > .ba:first-child{border-top:1px dashed rgba(0,0,0,.18);padding-top:10px}
 
-/* long rest: grouped cards */
+/* ── Long rest screen and rest footers ─────────────────────────────────────────────────────────────────── */
 .lrgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 .lrgrp{border:1px solid var(--line);border-radius:12px;background:var(--raised);padding:10px 12px}
 .lrh{font-weight:700;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--brass);margin-bottom:6px}
@@ -1415,11 +1469,11 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 #restbox.more::after{display:none}
 .restbox.noscroll{overflow:hidden!important}
 
-/* Notes sub-tabs (web app): My notes / Party log */
+/* ── Notes sub-tabs (web app): My notes / Party log ────────────────────────────────────────────────────── */
 .seg.notescope{display:flex;width:100%;margin-bottom:12px}
 .seg.notescope button{flex:1;padding:10px 12px;font-size:.95rem}
 .nby{font-weight:700;color:var(--brass);margin-left:6px}
-/* ➕ Add item window (Gear tab) */
+/* ── ➕ Add item window (Gear tab, §11) ─────────────────────────────────────────────────────────────────── */
 .itemmodal{align-items:flex-start;padding-top:max(16px,env(safe-area-inset-top))}
 .mbox.ibox{max-width:560px;height:min(720px,calc(100dvh - 32px));display:flex;flex-direction:column;padding:0;overflow:hidden}
 .ibox > .muted,.ibox > p:first-child{padding:18px}
@@ -1449,6 +1503,7 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 .icheck input{width:22px;height:22px;accent-color:var(--brass)}
 .ibox > .mbtns{padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent);background:var(--raised)}
 .ibox .mbtns .btn.primary{max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* items added in the app: dashed tag, controls, equip toggle */
 .chip.addtag{border-style:dashed;border-color:var(--brass);color:var(--brass);background:transparent}
 .addctl{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .addctl .itemdel{width:30px;height:30px;font-size:1.2rem}
@@ -1458,6 +1513,7 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 .chip.eqbtn{cursor:pointer;font:inherit;font-size:.8rem}
 .chip.eqbtn:hover{border-color:var(--brass)}
 .item .addctl{align-self:center;flex-wrap:nowrap}
+/* ── Resources: several buttons, a points pool, an on/off toggle ───────────────────────────────────────── */
 /* resources with several buttons or a points pool: controls go on their own line under the text */
 .resrow.wide{grid-template-columns:minmax(0,1fr)}
 .resrow.wide .rctl.col{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
@@ -1469,10 +1525,12 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 .pool output b{font-size:1.35rem;color:var(--brass)}
 .pool output small{color:var(--muted)}
 .resrow.wide .piplbl{margin-left:auto}
+/* a toggle that is on (Rage…): orange wash on its row, a banner card */
 .resrow.on{background:linear-gradient(90deg,color-mix(in srgb,#c2410c 16%,transparent),transparent 70%);border-radius:10px;padding:8px;margin:0 -8px}
 .chip.onchip{background:#c2410c;color:#fff}
 .activebar{border-color:#c2410c;background:linear-gradient(135deg,color-mix(in srgb,#c2410c 22%,var(--surface)),var(--surface) 70%)}
 .activebar .cardhead{margin-bottom:6px}
+/* roll lines: damage type, uses left */
 .roll .ln .dtype{font-size:.8rem;opacity:.75;margin-left:4px}
 .roll .rleft{opacity:.75;font-size:.88em;white-space:nowrap}
 /* magic ammunition picker on the attack setup */
@@ -1491,6 +1549,7 @@ button,.coin,.tab,.restopt,.menulink,.dsopt{transition:background-color .15s,bor
 button.chip.ic{cursor:help;font:inherit;line-height:1.2;border:1px solid transparent}
 button.chip.ic:hover{border-color:var(--sea)}
 button.chip.ic.term{text-decoration:none}
+/* ── Concentration (Spells tab) ────────────────────────────────────────────────────────────────────────── */
 /* concentration (Spells tab): a banner for the spell you hold, spell cards to pick from */
 .concbox{display:grid;gap:10px;margin:0 0 12px;padding:12px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--rope) 70%,var(--line));background:var(--raised)}
 .concbox.on{border-color:var(--sea);background:linear-gradient(135deg,color-mix(in srgb,var(--sea) 16%,var(--raised)),var(--raised) 75%)}
@@ -1524,6 +1583,7 @@ button.chip.ic.term{text-decoration:none}
 .roll .ln.hang .lnv{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;min-width:0}
 .roll .ln.hang .rn{grid-column:2;padding-left:0}
 .roll .ln.hang .lb{padding-left:1.35em;text-indent:-1.35em}   /* a long label wraps under its text, not under the emoji */
+/* ── Read-only view of a shared sheet (web app) ────────────────────────────────────────────────────────── */
 /* read-only view of a shared sheet (web app): a banner, controls that would change the tracker dimmed */
 .viewbar{display:flex;gap:10px;align-items:center;margin:0 0 12px;padding:10px 14px;border-radius:var(--r);border:1px solid var(--sea);background:color-mix(in srgb,var(--sea) 12%,var(--surface));font-size:.92rem}
 .viewbar .vic{font-size:1.3rem}
@@ -1533,6 +1593,7 @@ button.chip.ic.term{text-decoration:none}
 .viewnote{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:200;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.9rem;box-shadow:var(--shadow);max-width:calc(100vw - 32px);text-align:center}
 .viewonly #restbtn,.viewonly .hptile{opacity:.6}
 
+/* ── Later additions, one feature each ─────────────────────────────────────────────────────────────────── */
 /* ☰ menu, web app only: links home and to Privacy & terms */
 .menulinks{margin:10px 0 0;text-align:center;color:var(--muted)} .menulinks a{color:inherit}
 .homebtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;margin:12px 0 0;text-decoration:none;font-weight:700}
@@ -1554,7 +1615,8 @@ button.chip.ic.term{text-decoration:none}
 .jumpbtn{transition:opacity .15s,background .15s,color .15s,transform .15s,box-shadow .15s}
 @media (hover:hover){ .jumpbtn:hover{background:var(--brass);color:var(--bg);box-shadow:0 6px 18px rgba(0,0,0,.3);transform:translateY(-2px)} }
 @media (prefers-reduced-motion:reduce){ .jumpbtn:hover{transform:none} }
-/* web app: the "Sync with D&D Beyond" window (§21 syncWindow): two numbered parts, a table of what differs */
+/* ── Sync with D&D Beyond window (web app, §21 syncWindow) ─────────────────────────────────────────────── */
+/* two numbered parts, a table of what differs */
 .mbox:has(.syncwin){max-width:min(680px,calc(100vw - 32px));width:100%}
 .syncwin{max-height:min(62vh,620px);overflow:auto;margin:0 -4px 12px;padding:0 4px}
 .syncwin p{margin:0 0 10px;line-height:1.5}
