@@ -31,7 +31,7 @@ fs.mkdirSync(out+'/claude', {recursive:true});
 for (const s of SHEETS) fs.writeFileSync(out+'/claude/'+s.out, claudeDoc(s));
 // web app: engine parts as files, plus packs; the shell pages live in web/
 fs.mkdirSync(out+'/web/engine', {recursive:true}); fs.mkdirSync(out+'/web/packs', {recursive:true});
-for (const f of ['theme.css','app.css','themes.js','classes.js']) fs.copyFileSync(path.join(__dirname,'..','src',f), out+'/web/engine/'+f);
+for (const f of ['theme.css','skins.css','app.css','themes.js','classes.js']) fs.copyFileSync(path.join(__dirname,'..','src',f), out+'/web/engine/'+f);
 fs.writeFileSync(out+'/web/engine/main.js', engine());
 fs.copyFileSync(path.join(__dirname,'..','data','items.json'), out+'/web/items.json');   // ➕ Add item list, fetched when opened
 for (const f of fs.readdirSync(path.join(__dirname,'..','packs'))) fs.copyFileSync(path.join(__dirname,'..','packs',f), out+'/web/packs/'+f);
@@ -42,7 +42,7 @@ fs.cpSync(path.join(__dirname,'..','web'), out+'/web', { recursive: true, filter
 const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<title>'+title+'</title>')
     .replace(/<link rel="preconnect"[^>]*>\n?/g, '').replace(/<link href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/fonts/fonts.css">')
   + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96"><link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">'
-  + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css">'
+  + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css"><link rel="stylesheet" href="/engine/skins.css">'
   + '<script src="/sw-register.js"></script>';   // offline (web/sw.template.js); no inline scripts (CSP)
 // sheet pages: the tumbling background dice (the same ones as the home page, throwable via home-anim.js) and a
 // loading card with a gold bar while the character and the engine load

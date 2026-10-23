@@ -27,7 +27,7 @@ function paintMenu(){
   // sections fold open in place (one at a time); tapping an open one folds it again
   const chev = open => '<span class="chev mchev'+(open?' open':'')+'" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
   const when = new Date(DATA.syncedAt).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}), pend = changes().length;
-  const syncOpen = menuView === 'sync', diceOpen = menuView === 'dice';
+  const syncOpen = menuView === 'sync', diceOpen = menuView === 'dice', skinOpen = menuView === 'skin';
   const opt = (act, ico, t, sub, off) => '<button class="dsopt syncopt" id="'+act+'btn" data-act="'+act+'"'+(off||syncing?' disabled':'')+'><span class="mico" aria-hidden="true">'+ico+'</span><span class="dst"><b data-label="'+t+'">'+(syncing?'Working…':t)+'</b><span>'+sub+'</span></span></button>';
   const syncBody = '<div class="msub"><div class="diceset">'
     + opt('pull', '⬇️', 'Pull from D&amp;D Beyond', 'D&amp;D Beyond → this app. Works on any device.')
@@ -48,18 +48,31 @@ function paintMenu(){
               + '<span class="dst"><b>'+esc(s.name)+'</b><span>'+esc(s.desc)+'</span></span><span class="dsroll" aria-hidden="true">🎲</span></button>'
               + '<button class="dspick'+(k===cur?' on':'')+'" data-act="diceset" data-k="'+k+'" aria-pressed="'+(k===cur)+'" aria-label="'+(k===cur?'In use: ':'Use ')+esc(s.name)+'">'+(k===cur?'✓':'')+'</button></div>'; }).join('')+'</div>').join('') + '</div>';
   const webSync = window.SHEET && !VIEW
-    ? '<button class="menulink" data-act="syncwin"><span class="mico" aria-hidden="true">🔄</span><span class="dst"><b>Sync with D&amp;D Beyond</b><span>Last synced '+esc(when)+(pend ? ' · '+pend+' difference'+(pend===1?'':'s') : '')+(DATA_OLD ? ' · sync for new details' : '')+'</span></span><span class="mchev" aria-hidden="true">›</span></button>'
+    ? '<button class="menulink" data-act="syncwin"><span class="mico" aria-hidden="true">🔄</span><span class="dst"><b>Sync with D&amp;D Beyond</b><span>Last synced '+esc(when)+(pend ? ' · '+pend+' difference'+(pend===1?'':'s') : '')+(DATA_OLD && !window.SHEET.trial ? ' · sync for new details' : '')+'</span></span><span class="mchev" aria-hidden="true">›</span></button>'
     : null;
   box.innerHTML = '<div class="cardhead" style="margin-bottom:8px"><h3>☰ Menu</h3><button class="x2" data-act="menu" aria-label="Close">×</button></div>'
     // web app: first the way back to your characters (claude.ai sheets have none), then sync, then dice
     + (window.SHEET && !diceEdit ? '<a class="menulink homelink" href="/"><span class="mico" aria-hidden="true">‹</span><span class="dst"><b>'+(window.SHEET.trial ? 'Back to Dungeon Tracker' : 'Back to all characters')+'</b></span></a><div style="height:8px"></div>' : '')
     + (window.SHEET ? (webSync || '') : '<button class="menulink'+(syncOpen?' open':'')+'" data-act="menuview" data-v="sync" aria-expanded="'+syncOpen+'"><span class="mico" aria-hidden="true">🔄</span><span class="dst"><b>Sync D&amp;D Beyond</b><span>Last synced '+esc(when)+(pend ? ' · '+pend+' to push' : '')+(DATA_OLD ? ' · sync for new details' : '')+'</span></span>'+chev(syncOpen)+'</button>'
     + (syncOpen ? syncBody : ''))
+    + skinRow(skinOpen, chev)
     + '<div style="height:8px"></div>'
     + '<button class="menulink'+(diceOpen?' open':'')+'" data-act="menuview" data-v="dice" aria-expanded="'+diceOpen+'">'+sw(DICE_SETS[cur]).replace('class="dsw"','class="dsw one"')+'<span class="dst"><b>Dice Sets</b><span>'+esc(DICE_SETS[cur].name)+'</span></span>'+chev(diceOpen)+'</button>'
     + (diceOpen ? diceBody : '')
     + (diceEdit ? '' : done);
 }
+// web app: ☰ → Theme — five looks (web/sw-register.js: window.Skin) and light / dark / follow the device
+function skinRow(open, chev){
+  const K = window.Skin; if (!K || !window.SHEET) return '';
+  const cur = K.skin(), mode = K.mode(), it = K.list.find(x => x[0] === cur) || K.list[0], ML = {auto:'Auto', light:'Light', dark:'Dark'};
+  return '<div style="height:8px"></div><button class="menulink'+(open?' open':'')+'" data-act="menuview" data-v="skin" aria-expanded="'+open+'"><span class="mico" aria-hidden="true">🎨</span><span class="dst"><b>Theme</b><span>'+esc(it[1])+' · '+ML[mode]+'</span></span>'+chev(open)+'</button>'
+    + (open ? '<div class="msub skinpick"><div class="skingrid">'+K.list.map(([k, n, e, dk, ac, lt]) => '<button class="skinopt'+(k===cur?' on':'')+'" data-act="skinpick" data-k="'+k+'" aria-pressed="'+(k===cur)+'">'
+          + '<span class="skinsw" style="background:linear-gradient(135deg,'+lt+' 0 50%,'+dk+' 50% 100%)"><span style="background:'+ac+'"></span></span><span class="skinn">'+e+' '+esc(n)+'</span></button>').join('')+'</div>'
+        + '<div class="skinmode" role="group" aria-label="Light or dark">'+['auto','light','dark'].map(m => '<button data-act="skinmode" data-m="'+m+'" aria-pressed="'+(m===mode)+'">'+(m==='auto'?'🖥️ ':m==='light'?'☀️ ':'🌙 ')+ML[m]+'</button>').join('')+'</div>'
+        + '<p class="small muted" style="margin:6px 2px 0">Saved on this device. Auto follows your phone or computer’s light/dark setting.</p></div>' : '');
+}
+function skinPick(k){ const K = window.Skin; if (!K) return; const was = K.skin(); K.set(k, K.mode()); if (k !== was) location.reload(); }
+function skinMode(m){ const K = window.Skin; if (!K) return; K.set(K.skin(), m); paintMenu(); }
 // open / close the ☰ menu
 // desktop windows (rest, menu) leave the way they arrived: fade, lift and shrink a touch
 function winOut(box, done){

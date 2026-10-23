@@ -220,7 +220,7 @@ async function renderHome() {
       <p class="small muted">The character must be public on D&amp;D Beyond (Character Settings → Character Privacy → Public). Dungeon Tracker only reads it.</p></section>
     <div id="cont"></div></div>
     <div class="htab" data-tab="party"><section class="card"><h2>Shared with you</h2><div id="shared" class="list"><p class="muted">Loading…</p></div></section>` + inviteCard() + '</div>'
-    + '<div class="htab" data-tab="account">' + (auto ? '' : nameCard(me)) + secCard(me) + '</div><div class="htab" data-tab="data">' + dataCard() + '</div>';
+    + '<div class="htab" data-tab="account">' + (auto ? '' : nameCard(me)) + looksCard() + secCard(me) + '</div><div class="htab" data-tab="data">' + dataCard() + '</div>';
   const showTab = k => { document.querySelectorAll('.htab').forEach(t => { t.hidden = t.dataset.tab !== k; });
     document.querySelectorAll('[data-hometab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.hometab === k))); try { localStorage.setItem('home-tab', k); } catch (_) {} };
   document.querySelectorAll('[data-hometab]').forEach(b => b.onclick = () => showTab(b.dataset.hometab));
@@ -229,7 +229,7 @@ async function renderHome() {
   pwPrompt(me);
   $('#add').addEventListener('submit', addCharacter); $('#uname').addEventListener('submit', saveName);
   { const u = $('#uname [name=u]'); u.addEventListener('input', () => { $('#unpv').textContent = u.value.trim().toLowerCase() || 'name'; }); }   // the example link follows what you type
-  bindSec(); $('#export').onclick = exportData; $('#delacct').onclick = askDelete; bindInvite();
+  bindSec(); bindLooks(); $('#export').onclick = exportData; $('#delacct').onclick = askDelete; bindInvite();
   await loadLists();
 }
 
@@ -308,6 +308,18 @@ function pwPrompt(me) {
       if (t === 'fresh-code-needed') { card.remove(); $('#secpw').click(); $('#secpw').scrollIntoView({ block: 'center' }); msg('For safety we email you a code first. Press “Email me a code”.'); }
       else msg(t || 'Couldn’t save that. Try again.', true); }
   };
+}
+// Theme: the same five looks and light/dark as ☰ → Theme on a sheet (web/sw-register.js: window.Skin), saved on this device
+const looksCard = () => `<section class="card looks"><h2>Theme</h2><p class="small muted">How Dungeon Tracker and your sheets look on this device.</p><div id="looks"></div></section>`;
+function bindLooks() {
+  const K = window.Skin, box = $('#looks'); if (!K || !box) return;
+  const ML = { auto: '🖥️ Auto', light: '☀️ Light', dark: '🌙 Dark' };
+  const paint = () => { const cur = K.skin(), mode = K.mode();
+    box.innerHTML = '<div class="skingrid">' + K.list.map(([k, n, e, dk, ac, lt]) => `<button type="button" class="skinopt${k === cur ? ' on' : ''}" data-skin="${k}" aria-pressed="${k === cur}"><span class="skinsw" style="background:linear-gradient(135deg,${lt} 0 50%,${dk} 50% 100%)"><span style="background:${ac}"></span></span><span class="skinn">${e} ${esc(n)}</span></button>`).join('') + '</div>'
+      + '<div class="skinmode" role="group" aria-label="Light or dark">' + Object.entries(ML).map(([m, t]) => `<button type="button" data-mode="${m}" aria-pressed="${m === mode}">${t}</button>`).join('') + '</div>';
+    box.querySelectorAll('[data-skin]').forEach(b => b.onclick = () => { K.set(b.dataset.skin, K.mode()); paint(); });
+    box.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { K.set(K.skin(), b.dataset.mode); paint(); }); };
+  paint();
 }
 // Sign-in & security: change your email or set/change your password. Both confirm with a 6-digit code
 // (server/pb_hooks/account.pb.js): for a password it goes to your email, for a new email to the new address.

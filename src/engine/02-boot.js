@@ -136,8 +136,16 @@ const srcTag = term => FEATURE_SRC[term] || null;
 const HOST = 'host:claude_browser';
 // Active theme (#themes): wording, dice sets, fonts. WORD falls back to plain English for keys a theme leaves out.
 const THEME = THEMES[PACK.theme] || THEMES[Object.keys(THEMES)[0]];
+// the web app's other looks (☰ → Theme, <html data-skin>) speak their own few words; no skin = the pack's theme (pirate)
+const SKIN = document.documentElement.getAttribute('data-skin') || '';
+const SKIN_WORDS = {
+  fantasy:  { ok:'So be it ✓', cancel:'Nay', log:'Chronicle', clean:'⚜ All in order.', critIcon:'⚜' },
+  space:    { ok:'Confirm ✓', cancel:'Abort', log:'Mission log', clean:'✦ All systems nominal.', critIcon:'✦' },
+  woodland: { ok:'Done ✓', cancel:'Not now', log:'Grove journal', clean:'🍃 All is well.', critIcon:'🍃' },
+  gothic:   { ok:'So be it ✓', cancel:'Begone', log:'Journal', clean:'🕯️ All quiet.', critIcon:'🦇' },
+};
 const WORD = Object.assign({ ok:'Done ✓', cancel:'Cancel', log:'Notes', turn:'Your turn at a glance', clean:'✓ All clear.',
-  notesHint: n => 'Who you met, what you found, what '+n+' wants next…', critIcon:'✦' }, THEME.words);
+  notesHint: n => 'Who you met, what you found, what '+n+' wants next…', critIcon:'✦' }, SKIN && SKIN_WORDS[SKIN] ? SKIN_WORDS[SKIN] : THEME.words);
 const FIRST_NAME = DATA.name.split(/\s+/)[0];
 const INITIALS = DATA.name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
 // HTML-escape anything that came from data

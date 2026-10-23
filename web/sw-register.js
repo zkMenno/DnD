@@ -1,3 +1,22 @@
+// Theme (☰ → Theme, or Account): which look (data-skin: fantasy, space, woodland, gothic; none = pirate) and light/dark
+// (data-theme; none = follow the device). Set here, in the page head, so the first paint already has the right colours.
+(function () {
+  const d = document.documentElement, get = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+  // [key, name, emoji, swatch: dark background, accent, light background]
+  const SKINS = [['pirate', 'Pirate', '🏴‍☠️', '#0C141C', '#E2B04A', '#ECE2CC'], ['fantasy', 'High Fantasy', '🏰', '#171B36', '#E9C766', '#F1EBDD'],
+    ['space', 'Starfarer', '🚀', '#0D1424', '#4FE0EE', '#E9EEF5'], ['woodland', 'Feywild', '🍃', '#132119', '#DCB867', '#E6ECD8'], ['gothic', 'Ravenloft', '🦇', '#161118', '#D9B26A', '#E9E4E2']];
+  const apply = (s, m) => {
+    if (s && s !== 'pirate') d.setAttribute('data-skin', s); else d.removeAttribute('data-skin');
+    if (m === 'light' || m === 'dark') d.setAttribute('data-theme', m); else d.removeAttribute('data-theme');
+  };
+  apply(get('dt-skin'), get('dt-mode'));
+  window.Skin = {
+    list: SKINS,
+    skin: () => d.getAttribute('data-skin') || 'pirate',
+    mode: () => d.getAttribute('data-theme') || 'auto',
+    set(s, m) { try { localStorage.setItem('dt-skin', s); localStorage.setItem('dt-mode', m); } catch (_) {} apply(s, m); },
+  };
+})();
 // Offline support: register the service worker (dist/web/sw.js, built from web/sw.template.js).
 // A file of its own because the Content-Security-Policy allows no inline scripts.
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

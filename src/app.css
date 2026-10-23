@@ -326,7 +326,7 @@ main .wrap{padding-block:14px 120px}
 .bubble .binv .btn{background:var(--bg);color:var(--ink);border-color:var(--bg)}
 .item [data-act="useitem"]{align-self:center;white-space:nowrap}
 .roll .btn{background:var(--bg);color:var(--ink);border-color:var(--brass)}
-.roll .btn.primary{background:var(--brass);border-color:var(--brass);color:#1B140C;font-size:1rem;min-height:44px;padding:8px 18px}
+.roll .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--bg);font-size:1rem;min-height:44px;padding:8px 18px}
 .roll.again{animation:none!important}
 @keyframes stepup{from{transform:translateY(48px);opacity:0}to{transform:none;opacity:1}}
 @keyframes reveal{from{transform:scale(.97);opacity:.6}to{transform:none;opacity:1}}
@@ -809,7 +809,7 @@ main .wrap{padding-top:12px}
 .jumpbtn{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:25;border:1px solid var(--brass);background:var(--surface);color:var(--ink);border-radius:999px;padding:10px 16px;font:inherit;font-weight:700;font-size:.92rem;box-shadow:0 6px 20px rgba(0,0,0,.4);cursor:pointer}
 body.tipopen .jumpbtn{opacity:0;pointer-events:none}
 .jumpbtn{transition:opacity .15s}
-.jumpbtn[aria-expanded="true"]{background:var(--brass);color:#1B140C}
+.jumpbtn[aria-expanded="true"]{background:var(--brass);color:var(--bg)}
 .jumpmenu{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:26;min-width:220px;max-width:calc(100vw - 28px);max-height:60vh;overflow:auto;background:var(--surface);border:1px solid var(--brass);border-radius:14px;padding:6px;box-shadow:0 12px 34px rgba(0,0,0,.5);animation:jumpin .16s cubic-bezier(.2,.8,.2,1)}
 @keyframes jumpin{from{transform:translateY(8px) scale(.97);opacity:0}}
 .jumph{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 10px 4px}
@@ -1541,7 +1541,7 @@ button.chip.ic.term{text-decoration:none}
 .diceask{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;justify-content:center;
   width:max-content;max-width:calc(100vw - 24px);box-sizing:border-box;padding:10px 14px;border-radius:14px;background:var(--ink);color:var(--bg);box-shadow:0 12px 34px rgba(0,0,0,.35);font-size:.95rem;line-height:1.4}
 .diceask .diceaskbtns{display:flex;gap:8px}
-.diceask .btn{background:var(--brass);color:#1d1406;border-color:var(--brass)} .diceask .btn.ghost{background:transparent;color:var(--bg);border-color:color-mix(in srgb,var(--bg) 40%,transparent)}
+.diceask .btn{background:var(--brass);color:var(--bg);border-color:var(--brass)} .diceask .btn.ghost{background:transparent;color:var(--bg);border-color:color-mix(in srgb,var(--bg) 40%,transparent)}
 @media (prefers-reduced-motion:no-preference){ .diceask{animation:diceaskin .25s ease-out} @keyframes diceaskin{from{opacity:0;transform:translate(-50%,-8px)}} }
 /* wide screens: ↕ Sections sits just outside the sheet's right edge, not in the window's corner */
 @media (min-width:1560px){ .jumpbtn{right:auto;left:calc(50% + 652px)} }
@@ -1552,7 +1552,7 @@ button.chip.ic.term{text-decoration:none}
 .roll .bardseg button[aria-pressed="true"]{background:var(--bg);color:var(--ink);border-color:var(--bg)}
 /* ↕ Sections: a hover state like the other buttons */
 .jumpbtn{transition:opacity .15s,background .15s,color .15s,transform .15s,box-shadow .15s}
-@media (hover:hover){ .jumpbtn:hover{background:var(--brass);color:#1d1406;box-shadow:0 6px 18px rgba(0,0,0,.3);transform:translateY(-2px)} }
+@media (hover:hover){ .jumpbtn:hover{background:var(--brass);color:var(--bg);box-shadow:0 6px 18px rgba(0,0,0,.3);transform:translateY(-2px)} }
 @media (prefers-reduced-motion:reduce){ .jumpbtn:hover{transform:none} }
 /* web app: the "Sync with D&D Beyond" window (§21 syncWindow): two numbered parts, a table of what differs */
 .mbox:has(.syncwin){max-width:min(680px,calc(100vw - 32px));width:100%}
@@ -1561,7 +1561,7 @@ button.chip.ic.term{text-decoration:none}
 .syncwin .synclast{margin:-4px 0 12px}
 .synch{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-size:1.02rem}
 .synch:first-of-type{margin-top:0}
-.syncno{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--brass);color:#1d1406;font-weight:800;font-size:.9rem}
+.syncno{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--brass);color:var(--bg);font-weight:800;font-size:.9rem}
 .syncok{padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--good) 14%,transparent);border:1px solid color-mix(in srgb,var(--good) 40%,transparent)}
 .synctabw{overflow-x:auto;margin:0 0 10px;border:1px solid var(--line);border-radius:12px}
 .synctab{width:100%;border-collapse:collapse;font-size:.9rem}
@@ -1590,4 +1590,14 @@ a.menulink.homelink .mico{font-size:1.6rem;line-height:1;font-weight:700;color:v
 .synctab td b{overflow-wrap:anywhere}
 /* ☰ menu: "Back to all characters" stands out (gold edge), and fills gold on hover */
 a.menulink.homelink{border-color:var(--brass);transition:background .15s,color .15s}
-a.menulink.homelink:hover{background:var(--brass);color:#1d1406} a.menulink.homelink:hover .mico{color:#1d1406}
+a.menulink.homelink:hover{background:var(--brass);color:var(--bg)} a.menulink.homelink:hover .mico{color:var(--bg)}
+/* ☰ → Theme (web app) */
+.skingrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.skinopt{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;text-align:left;transition:border-color .15s,background .15s}
+.skinopt:hover{border-color:var(--brass)} .skinopt.on{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass);background:color-mix(in srgb,var(--brass) 10%,var(--raised))}
+.skinsw{position:relative;flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);overflow:hidden}
+.skinsw span{position:absolute;right:4px;bottom:4px;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1.5px rgba(0,0,0,.35)}
+.skinn{font-size:.92rem}
+.skinmode{display:flex;gap:6px;margin-top:10px}
+.skinmode button{flex:1;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;font-weight:700;font-size:.9rem;cursor:pointer}
+.skinmode button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--bg)}
