@@ -147,7 +147,7 @@
   // ── Phones: the sticky Get started bar ───────────────────────────────────────────────────────────────────
   // It shows while no other Get started button (hero, How it works) is on screen, once the page is scrolled a bit.
   {
-    const bar = $('.stickycta'), own = [...document.querySelectorAll('#landing .btn.cta')].filter(b => !bar.contains(b)), seen = new Set();
+    const bar = $('.stickycta'), own = [...document.querySelectorAll('#landing .btn.cta')].filter(b => !bar || !bar.contains(b)), seen = new Set();
     if (bar && 'IntersectionObserver' in window) {
       // show or hide the bar (and take its button out of the tab order while hidden)
       const set = () => { const on = !seen.size && scrollY > 200; bar.classList.toggle('on', on); bar.setAttribute('aria-hidden', String(!on)); bar.firstElementChild.tabIndex = on ? 0 : -1; };

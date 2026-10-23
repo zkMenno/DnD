@@ -139,11 +139,6 @@ async function pull(){
   }
   syncing = true; syncBusy(true, 'pull');
   const done = html => { syncing = false; syncBusy(false, 'pull'); setMsg(html); };
-  // web app path from before the Sync window; never reached now (window.SHEET returns at the top)
-  if (window.SHEET) {
-    try { setMsg('Reading D&amp;D Beyond…'); await window.SHEET.pull(compact); return done('Synced. Reloading…'); }
-    catch (e) { return done(esc((e && e.message) || 'Sync failed. Try again in a moment.')); }
-  }
   const mcp = window.claude && window.claude.use ? await window.claude.use('mcp') : null;
   if (!mcp) return done('Syncing needs this page open in Claude (app or claude.ai).');
   try {
