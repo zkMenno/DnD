@@ -1,0 +1,8 @@
+/* ── Icons (web/icons.js, drawn in tools/gen-icons.py) ─────────────────────────────────────────────────────────────
+   Sized by the text around them, so the same icon fits a button label or a big roll animation. --ia is the soft
+   fill (the theme's brass); --iao its strength. Buttons filled with brass use the page colour instead, so the fill
+   stays visible. */
+.ic{display:inline-block;width:1.2em;height:1.2em;vertical-align:-.22em;flex:none;--ia:var(--brass);overflow:visible}
+.btn.primary .ic,.tab[aria-selected="true"] .ic,.hometabs [aria-selected="true"] .ic,.skinmode [aria-pressed="true"] .ic,
+.pwseg [aria-pressed="true"] .ic,.fbkinds [aria-checked="true"] .ic{--ia:currentColor;--iao:.18}
+.hptile .ic,.trialin .ic{--ia:currentColor;--iao:.2}

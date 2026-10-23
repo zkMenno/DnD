@@ -49,6 +49,9 @@ fs.writeFileSync(out+'/web/engine/main.js', engine());
 fs.copyFileSync(path.join(__dirname,'..','data','items.json'), out+'/web/items.json');   // ➕ Add item list, fetched when opened
 for (const f of fs.readdirSync(path.join(__dirname,'..','packs'))) fs.copyFileSync(path.join(__dirname,'..','packs',f), out+'/web/packs/'+f);
 fs.cpSync(path.join(__dirname,'..','web'), out+'/web', { recursive: true, filter: f => !f.endsWith('sw.template.js') });   // incl. fonts/
+// Icons (tools/gen-icons.py): the sprite next to the pages, and the emoji → icon map stamped into icons.js
+fs.copyFileSync(path.join(__dirname,'..','src','icons.svg'), out+'/web/icons.svg');
+fs.writeFileSync(out+'/web/icons.js', fs.readFileSync(out+'/web/icons.js','utf8').replace('/*__ICON_MAP__*/{}', fs.readFileSync(path.join(__dirname,'..','src','icons.json'),'utf8').trim()));
 // ── Web app: pages ─────────────────────────────────────────────────────────────────────────────────────────
 // A web page's <head>: the same as the claude.ai sheets (reset, fonts), then engine CSS by link. Every path is
 // absolute: sheet.html is also served at /<username>/<D&D Beyond id> (server/pocketbase-main.go), where relative
@@ -58,7 +61,7 @@ const head = title => R('src/head.html').replace(/<title>[^<]*<\/title>/, '<titl
     .replace(/<link rel="preconnect"[^>]*>\n?/g, '').replace(/<link href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/fonts/fonts.css">')
   + '\n<link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96"><link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4">'
   + '<meta name="theme-color" content="#0f1720"><link rel="stylesheet" href="/engine/theme.css"><link rel="stylesheet" href="/engine/skins.css">'
-  + '<script src="/sw-register.js"></script><script src="/feedback.js" defer></script>';   // offline (web/sw.template.js) · 🐞 feedback box; no inline scripts (CSP)
+  + '<link rel="stylesheet" href="/icons.css"><script src="/sw-register.js"></script><script src="/icons.js" defer></script><script src="/feedback.js" defer></script>';   // offline (web/sw.template.js) · 🐞 feedback box; no inline scripts (CSP)
 // Sheet pages: the tumbling background dice (the same ones as the home page, throwable via home-anim.js) and a
 // loading card with a gold bar while the character and the engine load. DICE_DEFS is the hidden <svg> of dice
 // shapes (<symbol>s) taken from src/landing.html.
