@@ -1,29 +1,41 @@
 /* ── Home pages: front page, sign-in, signed-in home, Privacy & terms (web/home.css) ───────────────────── */
 /* Styles index.html (web/index.js draws #main) and legal.html. The sheet pages don't load it (they use sheet.css).
    Colours and fonts come from the theme tokens (/engine/theme.css + skins.css), so light/dark and the looks apply.
-   The file grew by appending: later blocks restyle earlier ones on purpose (equal specificity: later wins), and
-   the comments say where. Don't reorder or merge blocks without checking what each one overrides.
-   Order: base styles · brand and buttons · front page (hero, features, dice tray, motion, party, how it works,
-   try picker) · messages · sign-in · account (security, tabs, theme, data) · character rows · readable sizes. */
+   One place per component: each block holds all of one part's rules, under a header saying what it styles; change
+   a part in its block instead of adding an override further down (tools/css-check.js fails on a selector written
+   twice in the same @media context). Order still matters between blocks where rules of equal specificity reach
+   the same element; the blocks that rely on coming later say so in their header.
+   Order: base styles · brand and buttons · front page (hero, features, how it works, sign-in cards, motion, dice
+   tray, background dice, party, sticky bar, try picker) · messages · sign-in · account (security, tabs, theme,
+   data) · character rows · readable sizes. */
 
 /* ── Base: page, top bar, cards, form fields, buttons, character rows ──────────────────────────────────── */
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);margin:0}
-.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;max-width:760px;margin:0 auto}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);margin:0;position:relative;min-height:100vh}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;max-width:760px;margin:0 auto;position:relative;z-index:2}
 .top h1{font-family:var(--f-display,var(--f-body));font-size:2rem;margin:0}
-#who{font-size:.9rem;color:var(--muted)} #who a{color:inherit}
+#who{font-size:.9rem;color:var(--muted);text-align:right}
+#who a{color:var(--ink);font-weight:700}
 main{max-width:760px;margin:0 auto;padding:0 16px 60px;display:grid;gap:14px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r,14px);padding:16px}
 .card h2{margin:0 0 12px;font-size:1.3rem}
+#main .card h2{font-size:1.4rem}
 label{display:grid;gap:4px;margin-bottom:10px;font-weight:600}
 input,select{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--ink)}
 .row{display:flex;gap:8px;flex-wrap:wrap}
-.btn{font:inherit;font-weight:700;padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);cursor:pointer}
+.btn{font:inherit;font-weight:700;padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);
+  cursor:pointer;transition:background .15s,border-color .15s,transform .08s,box-shadow .15s}
 .btn.primary{background:var(--sea);border-color:var(--sea);color:var(--sea-ink,#0b1a24)}
 .small{font-size:.86rem} .muted{color:var(--muted)}
-.msg{max-width:760px;margin:0 auto 10px;padding:0 16px;min-height:1.2em;color:var(--good)} .msg.bad{color:var(--hp)}
+.msg{min-height:1.2em;max-width:520px;box-sizing:border-box;margin:6px auto 12px;padding:11px 14px;border-radius:12px;position:relative;
+  line-height:1.5;font-size:.98rem;color:var(--ink);background:color-mix(in srgb,var(--brass) 10%,var(--surface));
+  border:1px solid color-mix(in srgb,var(--brass) 40%,transparent)}
+.msg.bad{padding-left:40px;color:var(--ink);background:color-mix(in srgb,var(--hp) 12%,var(--surface));
+  border-color:color-mix(in srgb,var(--hp) 50%,transparent)}
 .list{display:grid;gap:8px}
-.ch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--raised)}
-.ch .open{display:grid;gap:2px;color:inherit;text-decoration:none;min-width:0;flex:1}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;
+  background:var(--raised);position:relative}
+.ch .open{display:grid;gap:2px;color:inherit;text-decoration:none;min-width:0;flex:1;grid-template-columns:40px minmax(0,1fr);column-gap:10px;
+  align-items:center}
 .ch .open:hover b{text-decoration:underline}
 .boot{max-width:560px;margin:60px auto;padding:0 16px;text-align:center;color:var(--muted)}
 .chctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
@@ -31,90 +43,175 @@ input,select{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid 
 .claim{border:1px dashed var(--brass);border-radius:12px;padding:10px 12px;margin:-2px 0 6px}
 .claim ol{margin:6px 0;padding-left:20px;display:grid;gap:4px}
 .code{font-family:var(--f-num);font-weight:700;background:var(--brass-soft);padding:2px 6px;border-radius:6px;user-select:all}
-@media (max-width:520px){ .ch{flex-wrap:wrap} .ch .open{flex-basis:100%} .chctl{width:100%;justify-content:flex-start} }
-/* sign in: password option folded under the code button (restyled in "Sign in" below, twice) */
-.pwbox{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+@media (max-width:520px){ .ch{flex-wrap:wrap} .ch .open{flex-basis:100%} }
+.ch .open span{text-wrap:pretty}
+@media (max-width:560px){ .ch > .open{grid-row:1;flex-basis:auto;grid-column:2/4} }
+.ch .contbtn.btn.primary:hover{filter:brightness(1.08);border-color:var(--brass)}
+@media (max-width:560px){
+  .ch > .contbtn .d20i{display:none}
+  .ch{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;column-gap:8px;row-gap:10px}
+  .ch > .chstar{grid-column:1;grid-row:1}
+  .ch > .chmore{grid-row:1;grid-column:4;justify-self:end}
+  .ch > .chctl{grid-row:2;width:auto;justify-content:flex-start;flex-wrap:nowrap;min-width:0;grid-column:1/3}
+  .ch > .chctl:empty{display:none}
+}
+@media (max-width:520px){ .chctl{width:100%;justify-content:flex-start} }
+.chctl select{max-width:190px}
+@media (max-width:560px){ .chctl select{padding-left:12px;padding-right:30px;flex:1 1 auto;min-width:0;max-width:none} }
+/* sign in: the password option folded under the code button; open, it is one framed box with the summary on top */
+.pwbox{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
 .pwbox summary{cursor:pointer;color:var(--muted)}
 .pwbox[open] summary{margin-bottom:8px}
-#codebox input[name=code]{font-family:var(--f-num);font-size:1.4rem;letter-spacing:.3em;max-width:11ch}
+.pwbox summary.btn{display:inline-flex;align-items:center;gap:8px;list-style:none;color:var(--ink);width:100%;box-sizing:border-box}
+.pwbox summary.btn::-webkit-details-marker{display:none}
+.pwbox[open] summary.btn{border-color:var(--brass);margin:-1px -1px 14px;border-radius:16px 16px 12px 12px;width:calc(100% + 2px);
+  justify-content:flex-start;box-sizing:border-box}
+.pwbox input{width:100%;box-sizing:border-box;font-size:1.05rem;padding:12px 14px}
+.pwbox[open]{border:1px solid color-mix(in srgb,var(--brass) 55%,var(--line));border-radius:16px;padding:0 16px 16px;margin-top:20px;background:color-mix(in srgb,var(--raised) 50%,transparent)}
+.pwbox summary .xchev{margin-left:auto}
+.pwbox[open] summary .xchev{transform:rotate(-135deg) translate(-2px,-2px)}
+#codebox input[name=code]{font-family:var(--f-num);font-size:1.4rem;letter-spacing:.3em}
 /* offline pill: the sheet page's copy is in sheet.css */
 .offline{position:fixed;left:50%;top:calc(8px + env(safe-area-inset-top));transform:translateX(-50%);z-index:300;background:#7a4b12;color:#fff;padding:6px 14px;border-radius:999px;font-size:.82rem;box-shadow:0 4px 14px rgba(0,0,0,.35);max-width:calc(100vw - 24px);text-align:center}
-/* footer and the legal page (/legal.html): sections fold open like the sheet's menus
-   (the legal rules are restyled in "Privacy & terms" below) */
-.foot{max-width:760px;margin:0 auto;padding:0 16px 40px;text-align:center;font-size:.86rem;color:var(--muted)} .foot a{color:inherit}
-.legal details{border-top:1px solid var(--line);padding:10px 0} .legal details:first-of-type{border-top:0}
-.legal summary{cursor:pointer;font-weight:700;font-size:1.05rem;list-style-position:outside}
+/* footer and the legal page (/legal.html): sections fold open like the sheet's menus (the rest of the legal page is
+   in "Privacy & terms") */
+.foot{max-width:760px;margin:0 auto;padding:0 16px 40px;text-align:center;color:var(--muted);font-size:.95rem;padding-top:28px}
+.legal details{border:1px solid var(--line);border-radius:12px;padding:0;margin:10px 0 0;background:var(--raised)}
+.legal details:first-of-type{border-top:1px solid var(--line)}
 .legal h3{font-size:1rem;margin:14px 0 4px} .legal p,.legal li{line-height:1.5} .legal ul{padding-left:20px}
-.legal table{border-collapse:collapse;width:100%;font-size:.9rem} .legal td,.legal th{border-top:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}
+.legal table{border-collapse:collapse;font-size:.9rem;overflow-x:auto;display:table;width:calc(100% - 28px)}
+.legal td,.legal th{border-top:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}
 .btn.danger{border-color:var(--hp);color:var(--hp)}
-.legal a{color:var(--sea)}
+.btn.login:hover{border-color:var(--brass);color:var(--brass)}
+/* header Log in: the same outlined button as the hero's (.btn.login), a size smaller */
+#who .btn.toplogin{font-size:.95rem;padding:7px 16px;border-radius:999px;font-weight:700;color:var(--ink);border-color:color-mix(in srgb,var(--ink) 35%,transparent);background:var(--raised)}
+#who .btn.toplogin:hover{border-color:var(--brass);color:var(--brass)}
+@media (max-width:520px){ #who .btn.toplogin{font-size:.85rem;padding:6px 12px} }
+#main .btn{font-size:1.02rem}
+#main{font-size:1.08rem}
+#main input,#main select{font-size:1.05rem}
 
 /* ── Brand, top bar and buttons: logo d20, hover and focus states for every .btn ───────────────────────── */
-/* Adds to the base .top, #who and .btn rules above. Colours and fonts are the sheet's theme tokens. */
-.top{position:relative;z-index:2}
 .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-family:var(--f-display);font-size:1.55rem;font-weight:700;letter-spacing:.01em}
-.brand-d20{width:30px;height:30px;color:var(--brass);flex:none}
-.brand-d20{transform:rotate(-18deg);transition:transform .3s} .brand:hover .brand-d20{transform:rotate(-40deg)}
-#who a{color:var(--ink);font-weight:700}
-.btn{transition:background .15s,border-color .15s,transform .08s,box-shadow .15s}
+.brand-d20{width:30px;height:30px;color:var(--brass);flex:none;transform:rotate(-18deg);transition:transform .3s}
+.brand:hover .brand-d20{transform:rotate(-40deg)}
+/* the Dungeon Tracker name keeps its own lettering in every theme (until there's a proper logo) */
+.brand span{white-space:nowrap;font-family:"Alegreya SC",Georgia,"Times New Roman",serif;letter-spacing:normal}
 .btn:hover{border-color:var(--brass)} .btn:active{transform:translateY(1px) scale(.98)}
-.btn.primary:hover{filter:brightness(1.08)} .btn:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.btn:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 .btn.wide{width:100%}
 
 /* ── Front page: hero, features, how it works, trust line ──────────────────────────────────────────────── */
-/* .features starts at 4 columns (3 from "Features 3 × 2"); .how at 860px (full width later); text sizes are
-   raised in "Front page text size" */
+/* the glow covers the whole window width, not just the text column */
 body.front{background:
-  radial-gradient(ellipse 70% 45% at 75% 8%,color-mix(in srgb,var(--brass) 16%,transparent),transparent 70%),
-  radial-gradient(ellipse 60% 40% at 10% 0%,color-mix(in srgb,var(--sea) 14%,transparent),transparent 70%),
-  var(--bg)}
-.landing{max-width:1080px;margin:0 auto;padding:8px 20px 40px}
-.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding:24px 0 36px}
-.eyebrow{font-family:var(--f-num);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:0 0 10px}
+    radial-gradient(ellipse 70% 45% at 75% 8%,color-mix(in srgb,var(--brass) 16%,transparent),transparent 70%),
+    radial-gradient(ellipse 60% 40% at 10% 0%,color-mix(in srgb,var(--sea) 14%,transparent),transparent 70%),
+    var(--bg);overflow-x:clip}
+/* The page inherited the sheet's compact 14 px base, and Alegreya Sans' small x-height made that read like
+   12 px. The landing gets an 18 px base; cards and steps 17 px; headings follow. */
+.landing{max-width:1080px;margin:0 auto;padding:8px 20px 40px;font-size:1.125rem;position:relative;padding-bottom:12px}
+/* Everything that moves is behind prefers-reduced-motion or html.anim (set by the script), so without either
+   it's still. .phone gets its tilt (--rot) here. */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding:24px 0 36px;position:relative}
+.eyebrow{font-family:var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:0 0 10px;font-size:.85rem}
 .hero-title{font-family:var(--f-display);font-size:clamp(2.3rem,5.4vw,3.9rem);line-height:1.04;margin:0 0 18px;letter-spacing:-.005em}
-.lede{font-size:1.16rem;line-height:1.55;color:var(--ink);opacity:.92;max-width:34em;margin:0 0 26px}
-.cta-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:26px}
-.btn.cta{display:inline-flex;align-items:center;gap:10px;font-size:1.2rem;padding:14px 28px;background:var(--brass);border-color:var(--brass);color:var(--sea-ink,#0c141c);text-decoration:none;box-shadow:0 6px 22px color-mix(in srgb,var(--brass) 35%,transparent)}
-.btn.cta:hover{filter:brightness(1.1);box-shadow:0 8px 28px color-mix(in srgb,var(--brass) 50%,transparent)}
-.btn.cta .d20i{width:22px;height:22px;transform:rotate(-18deg);transition:transform .3s}   /* tilted at rest, like the logo; turns further on hover */
-.cta-alt{color:var(--ink);font-weight:700} .cta-alt:hover{color:var(--brass)}
+/* hero copy: the lede, the perks list (further down), Get started "or" Log in, the paste-a-link box */
+.lede{color:var(--ink);opacity:.92;max-width:34em;font-size:1.28rem;line-height:1.55;margin:0 0 16px}
+@media (max-width:520px){ .lede{font-size:1.2rem} }
+.cta-row{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:26px}
+@media (max-width:520px){ .cta-row{flex-direction:column;align-items:stretch;gap:8px} }
+.btn.cta{display:inline-flex;align-items:center;gap:10px;font-size:1.2rem;padding:14px 28px;text-decoration:none;color:#2a1a04;
+  border:1px solid #b9862a;background:linear-gradient(100deg,#dcaa45 0%,#efc96f 45%,#e4b350 60%,#d9a643 100%);
+  box-shadow:inset 0 1px 0 rgba(255,244,205,.7),inset 0 -1px 0 rgba(140,95,20,.3),0 6px 22px rgba(226,176,74,.32)}
+.btn.cta:hover{filter:brightness(1.06);box-shadow:inset 0 1px 0 rgba(255,244,205,.75),inset 0 -1px 0 rgba(140,95,20,.3),0 8px 28px rgba(226,176,74,.48)}
+/* the d20 on Get started: tilted at rest, like the logo; turns further on hover */
+.btn.cta .d20i{width:22px;height:22px;transform:rotate(-18deg);transition:transform .3s}
 .quicklink{max-width:34em;padding:14px 16px;border:1px dashed var(--line);border-radius:14px;background:color-mix(in srgb,var(--surface) 70%,transparent)}
-.quicklink label{font-weight:600;font-size:.95rem;margin:0 0 8px;display:block}
+.quicklink label{font-weight:600;margin:0 0 8px;display:block}
 .ql-row{display:flex;gap:8px} .ql-row input{flex:1;min-width:0}
 .ql-msg{margin:6px 0 0;color:var(--hp)} .ql-msg:empty{display:none}
-.hero-art{position:relative;display:flex;justify-content:center;min-height:420px}
+/* the read-only note under the link box: a bigger book, centred beside both lines */
+.ql-note{margin:10px 0 0;color:var(--muted);font-size:.95rem;line-height:1.45;display:flex;align-items:center;gap:12px}
+.ql-note .qlico{font-size:1.6rem;line-height:1;flex:none}
+.hero-art{display:flex;justify-content:center;min-height:420px}
 .d20-big{position:absolute;width:340px;height:340px;top:4%;left:50%;transform:translateX(-50%) rotate(-12deg);color:var(--brass);opacity:.16}
-.phone{position:relative;width:272px;border-radius:34px;padding:10px;background:linear-gradient(160deg,#2b2620,#121010);box-shadow:0 30px 60px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06) inset;transform:rotate(3deg)}
+.phone{position:relative;width:272px;border-radius:34px;padding:10px;background:linear-gradient(160deg,#2b2620,#121010);
+  box-shadow:0 30px 60px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06) inset;transform:rotate(3deg);--rot:3deg}
 .phone img{display:block;width:100%;height:auto;border-radius:26px;aspect-ratio:390/720;object-fit:cover;object-position:top}
 .rule{display:flex;align-items:center;gap:14px;margin:8px auto 30px;max-width:520px}
 .rule::before,.rule::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--brass),transparent)}
 .rule span{width:10px;height:10px;transform:rotate(45deg);border:1px solid var(--brass)}
-.features{list-style:none;padding:0;margin:0 0 46px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+/* features: 3 × 2 cards, an emoji and the title on one line */
+.features{list-style:none;padding:0;margin:0 0 46px;display:grid;gap:16px;grid-template-columns:repeat(3,1fr)}
 .features li{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 18px;box-shadow:var(--shadow)}
-.features h3{font-family:var(--f-display);font-size:1.15rem;margin:10px 0 6px}
-.features p{margin:0;line-height:1.5;color:var(--muted)}
+.features p{margin:0;color:var(--muted)}
 .ficon{font-size:1.7rem}
-.how{text-align:left;max-width:860px;margin:0 auto 40px}
-.how h2{font-family:var(--f-display);font-size:2rem;text-align:center;margin:0 0 22px}
+/* How it works: as wide as the rest of the page; the video beside the steps (.howgrid, further down), the note on
+   limits and Get started under them */
+.how{text-align:left;margin:0 auto 40px;max-width:none;margin-bottom:8px}
+.how h2{font-family:var(--f-display);text-align:center;margin:0 0 22px}
 .steps{list-style:none;padding:0;margin:0 0 26px;display:grid;gap:14px}
 .steps li{display:flex;gap:16px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:12px;padding:16px 18px}
 .steps .num{font-family:var(--f-display);font-weight:700;font-size:1.3rem;color:var(--brass);min-width:2.2em;text-align:center}
-.steps h3{margin:0 0 4px;font-size:1.1rem} .steps p{margin:0;line-height:1.5}
-.center{text-align:center}
-.trust{list-style:none;padding:0;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;color:var(--muted);font-size:.95rem}
+@media (max-width:560px){ .steps > li > .num{min-width:0;text-align:left;grid-row:1} }
+.steps h3{margin:0 0 4px;font-size:1.25rem}
+.steps p{margin:0}
+.steps .substeps{margin:6px 0 8px;padding-left:1.2em;line-height:1.55}
+.steps .substeps li::marker{color:var(--brass)}
+@media (max-width:560px){ .steps .substeps{padding-left:1.1em;margin:4px 0 8px} }
+.steps .ql-step{margin:8px 0 8px;max-width:none;padding:10px 12px}
+@media (max-width:560px){ .steps .ql-step{margin:8px 0} }
+.steps > li > div{flex:1;min-width:0}
+/* How it works boxes: no gold stripe on the left after all (thinner than the .steps li border) */
+.steps > li{border-left-width:1px}
+@media (max-width:560px){
+  .steps > li > div{display:contents}
+  .steps > li > div > h3{grid-column:2;grid-row:1;margin:0}
+  .steps > li > div > :not(h3){grid-column:1/-1}
+}
+.trust{list-style:none;padding:0;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;color:var(--muted)}
+/* bottom of the front page: a divider above the read-only / free / EU line; the EU flag is drawn (Windows shows
+   the 🇪🇺 emoji as the letters "EU") */
+.rule-trust{margin:34px auto 22px}
+.euflag{width:1.35em;height:.9em;vertical-align:-.08em;margin-right:.1em}
 @media (max-width:860px){
   .hero{grid-template-columns:1fr;gap:10px}
   .hero-art{min-height:0;order:-1;margin:0 auto 6px}
-  .phone{width:200px;transform:rotate(2deg)} .d20-big{width:240px;height:240px}
+  .phone{width:200px;transform:rotate(2deg);--rot:2deg}
+  .d20-big{width:240px;height:240px}
   .features{grid-template-columns:1fr 1fr}
 }
-@media (max-width:520px){ .features{grid-template-columns:1fr} .ql-row{flex-direction:column} .btn.cta{width:100%;box-sizing:border-box;justify-content:center} .hero-art{order:0;margin:18px auto 0} .phone{width:210px} }
+@media (max-width:520px){ .features{grid-template-columns:1fr} }
+.features h3 .ficon{font-size:1.5rem;flex:none}
+@media (max-width:520px){
+  .ql-row{flex-direction:column}
+  .btn.cta{width:100%;box-sizing:border-box;justify-content:center}
+  .hero-art{order:0;margin:18px auto 0}
+  .phone{width:210px}
+}
+/* the recording in the hero phone (the crit attack) */
+.phone video{display:block;width:100%;height:auto;border-radius:26px;aspect-ratio:544/910;background:#0f1720}
+/* bigger type for the landing (after the base sizes of the blocks above) */
+.features p,.steps p,.dice-text p:last-child{font-size:1.06rem;line-height:1.55}
+.features h3{font-family:var(--f-display);display:flex;align-items:center;gap:10px;margin:0 0 6px;font-size:1.32rem}
+.how h2,.dice-text h2{font-size:2.2rem}
+.quicklink label,.trust,.setname span{font-size:1.06rem}
+@media (max-width:520px){ .how h2,.dice-text h2{font-size:1.9rem} .btn.login{justify-content:center} }
+/* the perks list with d20 bullets, Get started "or" Log in */
+.perks{list-style:none;padding:0;margin:0 0 26px;display:grid;gap:9px;max-width:34em;font-size:1.08rem;line-height:1.45}
+.perks li{position:relative;padding-left:30px}
+.perks li::before{content:"";position:absolute;left:0;top:.2em;width:18px;height:18px;background:var(--brass);opacity:.9;
+  clip-path:polygon(50% 3%,93% 27%,93% 73%,50% 97%,7% 73%,7% 27%)}
+.or-word{color:var(--muted);font-size:1rem}
+.btn.login{display:inline-flex;align-items:center;gap:8px;font-size:1.1rem;padding:12px 22px;background:transparent;border:1.5px solid var(--line);color:var(--ink);text-decoration:none}
+@media (max-width:520px){ .or-word{text-align:center} }
 
 /* ── Sign-in and onboarding cards ──────────────────────────────────────────────────────────────────────── */
-/* .auth is widened in "Sign in" below; .btn.primary turns gold here for these cards (base: blue) */
+/* the sign-in card's layout is in "Sign in" further down; here .btn.primary turns gold for these cards (base:
+   blue), and the "add a character" box */
 .auth,.onb{max-width:520px;margin:10px auto 0;width:100%;box-sizing:border-box}
 .auth h2,.onb h2{font-family:var(--f-display);font-size:1.6rem}
-.oauth{display:grid;gap:8px;margin:14px 0 4px}
+.oauth{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:0 0 6px}
 .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.85rem;margin:14px 0}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
 .stepno{font-family:var(--f-num);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);margin:0 0 4px}
@@ -122,31 +219,33 @@ body.front{background:
 .howto{margin-top:18px;padding:14px 16px;border-radius:12px;background:var(--raised);border:1px solid var(--line)}
 .howto h3{margin:0 0 6px;font-size:1rem} .howto ol{margin:0 0 10px;padding-left:20px;display:grid;gap:4px;line-height:1.45}
 .promise{margin:0;font-size:.95rem}
-.linkpreview code{font-family:var(--f-num);font-size:.95rem;word-break:break-all}
-.addrow{display:flex;gap:8px;margin:14px 0 4px} .addrow input{flex:1;min-width:0}
+.linkpreview code{font-family:var(--f-num);word-break:normal;overflow-wrap:anywhere;font-size:.88rem}
+.addrow{display:flex;gap:8px;margin:14px 0 4px} .addrow input{flex:1;min-width:0;border:1px solid var(--line)}
 .ch:hover{border-color:var(--brass)}
 .foot .small{display:inline-block;margin-top:4px}
 body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
+body.front #main:empty,body.front #msg:empty{display:none}
 .auth a,.onb a,.foot a{color:var(--ink)} .auth a:hover,.onb a:hover,.foot a:hover{color:var(--brass)}
 .auth .btn.primary,.onb .btn.primary,.addrow .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--sea-ink,#0c141c)}
-.brand span{white-space:nowrap} #who{text-align:right}
-@media (max-width:520px){ .brand{font-size:1.2rem;gap:8px} .brand-d20{width:24px;height:24px} #who{font-size:.8rem} .top{gap:8px;padding-left:14px;padding-right:14px} }
-.linkpreview code{word-break:normal;overflow-wrap:anywhere;font-size:.88rem}
+/* Your characters: until you have one, the add box stands out; gold buttons keep a gold edge on hover */
+section:not(:has(#mine .ch)) .addrow input{border:1.5px solid color-mix(in srgb,var(--brass) 75%,transparent)}
+.addrow input:focus{border-color:var(--brass)}
+.auth .btn.primary{transition:filter .15s,transform .15s,box-shadow .15s}
+.auth .btn.primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px color-mix(in srgb,var(--brass) 35%,transparent)}
+.auth .btn:not(.primary):hover{border-color:var(--brass);color:var(--brass)}
+.auth{margin:28px auto 0;padding:28px 30px 24px;max-width:none}
+.auth .eyebrow{margin:0 0 4px}
+@media (max-width:520px){
+  .auth{padding:22px 18px 18px;margin-top:14px}
+  .brand{font-size:1.2rem;gap:8px}
+  .brand-d20{width:24px;height:24px}
+  #who{font-size:.8rem}
+  .top{gap:8px;padding-left:14px;padding-right:14px}
+}
 
 /* ── Front page motion: drifting dice, spinning hero d20, CTA glint, reveal on scroll (web/home-anim.js) ─── */
-/* Everything that moves is behind prefers-reduced-motion or html.anim (set by the script), so without either
-   it's still. .phone gets its tilt (--rot) here. */
-.hero{position:relative}
 .hero-text,.hero-art{position:relative;z-index:1}
-.drift{position:absolute;inset:-10px -20px;overflow:hidden;pointer-events:none;z-index:0}
-.dr{position:absolute;color:var(--brass);opacity:.1}
-.dr1{width:34px;top:4%;left:44%} .dr2{width:22px;top:74%;left:2%;opacity:.13} .dr3{width:28px;top:14%;left:93%}
-.dr4{width:18px;top:90%;left:56%;opacity:.14} .dr5{width:24px;top:46%;left:-1%;opacity:.08}
-.phone{--rot:3deg}
-@media (max-width:860px){ .phone{--rot:2deg} .dr1{left:70%} .dr3{top:60%;left:88%} }
 @media (prefers-reduced-motion:no-preference){
-  .dr{animation:drift 18s ease-in-out infinite alternate} .dr2{animation-duration:23s;animation-delay:-6s} .dr3{animation-duration:15s;animation-delay:-3s}
-  .dr4{animation-duration:20s;animation-delay:-11s} .dr5{animation-duration:26s;animation-delay:-8s}
   @keyframes drift{from{transform:translate(0,0) rotate(0)}50%{transform:translate(14px,-22px) rotate(140deg)}to{transform:translate(-10px,10px) rotate(260deg)}}
   .d20-big{animation:spin 120s linear infinite}
   @keyframes spin{from{transform:translateX(-50%) rotate(-12deg)}to{transform:translateX(-50%) rotate(348deg)}}
@@ -163,13 +262,13 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 @keyframes rise{from{opacity:0;transform:translateY(24px)}}
 
 /* ── Dice tray: the dice-set swatches and a sample roll ────────────────────────────────────────────────── */
-/* first version: 8 flat swatches in a row, two columns; "Dice tray v2" and "Features with emoji" restyle it */
-.dicebox{max-width:1080px;box-sizing:border-box;margin:0 auto 46px;display:grid;grid-template-columns:.85fr 1.15fr;gap:32px;align-items:center;padding:30px 30px 26px;
+/* one column: the text, then the sets grouped like ☰ → Dice sets (3D d20 pictures), then the set name */
+.dicebox{max-width:1080px;box-sizing:border-box;margin:0 auto 46px;display:grid;align-items:center;padding:30px 30px 26px;
   border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);
-  background:radial-gradient(ellipse 60% 80% at 85% 20%,color-mix(in srgb,var(--brass) 12%,transparent),transparent 70%),var(--surface)}
-.dice-text h2{font-family:var(--f-display);font-size:2rem;margin:0 0 10px}
-.dice-text p:last-child{margin:0;line-height:1.55;color:var(--muted)}
-.swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:10px 8px}
+  background:radial-gradient(ellipse 60% 80% at 85% 20%,color-mix(in srgb,var(--brass) 12%,transparent),transparent 70%),var(--surface);
+  grid-template-columns:1fr;gap:18px}
+.dice-text h2{font-family:var(--f-display);margin:0 0 10px}
+.dice-text p:last-child{margin:0;color:var(--muted)}
 .sw{appearance:none;border:0;padding:0;background:none;cursor:pointer;aspect-ratio:1;display:grid;transition:transform .15s ease,filter .15s ease}
 .sw span{display:grid;place-items:center;clip-path:polygon(50% 3%,93% 27%,93% 73%,50% 97%,7% 73%,7% 27%);
   background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.35),transparent 45%),linear-gradient(150deg,var(--a),var(--b));
@@ -177,26 +276,15 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .sw:hover{transform:scale(1.08) rotate(-6deg)}
 .sw.on{transform:scale(1.14);filter:drop-shadow(0 0 1.5px var(--brass)) drop-shadow(0 0 9px color-mix(in srgb,var(--brass) 70%,transparent))}
 .sw:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:6px}
-.setname{min-height:1.5em;margin:16px 0 14px;line-height:1.4} .setname b{font-family:var(--f-display);font-size:1.15rem;margin-right:6px} .setname span{color:var(--muted);font-size:.95rem}
-.rollrow{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
-.btn.rollbtn{font-size:1.1rem;padding:12px 24px}
-.btn.rollbtn:disabled{opacity:.75;cursor:progress}
-.rollout{position:relative;display:flex;align-items:baseline;gap:10px;min-height:58px;margin:0;color:var(--muted)}
-.rollout b{font-family:var(--f-display);font-size:3rem;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
-.rollout.crit b{color:var(--brass);text-shadow:0 0 18px color-mix(in srgb,var(--brass) 70%,transparent)} .rollout.crit span{color:var(--brass);font-weight:700}
-.rollout.fumble b{color:var(--hp)}
-.spark{position:absolute;left:.9em;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:var(--brass);pointer-events:none}
-@media (prefers-reduced-motion:no-preference){
-  .rollout.pop b{animation:landpop .38s cubic-bezier(.2,.8,.2,1.4)}
-  @keyframes landpop{from{transform:scale(.4);opacity:0}}
-  .spark{animation:spark .9s cubic-bezier(.1,.7,.3,1) forwards}
-  .spark:nth-of-type(1){--r:0deg}.spark:nth-of-type(2){--r:36deg}.spark:nth-of-type(3){--r:72deg}.spark:nth-of-type(4){--r:108deg}.spark:nth-of-type(5){--r:144deg}
-  .spark:nth-of-type(6){--r:180deg}.spark:nth-of-type(7){--r:216deg}.spark:nth-of-type(8){--r:252deg}.spark:nth-of-type(9){--r:288deg}.spark:nth-of-type(10){--r:324deg}
-  @keyframes spark{from{transform:rotate(var(--r)) translateX(4px) scale(1);opacity:1}to{transform:rotate(var(--r)) translateX(64px) scale(.3);opacity:0}}
-}
+.sw.d3 span{clip-path:none;background:none}
+.sw.d3 img{display:block;width:100%;height:auto;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))}
+.setname{min-height:1.5em;line-height:1.4;margin:18px 0 0}
+.setname b{font-family:var(--f-display);margin-right:6px;font-size:1.3rem}
+.setname span{color:var(--muted)}
 @media (max-width:860px){ .dicebox{grid-template-columns:1fr;gap:18px;padding:22px 18px 20px;margin:0 0 40px} }
-@media (max-width:520px){ .swatches{grid-template-columns:repeat(6,1fr)} .rollrow{gap:12px} .rollout{min-height:50px} .rollout b{font-size:2.6rem} }
-
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 28px}
+@media (max-width:860px){ .swatches{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:520px){ .swatches{grid-template-columns:1fr;gap:14px} }
 /* the 3D dice overlay, as in the sheet (src/app.css: .fx, .fxdice, .dice3d); web/home-dice.js draws into it */
 .fx{position:fixed;inset:0;z-index:70;display:grid;place-items:center;pointer-events:none;animation:fxin .12s ease-out}
 .fx.out{animation:fxout .16s ease-in forwards}
@@ -204,84 +292,36 @@ body.front .top{max-width:1080px;padding-left:20px;padding-right:20px}
 .fxdice{background:radial-gradient(circle at 50% 50%,rgba(8,12,18,.7) 0,rgba(8,12,18,.45) 40%,rgba(8,12,18,.1) 75%)}
 .dice3d{position:fixed;inset:0;display:block;pointer-events:none}
 @media (prefers-reduced-motion:reduce){ .fx{display:none} }
-
-/* ── Front page text size: bigger type for the landing ─────────────────────────────────────────────────── */
-/* The page inherited the sheet's compact 14 px base, and Alegreya Sans' small x-height made that read like
-   12 px. The landing gets an 18 px base; cards and steps 17 px; headings follow. Overrides the sizes above. */
-.landing{font-size:1.125rem}
-.lede{font-size:1.28rem;line-height:1.55}
-.features p,.steps p,.dice-text p:last-child{font-size:1.06rem;line-height:1.55}
-.features h3{font-size:1.32rem} .steps h3{font-size:1.25rem} .how h2,.dice-text h2{font-size:2.2rem}
-.quicklink label,.trust,.setname span{font-size:1.06rem} .setname b{font-size:1.3rem}
-.cta-alt{font-size:1.1rem} .eyebrow{font-size:.85rem}
-.foot{font-size:.95rem}
-@media (max-width:520px){ .lede{font-size:1.2rem} .how h2,.dice-text h2{font-size:1.9rem} }
-
-/* ── Hero copy v2: perks list, Get started "or" Log in, read-only note ─────────────────────────────────── */
-/* overrides .lede and .cta-row margins from above */
-.lede{margin:0 0 16px}
-.perks{list-style:none;padding:0;margin:0 0 26px;display:grid;gap:9px;max-width:34em;font-size:1.08rem;line-height:1.45}
-.perks li{position:relative;padding-left:30px}
-.perks li::before{content:"";position:absolute;left:0;top:.2em;width:18px;height:18px;background:var(--brass);opacity:.9;
-  clip-path:polygon(50% 3%,93% 27%,93% 73%,50% 97%,7% 73%,7% 27%)}
-.cta-row{gap:14px;margin-bottom:12px}
-.or-word{color:var(--muted);font-size:1rem}
-.btn.login{display:inline-flex;align-items:center;gap:8px;font-size:1.1rem;padding:12px 22px;background:transparent;border:1.5px solid var(--line);color:var(--ink);text-decoration:none}
-.btn.login:hover{border-color:var(--brass);color:var(--brass)}
-.readonly{margin:0 0 24px;color:var(--muted);font-size:.98rem;max-width:34em;line-height:1.45}
-@media (max-width:520px){
-  .cta-row{flex-direction:column;align-items:stretch;gap:8px}
-  .or-word{text-align:center}
-  .btn.login{justify-content:center}
-}
-
-/* ── Dice tray v2: grouped like ☰ → Dice sets, 3D d20 pictures, multi-dice results ─────────────────────── */
-/* replaces the 8-column .swatches grid with groups of 4; .cta-row margin back to 26px; the paste-box note */
-.cta-row{margin-bottom:26px}
-.ql-note{margin:10px 0 0;color:var(--muted);font-size:.95rem;line-height:1.45}
-.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 18px}
-.sgroup h4{margin:0 0 6px;font-family:var(--f-num);font-size:.68rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.srow{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-.sw.d3 span{clip-path:none;background:none}
-.sw.d3 img{display:block;width:100%;height:auto;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))}
-.rollout .dlist{display:flex;gap:16px;align-items:baseline}
-.rd{display:inline-flex;align-items:baseline;gap:4px}
-.rd b{font-size:2.3rem} .rd small{color:var(--muted);font-family:var(--f-num);font-size:.85rem}
-@media (max-width:860px){ .swatches{grid-template-columns:repeat(2,1fr);gap:14px 16px} }
-@media (max-width:520px){ .swatches{grid-template-columns:repeat(2,1fr)} .rd b{font-size:2rem} .rollout .dlist{gap:12px} }
+.sgroup h4{margin:0 0 6px;font-family:var(--f-num);font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;font-size:.78rem}
+.srow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media (max-width:520px){ .srow{grid-template-columns:repeat(4,minmax(0,72px));gap:10px} }
+.dice-text p{margin:0 0 6px}
+.dice-text p b{color:var(--brass)}
 
 /* ── Background dice: d4 … d20 outlines tumbling behind the page (src/bgdice.html, .bgdice) ────────────── */
-/* .bd.hot / .held: a die being hovered or dragged (web/home-anim.js). The page-wide position is set again
-   in "Background dice behind the whole page" below. .public-note: the note on public sheets. */
-.landing{position:relative}
+/* the page content sits above the dice; the layer is 100% wide, not 100vw (that includes the scrollbar and
+   would make a sideways scroll) */
 .landing > :not(.bgdice){position:relative;z-index:1}
-.bgdice{position:absolute;top:0;bottom:0;left:calc(50% - 50vw);width:100vw;overflow:hidden;pointer-events:none;z-index:0}   /* the whole window width, not just the text column */
-body.front{overflow-x:clip}   /* 100vw includes the scrollbar: never a sideways scroll */
-.bd{transition:opacity .2s,filter .2s}
-.bd.hot,.bd.held{color:#F2C14E;opacity:.75;filter:drop-shadow(0 0 1.5px rgba(242,193,78,.6))}   /* bright gold, barely any glow */   /* you can pick this one up */
+.bgdice{position:absolute;top:0;bottom:0;overflow:hidden;pointer-events:none;z-index:0;left:0;width:100%}
+.bd{transition:opacity .2s,filter .2s;position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.5)}
+/* .hot / .held: a die being hovered or dragged (web/home-anim.js): bright gold, barely any glow; the cursor
+   says you can pick it up */
+.bd.hot,.bd.held{color:#F2C14E;opacity:.75;filter:drop-shadow(0 0 1.5px rgba(242,193,78,.6))}
 html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.grabbing-die *{cursor:grabbing!important;user-select:none!important}
-.bd{position:absolute;height:auto;color:var(--brass);opacity:calc(var(--o,.1) * 1.5)}
 @media (prefers-reduced-motion:no-preference){
   .bd{animation:tumble var(--t,40s) ease-in-out var(--d,0s) infinite}
   @keyframes tumble{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(var(--dx,12px),var(--dy,-16px)) rotate(180deg)}100%{transform:translate(0,0) rotate(360deg)}}
 }
-.public-note{max-width:860px;box-sizing:border-box;margin:-6px auto 18px;padding:12px 16px;border-radius:12px;border:1px dashed var(--brass);
-  background:color-mix(in srgb,var(--brass) 8%,transparent);font-size:1.02rem;line-height:1.5;text-align:left}
+body > .top,body > main,body > .foot,body > #landing{position:relative;z-index:1}
 
 /* ── Features 3 × 2 and the demo clips (web/media/, recorded from the app) ─────────────────────────────── */
-/* .features: 4 → 3 columns (phones as before) */
-.features{grid-template-columns:repeat(3,1fr)}
-.demo{max-width:1080px;margin:0 auto 50px;text-align:center}
-.demo h2{font-family:var(--f-display);font-size:2.2rem;margin:0 0 26px}
-.eyebrow.center{text-align:center}
-.clips{display:flex;justify-content:center;gap:56px;flex-wrap:wrap}
-.clip{margin:0;width:272px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.clip{margin:0;display:flex;flex-direction:column;align-items:center;gap:16px;width:300px}
 .clipphone{width:100%;border-radius:34px;padding:10px;box-sizing:border-box;background:linear-gradient(160deg,#2b2620,#121010);
   box-shadow:0 26px 54px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.06) inset}
-.clipphone video{display:block;width:100%;height:auto;aspect-ratio:390/844;border-radius:26px;background:#0f1720}
+.clipphone video{display:block;width:100%;height:auto;border-radius:26px;background:#0f1720;aspect-ratio:544/916}
 .clip figcaption{text-align:left;line-height:1.5;font-size:1.02rem;color:var(--muted)} .clip figcaption b{color:var(--ink)}
-@media (max-width:860px){ .features{grid-template-columns:1fr 1fr} .clips{gap:34px} }
-@media (max-width:520px){ .features{grid-template-columns:1fr} .demo h2{font-size:1.9rem} .clip{width:min(272px,86vw)} }
+@media (max-width:520px){ .clip{width:min(300px,86vw)} }
 
 /* ── Signed-in extras: import overlay (importFx in index.js), invite card ──────────────────────────────── */
 .importfx{position:fixed;inset:0;z-index:80;display:grid;place-items:center;background:rgba(8,12,18,.55);animation:fxin .12s ease-out}
@@ -289,24 +329,27 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .ifbox p{margin:0}
 .ifd20{width:54px;height:54px;color:var(--brass)}
 .ifok{display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:var(--brass);color:var(--sea-ink,#0c141c);font-size:1.8rem;font-weight:700}
-@media (prefers-reduced-motion:no-preference){ .ifd20{animation:ifspin .7s linear infinite} @keyframes ifspin{to{transform:rotate(360deg)}}
-  .ifbox.done{animation:ifpop .25s cubic-bezier(.2,.8,.2,1.4)} @keyframes ifpop{from{transform:scale(.85)}} }
-
+@media (prefers-reduced-motion:no-preference){
+  .ifd20{animation:ifspin .7s linear infinite}
+  @keyframes ifspin{to{transform:rotate(360deg)}}
+  .ifbox.done{animation:ifpop .25s cubic-bezier(.2,.8,.2,1.4)}
+  @keyframes ifpop{from{transform:scale(.85)}}
+}
 .invite .row{flex-wrap:wrap}
 
 /* ── Character rows: ⭐ playing now, ⋯ menu (order, archive, remove), archived list ─────────────────────── */
-.ch{position:relative}
 .chstar{appearance:none;background:none;border:0;padding:4px 6px;margin-right:4px;font-size:1.35rem;line-height:1;color:var(--muted);cursor:pointer;align-self:center}
 .chstar.on{color:var(--brass)} .chstar:hover{color:var(--brass)}
 .chmore{position:relative} .chmore summary{list-style:none;cursor:pointer;padding:4px 10px;border-radius:8px;border:1px solid var(--line);font-weight:700;line-height:1.2}
 .chmore summary::-webkit-details-marker{display:none}
+.chmore summary:hover,.chmore[open] summary{border-color:var(--brass)}
 .chmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:grid;gap:6px;min-width:170px;padding:10px;border-radius:12px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
 .chmenu .btn{width:100%;text-align:left}
-.ch.archived > .open,.ch.archived > .chstar,.ch.archived .chctl > :not(.chmore){opacity:.7}   /* faded, but its ⋯ menu stays solid */
+/* an archived character is faded, but its ⋯ menu stays solid */
+.ch.archived > .open,.ch.archived > .chstar,.ch.archived .chctl > :not(.chmore){opacity:.7}
 /* the portrait at the start of the link (web/index.js card()): a 40px circle with a brass ring, the D&D Beyond
    picture or, without one (or if it can't load), the initials from data-i. The name and its line sit to its right,
    so the phone grid below still sees one .open cell. */
-.ch .open{grid-template-columns:40px minmax(0,1fr);column-gap:10px;align-items:center}
 .ch .open > :not(.chpic){grid-column:2}
 .chpic{grid-column:1;grid-row:1/3;width:40px;height:40px;border-radius:50%;overflow:hidden;display:grid;place-items:center;
   background:var(--brass-soft);box-shadow:0 0 0 2px var(--brass);color:var(--ink);font-family:var(--f-display,var(--f-body));font-weight:700;font-size:.95rem}
@@ -320,36 +363,8 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .archlist[open] > summary{margin-bottom:8px}
 .rmbox{border:1px solid var(--hp);border-radius:12px;padding:12px 14px;margin:6px 0 10px}
 
-/* ── Phone recordings: the crit attack in the hero phone, the ability check lower down ─────────────────── */
-/* video sizes; .clip widens 272 → 300px */
-.phone video{display:block;width:100%;height:auto;border-radius:26px;aspect-ratio:544/910;background:#0f1720}
-.clip{width:300px}
-.clipphone video{aspect-ratio:544/916}
-@media (max-width:520px){ .clip{width:min(300px,86vw)} }
-
-/* ── Features with emoji + title on one line; bigger dice swatches; video beside the steps ─────────────── */
-/* overrides "Dice tray v2" (.swatches, .srow, .sgroup, .setname) and makes .dicebox one column */
-.features h3{display:flex;align-items:center;gap:10px;margin:0 0 6px}
-.features h3 .ficon{font-size:1.5rem;flex:none}
-.dicebox{grid-template-columns:1fr;gap:18px}
-.dice-text p{margin:0 0 6px}
-.dice-text p b{color:var(--brass)}
-.swatches{grid-template-columns:repeat(3,1fr);gap:22px 28px}
-.srow{gap:8px}
-.sgroup h4{font-size:.78rem}
-.setname{margin:18px 0 0}
-.howgrid{display:grid;grid-template-columns:300px 1fr;gap:40px;align-items:center;margin:0 0 26px}
-.howgrid .steps{margin:0}
-.howgrid .clip{width:100%}
-@media (max-width:860px){ .howgrid{grid-template-columns:1fr;gap:26px} .howgrid .clip{width:min(300px,86vw);margin:0 auto} .swatches{grid-template-columns:repeat(2,1fr)} }
-@media (max-width:520px){ .swatches{grid-template-columns:1fr;gap:14px} .srow{grid-template-columns:repeat(4,minmax(0,72px));gap:10px} }
-
-/* footer: three short lines (overrides the base .foot spacing) */
+/* ── Footer: three short lines ─────────────────────────────────────────────────────────────────────────── */
 .foot p{margin:0 0 6px} .foot p.small{display:block;margin:0 0 6px}
-/* header Log in: the same outlined button as the hero's (.btn.login), a size smaller */
-#who .btn.toplogin{font-size:.95rem;padding:7px 16px;border-radius:999px;font-weight:700;color:var(--ink);border-color:color-mix(in srgb,var(--ink) 35%,transparent);background:var(--raised)}
-#who .btn.toplogin:hover{border-color:var(--brass);color:var(--brass)}
-@media (max-width:520px){ #who .btn.toplogin{font-size:.85rem;padding:6px 12px} }
 
 /* ── Dice-set names on hover: the app's tooltip bubble (src/app.css .bubble) ───────────────────────────── */
 /* same colours, arrow, pop and parchment (the parchment texture in dark mode) */
@@ -358,38 +373,23 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .dtip::after{content:"";position:absolute;left:var(--tx,50%);bottom:-5px;width:12px;height:12px;background:var(--ink);transform:translateX(-50%) rotate(45deg);border-radius:2px}
 .dtip .bk{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;opacity:.65}
 .dtip .bt{display:block;font-family:var(--f-display);font-weight:700;font-size:1.05rem;margin:1px 0 2px}
-@media (prefers-reduced-motion:no-preference){ .dtip{animation:dtpop .14s ease-out} @keyframes dtpop{from{transform:translateY(8px);opacity:.4}to{transform:none;opacity:1}} }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .dtip{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .09' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .28 0 0 0 0 .1 0 0 0 .3 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='500'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .32 0 0 0 0 .1 0 0 0 1.1 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),radial-gradient(ellipse 90px 60px at 88% 82%,rgba(140,90,30,.16),rgba(140,90,30,.06) 60%,transparent 72%),radial-gradient(ellipse 140px 90px at 70% 12%,rgba(150,100,40,.10),transparent 70%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .24 0 0 0 0 .1 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .1 0 0 0 .22 -.04'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 35%,transparent 55%,rgba(120,72,18,.2) 100%),radial-gradient(circle at 18% 10%,rgba(255,255,255,.22),transparent 45%);background-size:600px 300px,700px 500px,100% 100%,100% 100%,180px 180px,420px 420px,100% 100%,100% 100%;box-shadow:0 12px 32px rgba(0,0,0,.45),inset 0 0 18px rgba(120,70,20,.28),inset 0 0 60px rgba(110,64,18,.16)}}
+@media (prefers-reduced-motion:no-preference){
+  .dtip{animation:dtpop .14s ease-out}
+  @keyframes dtpop{from{transform:translateY(8px);opacity:.4}to{transform:none;opacity:1}}
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .dtip{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .09' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .28 0 0 0 0 .1 0 0 0 .3 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='500'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .32 0 0 0 0 .1 0 0 0 1.1 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),radial-gradient(ellipse 90px 60px at 88% 82%,rgba(140,90,30,.16),rgba(140,90,30,.06) 60%,transparent 72%),radial-gradient(ellipse 140px 90px at 70% 12%,rgba(150,100,40,.10),transparent 70%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .24 0 0 0 0 .1 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .1 0 0 0 .22 -.04'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 35%,transparent 55%,rgba(120,72,18,.2) 100%),radial-gradient(circle at 18% 10%,rgba(255,255,255,.22),transparent 45%);background-size:600px 300px,700px 500px,100% 100%,100% 100%,180px 180px,420px 420px,100% 100%,100% 100%;box-shadow:0 12px 32px rgba(0,0,0,.45),inset 0 0 18px rgba(120,70,20,.28),inset 0 0 60px rgba(110,64,18,.16)}
+}
 :root[data-theme="dark"] .dtip{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .09' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .28 0 0 0 0 .1 0 0 0 .3 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='500'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .32 0 0 0 0 .1 0 0 0 1.1 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E"),radial-gradient(ellipse 90px 60px at 88% 82%,rgba(140,90,30,.16),rgba(140,90,30,.06) 60%,transparent 72%),radial-gradient(ellipse 140px 90px at 70% 12%,rgba(150,100,40,.10),transparent 70%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .24 0 0 0 0 .1 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .1 0 0 0 .22 -.04'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 35%,transparent 55%,rgba(120,72,18,.2) 100%),radial-gradient(circle at 18% 10%,rgba(255,255,255,.22),transparent 45%);background-size:600px 300px,700px 500px,100% 100%,100% 100%,180px 180px,420px 420px,100% 100%,100% 100%;box-shadow:0 12px 32px rgba(0,0,0,.45),inset 0 0 18px rgba(120,70,20,.28),inset 0 0 60px rgba(110,64,18,.16)}
-
-/* ── Get started: a soft gold sheen (one highlight band and a bright top edge); overrides the flat .btn.cta ─── */
-.btn.cta{color:#2a1a04;border:1px solid #b9862a;
-  background:linear-gradient(100deg,#dcaa45 0%,#efc96f 45%,#e4b350 60%,#d9a643 100%);
-  box-shadow:inset 0 1px 0 rgba(255,244,205,.7),inset 0 -1px 0 rgba(140,95,20,.3),0 6px 22px rgba(226,176,74,.32)}
-.btn.cta:hover{filter:brightness(1.06);box-shadow:inset 0 1px 0 rgba(255,244,205,.75),inset 0 -1px 0 rgba(140,95,20,.3),0 8px 28px rgba(226,176,74,.48)}
-
-/* How it works: step I as a short checklist, step II with the same link box as the hero */
-.steps .substeps{margin:6px 0 8px;padding-left:1.2em;line-height:1.55} .steps .substeps li{margin:2px 0}
-.steps .substeps li::marker{color:var(--brass)}
-.steps .ql-step{margin:8px 0 8px;max-width:none;padding:10px 12px}
-.steps .substeps li{display:list-item;background:none;border:0;border-radius:0;padding:0}
-.steps > li > div{flex:1;min-width:0}
-
-/* How it works: as wide as the rest of the page (overrides .how max-width); the note on limits and Get started
-   sit under the steps */
-.how{max-width:none}
-@media (min-width:861px){ .howgrid{grid-template-columns:320px 1fr;gap:48px} }
-.howside .limits{margin:14px 4px 0;color:var(--muted);font-size:1rem;line-height:1.5}
-.howcta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:20px 4px 0} .howcta span{color:var(--muted);font-size:1rem}
-@media (max-width:520px){ .howcta{flex-direction:column;align-items:stretch;text-align:center} }
 
 /* ── The party: five characters in a row under the hero ────────────────────────────────────────────────── */
 /* Each fades out at the bottom into the page; hover or focus lifts one and shows its class in the app's
    tooltip style. Phones show the middle three. */
 .party{display:flex;justify-content:center;align-items:flex-end;height:320px;margin:4px auto -10px;position:relative;overflow-x:clip}
-.pc{position:relative;margin:0 -30px;flex:none;outline:none;transition:transform .25s ease,filter .25s ease}
+.pc{position:relative;margin:0 -30px;flex:none;outline:none;transition:transform .25s ease,filter .25s ease;pointer-events:none}
 .pc img{display:block;height:100%;width:auto;-webkit-mask-image:linear-gradient(#000 70%,transparent 100%);mask-image:linear-gradient(#000 70%,transparent 100%);user-select:none}
-.pc-barbarian{height:320px;z-index:3} .pc-pirate,.pc-bard{height:290px;z-index:2} .pc-wizard,.pc-ranger{height:260px;z-index:1} .pc-ranger{height:275px}
+.pc-barbarian{height:320px;z-index:3} .pc-pirate,.pc-bard{height:290px;z-index:2} .pc-wizard,.pc-ranger{z-index:1}
+.pc-ranger{height:275px}
 .pc figcaption{position:absolute;left:50%;bottom:6%;transform:translate(-50%,6px);background:var(--ink);color:var(--bg);border-radius:12px;padding:8px 13px 9px;
   font-size:.92rem;line-height:1.35;white-space:nowrap;text-align:left;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:6}
 .pc figcaption::after{content:"";position:absolute;left:50%;top:-5px;width:12px;height:12px;background:var(--ink);transform:translateX(-50%) rotate(45deg);border-radius:2px}
@@ -399,24 +399,54 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 .pc:hover figcaption,.pc:focus-visible figcaption{opacity:1;transform:translate(-50%,0)}
 .pc-wizard{height:300px}
 @media (prefers-reduced-motion:reduce){ .pc,.pc figcaption{transition:none} .pc:hover,.pc:focus-visible{transform:none} }
-@media (max-width:1100px){ .party{height:250px} .pc{margin:0 -24px} .pc-barbarian{height:250px} .pc-pirate,.pc-bard{height:225px} .pc-wizard,.pc-ranger{height:200px} }
-@media (max-width:520px){ .party{height:190px;margin-top:14px} .pc{margin:0 -16px} .pc-wizard,.pc-ranger{display:none} .pc-barbarian{height:190px} .pc-pirate,.pc-bard{height:170px} }
+@media (max-width:1100px){
+  .party{height:250px}
+  .pc{margin:0 -24px}
+  .pc-barbarian{height:250px}
+  .pc-pirate,.pc-bard{height:225px}
+  .pc-wizard,.pc-ranger{height:200px}
+}
+@media (max-width:520px){
+  .party{height:190px;margin-top:14px}
+  .pc{margin:0 -16px}
+  .pc-wizard,.pc-ranger{display:none}
+  .pc-barbarian{height:190px}
+  .pc-pirate,.pc-bard{height:170px}
+}
 /* the outer characters' bubbles open inwards, so they never run off the screen */
 .pc-wizard figcaption{left:22%;transform:translate(0,6px)} .pc-wizard figcaption::after{left:28px}
 .pc-ranger figcaption{left:auto;right:24%;transform:translate(0,6px)} .pc-ranger figcaption::after{left:auto;right:22px;transform:rotate(45deg)}
 .pc-wizard:hover figcaption,.pc-wizard:focus-visible figcaption,.pc-ranger:hover figcaption,.pc-ranger:focus-visible figcaption{transform:none}
 @media (max-width:520px){
-  .pc-bard figcaption{left:22%;transform:translate(0,6px)} .pc-bard figcaption::after{left:28px}
-  .pc-pirate figcaption{left:auto;right:12%;transform:translate(0,6px)} .pc-pirate figcaption::after{left:auto;right:22px;transform:rotate(45deg)}
+  .pc-bard figcaption{left:22%;transform:translate(0,6px)}
+  .pc-bard figcaption::after{left:28px}
+  .pc-pirate figcaption{left:auto;right:12%;transform:translate(0,6px)}
+  .pc-pirate figcaption::after{left:auto;right:22px;transform:rotate(45deg)}
   .pc-pirate:hover figcaption,.pc-pirate:focus-visible figcaption,.pc-bard:hover figcaption,.pc-bard:focus-visible figcaption{transform:none}
 }
 /* hover only counts on a character's middle, not on the see-through edges of the picture next to it */
-.pc{pointer-events:none} .pc::before{content:"";position:absolute;inset:6% 24% 0;pointer-events:auto;z-index:1}
-/* How it works: the video starts level with the top of step I */
-.howgrid{align-items:start}
+.pc::before{content:"";position:absolute;inset:6% 24% 0;pointer-events:auto;z-index:1}
 
-/* How it works: the step boxes lift on hover like the feature cards */
-@media (prefers-reduced-motion:no-preference){ .steps > li{transition:transform .2s ease,border-color .2s ease} .steps > li:hover{transform:translateY(-4px);border-color:var(--brass)} }
+/* ── How it works: the video beside the steps, step I as a checklist, hover lift ───────────────────────── */
+/* the video starts level with the top of step I */
+.howgrid{display:grid;grid-template-columns:300px 1fr;gap:40px;margin:0 0 26px;align-items:start}
+@media (max-width:860px){ .howgrid{grid-template-columns:1fr;gap:26px} }
+@media (min-width:861px){ .howgrid{grid-template-columns:320px 1fr;gap:48px} }
+.howgrid .clip{width:100%}
+@media (max-width:860px){ .howgrid .clip{width:min(300px,86vw);margin:0 auto} }
+.howgrid .steps{margin:0}
+.howcta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:20px 4px 0}
+@media (max-width:520px){ .howcta{flex-direction:column;align-items:stretch;text-align:center} }
+/* step I as a short checklist, step II with the same link box as the hero */
+.steps .substeps li{margin:2px 0;display:list-item;background:none;border:0;border-radius:0;padding:0}
+.howside .limits{margin:14px 4px 0;color:var(--muted);font-size:1rem;line-height:1.5}
+.howcta span{color:var(--muted);font-size:1rem}
+/* the step boxes lift on hover like the feature cards */
+@media (prefers-reduced-motion:no-preference){
+  .steps > li{transition:transform .2s ease,border-color .2s ease}
+  .steps > li:hover{transform:translateY(-4px);border-color:var(--brass)}
+}
+
 /* ── Phones: a sticky Get started bar ──────────────────────────────────────────────────────────────────── */
 /* shown while neither of the page's own Get started buttons is in view (web/home-anim.js toggles .on) */
 .stickycta{display:none}
@@ -428,17 +458,8 @@ html.grab-die, html.grab-die *{cursor:grab!important} html.grabbing-die, html.gr
 }
 @media (prefers-reduced-motion:reduce){ .stickycta{transition:none} }
 
-/* bottom of the front page: a divider above the read-only / free / EU line, less empty space before the footer
-   (overrides .how, .landing and .foot spacing) */
-.rule-trust{margin:34px auto 22px}
-.how{margin-bottom:8px}
-.landing{padding-bottom:12px}
-.foot{padding-top:28px}
-.euflag{width:1.35em;height:.9em;vertical-align:-.08em;margin-right:.1em}   /* a drawn flag: Windows shows the 🇪🇺 emoji as the letters "EU" */
-body.front #main:empty,body.front #msg:empty{display:none}   /* the app area is empty on the front page: no blank band before the footer */
-
 /* ── Try a sample character: a quiet link under the hero buttons, and the picker dialog ────────────────── */
-/* the cards are restyled in "Try picker, cleaner" below */
+/* cards: emoji beside name + class, race and level under it, no gold side stripe; the × spins like the app's */
 .tryrow{margin:14px 0 18px;color:var(--muted);font-size:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .btn.trybtn{text-decoration:none;font-size:.98rem;padding:8px 16px;background:transparent;border:1.5px dashed color-mix(in srgb,var(--brass) 70%,transparent);color:var(--ink)}
 .btn.trybtn:hover{border-style:solid;border-color:var(--brass);color:var(--brass)}
@@ -447,25 +468,37 @@ body.front #main:empty,body.front #msg:empty{display:none}   /* the app area is 
 .trydlg::backdrop{background:rgba(5,10,15,.6);backdrop-filter:blur(2px)}
 .trydlg h2{font-family:var(--f-display);margin:0 0 6px;font-size:1.6rem}
 .trydlg > p{margin:0 0 16px;line-height:1.5}
-.tryclose{position:absolute;top:10px;right:10px;margin:0} .tryclose .btn{width:38px;height:38px;padding:0;font-size:1.3rem;line-height:1}
+.tryclose{position:absolute;top:10px;right:10px;margin:0} .tryclose .btn{width:38px;height:38px;padding:0;font-size:1.3rem;line-height:1;transition:transform .2s ease,background .15s,border-color .15s}
 .trypick{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.trycard{display:flex;flex-direction:column;gap:2px;padding:16px;border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:14px;background:var(--raised);color:var(--ink);text-decoration:none;transition:transform .2s ease,border-color .2s ease}
+.trycard{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;background:var(--raised);color:var(--ink);
+  text-decoration:none;transition:transform .2s ease,border-color .2s ease;border-left:1px solid var(--line);gap:6px;padding:16px 18px}
 .trycard:hover,.trycard:focus-visible{transform:translateY(-3px);border-color:var(--brass)}
-.trycard .tryico{font-size:1.6rem;margin-bottom:4px} .trycard .bk{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--muted)}
+.trycard .tryico{font-size:1.9rem;margin:0;line-height:1}
+.trycard .bk{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--muted);margin-top:2px}
 .trycard b{font-family:var(--f-display);font-size:1.2rem} .trycard .trycls{font-weight:700;color:var(--brass);font-size:.95rem}
-.trycard .trytxt{margin-top:6px;color:var(--muted);line-height:1.45;font-size:.95rem}
+.trycard .trytxt{color:var(--muted);line-height:1.45;font-size:.95rem;margin-top:2px}
+.tryhead{display:flex;align-items:center;gap:12px}
+.tryhead > span:last-child{display:grid;gap:1px}
+.tryclose .btn:hover{transform:rotate(90deg);border-color:var(--brass)}
 @media (max-width:520px){ .trypick{grid-template-columns:1fr} .tryrow{justify-content:center;text-align:center} }
 @media (prefers-reduced-motion:reduce){ .trycard{transition:none} .trycard:hover{transform:none} }
 
 /* ── Messages (#msg) ───────────────────────────────────────────────────────────────────────────────────── */
-/* a small callout in the card's width, not loose coloured text (overrides the base .msg); made a pop-up in
-   the next block and restyled again in "pop-up messages look like the sheet's roll bubbles" */
-.msg{max-width:520px;box-sizing:border-box;margin:6px auto 12px;padding:11px 14px;border-radius:12px;position:relative;line-height:1.5;font-size:.98rem;
-  color:var(--ink);background:color-mix(in srgb,var(--brass) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--brass) 40%,transparent)}
-.msg.bad{padding-left:40px;color:var(--ink);background:color-mix(in srgb,var(--hp) 12%,var(--surface));border-color:color-mix(in srgb,var(--hp) 50%,transparent)}
+/* messages under password boxes: a small callout in the card's width, not loose coloured text */
 .msg.bad::before{content:"⚠️";position:absolute;left:12px;top:10px}
 .msg:empty{display:none}
 @media (prefers-reduced-motion:no-preference){ .msg:not(:empty){animation:msgin .2s ease-out} @keyframes msgin{from{opacity:0;transform:translateY(-4px)}} }
+/* #msg as a pop-up (msg() in web/index.js), like the sheet's roll bubbles: dark ink card, light text, small,
+   near the bottom; fades in and away, tap to close */
+body > #msg{position:fixed;left:50%;z-index:90;margin:0;width:max-content;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  cursor:pointer;animation:none;top:auto;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);background:var(--ink);
+  color:var(--bg);border:0;border-radius:12px;padding:10px 14px 11px;box-shadow:0 10px 30px rgba(0,0,0,.28);max-width:min(440px,calc(100vw - 24px));
+  font-size:1.02rem;line-height:1.45}
+body > #msg:empty{display:none}
+body > #msg.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+/* an error pop-up: a red edge and the ⚠️ */
+body > #msg.bad{background:var(--ink);color:var(--bg);border:0;border-left:4px solid var(--hp);padding-left:38px}
+body > #msg.bad::before{top:9px}
 
 /* ── Your data → Delete my account ─────────────────────────────────────────────────────────────────────── */
 /* space above the box, the question on one line, then the field */
@@ -476,65 +509,28 @@ body.front #main:empty,body.front #msg:empty{display:none}   /* the app area is 
 .delclaim input{width:100%;box-sizing:border-box;margin:0 0 12px}
 .btn.danger.solid{background:var(--hp);border-color:var(--hp);color:#fff}
 
-/* ── Background dice behind the whole page (src/bgdice.html), not just the front page section ──────────── */
-/* overrides the .bgdice position from "Background dice" above */
-body{position:relative;min-height:100vh}
-.bgdice{left:0;width:100%}
-body > .top,body > main,body > .foot,body > #landing{position:relative;z-index:1}
-
-/* #msg as a pop-up (msg() in web/index.js): fades in and away; tap to close. Moved to the bottom further down. */
-body > #msg{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translate(-50%,-12px);z-index:90;margin:0;width:max-content;
-  max-width:min(560px,calc(100vw - 24px));box-shadow:0 14px 40px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;cursor:pointer;animation:none}
-body > #msg.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
-body > #msg:empty{display:none}
-
 /* primary (blue) buttons keep their own border on hover; the gold edge is for the outlined ones */
-.btn.primary:hover{border-color:var(--sea)}
-.chmore summary:hover,.chmore[open] summary{border-color:var(--brass)}
+.btn.primary:hover{filter:brightness(1.08);border-color:var(--sea)}
 
-/* ── Sign in: a wider card like the sheet menu, real buttons for every choice, room for provider buttons ─── */
-/* overrides "Sign-in and onboarding" (.auth, .oauth) and the base .pwbox; widened again in "sign-in, round 2" */
-.auth{max-width:680px;margin:28px auto 0;padding:28px 30px 24px}
-.auth .eyebrow{margin:0 0 4px}
+/* ── Sign in: a card as wide as the account page, real buttons for every choice, provider buttons ──────── */
 .auth h2{font-size:2rem;margin:0 0 8px}
 .authlede{margin:0 0 20px;font-size:1.05rem;line-height:1.5}
 .authlbl{display:block;font-weight:700;margin:0 0 6px}
 .authrow{display:flex;gap:10px;align-items:stretch}
 .authrow input{flex:1;min-width:0;font-size:1.05rem;padding:12px 14px}
-.authrow .btn{white-space:nowrap;padding:12px 20px}
+.authrow .btn{white-space:nowrap;padding:12px 22px;align-self:stretch;display:inline-flex;align-items:center;justify-content:center}
 .authhint{margin:10px 0 0}
-.codebox{margin:16px 0 0;padding:16px;border-radius:14px;border:1px dashed var(--brass);background:color-mix(in srgb,var(--brass) 6%,transparent)}
-.codebox p{margin:0 0 12px}
-.codein{letter-spacing:.35em;font-variant-numeric:tabular-nums;font-weight:700;text-align:center}
 .authsub{margin-top:12px;flex-wrap:wrap}
-.oauth{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:0 0 6px}
 .oauthbtn{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 16px}
 .oico{width:22px;text-align:center;font-weight:800}
-.pwbox{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
-.pwbox summary.btn{display:inline-flex;align-items:center;gap:8px;list-style:none;color:var(--ink)}
-.pwbox summary.btn::-webkit-details-marker{display:none}
-.pwbox[open] summary.btn{margin-bottom:14px;border-color:var(--brass)}
-.pwbox input{width:100%;box-sizing:border-box;font-size:1.05rem;padding:12px 14px}
 .authfoot{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 .authfoot .btn{text-decoration:none;display:inline-flex}
-@media (max-width:520px){ .auth{padding:22px 18px 18px;margin-top:14px} .authrow{flex-direction:column} .authrow .btn{width:100%} .auth h2{font-size:1.7rem} }
-
-/* ── Try picker, cleaner: emoji beside name + class, race and level under it, no gold side stripe ──────── */
-/* overrides .trycard from "Try a sample character"; the × spins like the app's */
-.trycard{border-left:1px solid var(--line);gap:6px;padding:16px 18px}
-.trycard:hover,.trycard:focus-visible{border-color:var(--brass)}
-.tryhead{display:flex;align-items:center;gap:12px}
-.tryhead > span:last-child{display:grid;gap:1px}
-.trycard .tryico{font-size:1.9rem;margin:0;line-height:1}
-.trycard .bk{margin-top:2px}
-.trycard .trytxt{margin-top:2px}
-.tryclose .btn{transition:transform .2s ease,background .15s,border-color .15s}
-.tryclose .btn:hover{transform:rotate(90deg);border-color:var(--brass)}
-/* How it works boxes: no gold stripe on the left either (overrides .steps li border-left) */
-.steps > li{border-left-width:1px}
+/* even buttons */
+.auth .btn{font-size:1rem}
+@media (max-width:520px){ .authrow{flex-direction:column} .authrow .btn{width:100%} .auth h2{font-size:1.7rem} }
 
 /* ── Account tab: Sign-in & security card, "Save a password" prompt ────────────────────────────────────── */
-/* phones: the rows stack (restyled in "Sign-in & security rows" near the end) */
+/* rows: text left, buttons right; on phones they stack, with Change and Remove side by side */
 .sec .secrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
 .sec .secrow:first-of-type{border-top:0;padding-top:4px}
 .sec .secrow > div{display:grid;gap:2px;min-width:0} .sec .secrow > div span{overflow-wrap:anywhere}
@@ -543,24 +539,23 @@ body > #msg:empty{display:none}
 .secbox .authrow input{margin:0}
 #emstep2,#pwstep2{margin-top:10px}
 @media (max-width:520px){ .sec .secrow{flex-direction:column;align-items:stretch} }
+.sec .secrow > .secbtns{display:flex;gap:8px;flex-wrap:nowrap;align-items:center}
+@media (max-width:560px){
+  .sec .secrow > .secbtns{display:flex;flex-direction:row-reverse;justify-content:flex-end;flex-wrap:nowrap;align-self:stretch;width:auto}
+}
 .pwprompt{border-color:color-mix(in srgb,var(--brass) 60%,transparent)} .pwprompt h2{margin-top:0} .pwprompt .authrow input{padding:10px 12px}
-
-/* Your characters: the add box stands out; gold buttons keep a gold edge on hover (the add box is toned down
-   again near the end, once you have characters) */
-.addrow input{border:1.5px solid color-mix(in srgb,var(--brass) 75%,transparent)} .addrow input:focus{border-color:var(--brass)}
 .auth .btn.primary:hover,.onb .btn.primary:hover,.addrow .btn.primary:hover,.secbox .btn.primary:hover,.pwprompt .btn.primary:hover{border-color:var(--brass);filter:brightness(1.08)}
 .sec .btn.primary,.secbox .btn.primary,.pwprompt .btn.primary{background:var(--brass);border-color:var(--brass);color:var(--sea-ink,#0c141c)}
 
 /* ── Privacy & terms: same frame as the account page (site header, dice behind, cards, folding rows) ───── */
-/* overrides the base .legal rules (bordered rows instead of lines, gold links) */
+/* bordered folding rows instead of lines, gold links */
 .legalmain{max-width:760px}
 .legalmain .eyebrow{margin:8px 0 2px}
 .pagetitle{font-family:var(--f-display);font-size:2.2rem;margin:0 0 6px}
 .legal{padding:20px 22px}
 .legal > p:first-child{font-size:1.02rem;line-height:1.6;margin-top:0}
-.legal details{border:1px solid var(--line);border-radius:12px;padding:0;margin:10px 0 0;background:var(--raised)}
-.legal details:first-of-type{border-top:1px solid var(--line)}
-.legal summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;font-size:1.02rem;transition:background .15s,color .15s}
+.legal summary{cursor:pointer;font-weight:700;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 14px;border-radius:12px;font-size:1.02rem;transition:background .15s,color .15s}
 .legal summary::-webkit-details-marker{display:none}
 .legal summary::after{content:"";width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:-4px 4px 0 0;transition:transform .2s;flex:none;color:var(--muted)}
 .legal details[open] summary::after{transform:rotate(-135deg);margin-top:4px}
@@ -569,26 +564,10 @@ body > #msg:empty{display:none}
 .legal details > :not(summary){margin-left:14px;margin-right:14px}
 .legal details > :last-child{margin-bottom:14px}
 .legal details > p:first-of-type,.legal details > table:first-of-type{margin-top:12px}
-.legal table{display:block;overflow-x:auto} .legal th{color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.legal th{color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
 .legal a{color:var(--brass)}
-.legal table{display:table;width:calc(100% - 28px)}
 @media (max-width:600px){ .legal table{display:block;overflow-x:auto} }
 .legalmain .pagetitle{margin-top:12px}
-/* the read-only note under the link box: a bigger book, centred beside both lines */
-.ql-note{display:flex;align-items:center;gap:12px} .ql-note .qlico{font-size:1.6rem;line-height:1;flex:none}
-/* ── Sign-in, round 2: as wide as the account page; even buttons with a hover; air around the code box ─── */
-/* overrides "Sign in" (.auth max-width, .authrow buttons, the code input width) */
-.auth{max-width:none}
-.auth .btn{font-size:1rem}
-.auth .btn.primary{transition:filter .15s,transform .15s,box-shadow .15s}
-.auth .btn.primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 6px 18px color-mix(in srgb,var(--brass) 35%,transparent)}
-.auth .btn:not(.primary):hover{border-color:var(--brass);color:var(--brass)}
-.authrow .btn{padding:12px 22px;align-self:stretch;display:inline-flex;align-items:center;justify-content:center}
-.codebox .authrow input{flex:1 1 auto;width:auto}
-.codebox .authsub{margin-top:14px}
-.codebox p.small{margin:12px 0 0}
-.codebox .authrow .codein{flex:1 1 0;min-width:0;width:100%;max-width:none}
-#codebox input[name=code]{max-width:none}
 
 /* ── Account page: tabs, bigger text, password pairs with 👁, chevrons on buttons that open a section ───── */
 /* .hometabs / .htab: the four tabs; .pwwrap / .pwpeek: peek() in index.js; .xbtn / .xchev: fold-open buttons */
@@ -616,30 +595,31 @@ body:not(.front) main h2{font-size:1.35rem}
 
 /* ── Account → Theme: same picker as ☰ → Theme on a sheet (bindLooks in index.js) ──────────────────────── */
 .looks .skingrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:6px}
+/* theme picker: rows of four on wider screens (8 looks = two even rows) */
+@media (min-width:640px){ .looks .skingrid{grid-template-columns:repeat(4,minmax(0,1fr))} }
 .looks .skinopt{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;text-align:left;transition:border-color .15s,background .15s}
 .looks .skinopt:hover{border-color:var(--brass)} .looks .skinopt.on{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass);background:color-mix(in srgb,var(--brass) 10%,var(--raised))}
-.looks .skinsw{position:relative;flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);overflow:hidden}
+.looks .skinsw{position:relative;flex:none;border:1px solid var(--line);overflow:hidden;width:40px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--sd) 0 64%,var(--sl) 64%)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
 .looks .skinsw span{position:absolute;right:4px;bottom:4px;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1.5px rgba(0,0,0,.35)}
+.looks .skinsw .skini{background:none!important;position:absolute;left:5px;top:5px;color:var(--sa);font-size:17px;line-height:1;--ia:var(--sa);--iao:.28;width:auto;height:auto;border-radius:0;box-shadow:none;right:auto;bottom:auto}
+/* the two small dots: the same look-coloured tiles as the sheet menu (src/app.css) */
+.looks .skinsw > i{position:absolute;width:7px;height:7px;border-radius:50%;right:4px;bottom:11px;background:var(--ss);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.looks .skinsw > i + i{right:12px;bottom:4px;background:var(--sh)}
 .looks .skinmode{display:flex;gap:6px;margin-top:10px}
 .looks .skinmode button{flex:1;padding:9px 10px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;font-weight:700;font-size:.95rem;cursor:pointer}
 .looks .skinmode button:hover{border-color:var(--brass)}
 .looks .skinmode button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--bg)}
-/* the Dungeon Tracker name keeps its own lettering in every theme (until there's a proper logo) */
-.brand span{font-family:"Alegreya SC",Georgia,"Times New Roman",serif;letter-spacing:normal}
 
-/* ── Sign-in: the password part as one framed box ──────────────────────────────────────────────────────── */
-/* summary on top, everything it opens inside, I have a password / New account (.pwseg); overrides .pwbox above */
-.pwbox[open]{border:1px solid color-mix(in srgb,var(--brass) 55%,var(--line));border-radius:16px;padding:0 16px 16px;margin-top:20px;background:color-mix(in srgb,var(--raised) 50%,transparent)}
-.pwbox[open] summary.btn{margin:-1px -1px 14px;border-radius:16px 16px 12px 12px;width:calc(100% + 2px);justify-content:flex-start;box-sizing:border-box}
-.pwbox summary .xchev{margin-left:auto}
-.pwbox[open] summary .xchev{transform:rotate(-135deg) translate(-2px,-2px)}
-.pwbox summary.btn{width:100%;box-sizing:border-box}
+/* ── Sign-in: the password part (Roll in / new password toggle, the error box) ─────────────────────────── */
 .pwseg{display:flex;gap:6px;margin:0 0 6px}
 .pwseg button{flex:1;padding:9px 10px;border-radius:999px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font:inherit;font-weight:700;font-size:.95rem;cursor:pointer}
 .pwseg button:hover{border-color:var(--brass)}
 .pwseg button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--bg)}
-.pwerr{margin:12px 0 0;padding:10px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--hp) 55%,transparent);background:color-mix(in srgb,var(--hp) 12%,var(--surface));color:var(--ink);font-size:.95rem}
+.pwerr{margin:12px 0 0;padding:10px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--hp) 55%,transparent);
+  background:color-mix(in srgb,var(--hp) 12%,var(--surface));color:var(--ink);font-size:1.02rem;line-height:1.45}
 .pwerr::before{content:"⚠️ "}
+
 /* ── Pop-ups, code boxes, danger zone, dropdowns ───────────────────────────────────────────────────────── */
 /* the ✓ pop-up (done() in index.js: a password or email saved) */
 .donepop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(0,0,0,.25);opacity:0;transition:opacity .2s;cursor:pointer}
@@ -649,17 +629,26 @@ body:not(.front) main h2{font-size:1.35rem}
 .donecard b{font-family:var(--f-display);font-size:1.35rem}
 .donecard span:last-child{color:var(--muted)}
 .donetick{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--good);color:var(--bg);font-size:1.8rem;font-weight:700}
-/* the 6-digit code box: only as wide as six digits, the button right next to it (overrides "sign-in, round 2") */
+.codebox p.small{margin:12px 0 0}
+.codebox .authsub{margin-top:14px}
+.codebox p{margin:0 0 12px}
+.codebox{margin:16px 0 0;padding:16px;border-radius:14px;border:1px dashed var(--brass);background:color-mix(in srgb,var(--brass) 6%,transparent)}
+.codebox .authrow input{flex:1 1 auto;width:auto}
+.codebox .authrow .codein{min-width:0;width:100%}
+/* the 6-digit code box: only as wide as six digits, the button right next to it */
 .codebox .authrow .codein,#codebox input[name=code]{flex:0 1 14rem;max-width:14rem}
+.codein{letter-spacing:.35em;font-variant-numeric:tabular-nums;font-weight:700;text-align:center}
 #secpwbox .codein,#secembox .codein{max-width:14rem}
+#firstcode .codein{max-width:14rem}
 .codebox .authrow{justify-content:flex-start}
 /* Save password sits on the right */
 .saverow{justify-content:flex-end}
+@media (hover:hover) and (pointer:fine){ .saverow .btn:not(.primary):not(.danger):hover{border-color:var(--brass)} }
 /* Your data → The danger zone: a red-edged card for deleting the account */
 .dangerzone{border-color:color-mix(in srgb,var(--hp) 60%,var(--line));background:color-mix(in srgb,var(--hp) 5%,var(--surface))}
 .dangerzone h2{color:var(--hp)}
-/* dropdowns (who can see a tracker, …): a themed pill with its own arrow and a hover, in every theme
-   (overrides the base input,select rule) */
+/* dropdowns (who can see a tracker, …): a themed pill with its own arrow and a hover, in every theme; after
+   the base input,select rule on purpose */
 select{-webkit-appearance:none;appearance:none;cursor:pointer;padding:9px 34px 9px 14px;border-radius:999px;border:1px solid var(--line);background-color:var(--raised);color:var(--ink);font-weight:600;
   background-image:linear-gradient(45deg,transparent 50%,var(--brass) 50%),linear-gradient(135deg,var(--brass) 50%,transparent 50%);
   background-position:right 17px center,right 12px center;background-size:5px 5px,5px 5px;background-repeat:no-repeat;transition:border-color .15s,background-color .15s}
@@ -667,6 +656,7 @@ select:hover{border-color:var(--brass);background-color:color-mix(in srgb,var(--
 select:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 select option{background:var(--surface);color:var(--ink)}
 select option:disabled{color:var(--muted)}
+
 /* ── Character rows: verified tick, Continue →, last played, the add box ───────────────────────────────── */
 /* the ✓ after a verified name (hover or focus it for what it means), Continue → on the right */
 .vtick{position:relative;display:inline-grid;place-items:center;width:1.15em;height:1.15em;margin-left:6px;border-radius:50%;background:var(--good);color:var(--bg);font-size:.72em;font-weight:800;vertical-align:.12em;cursor:help}
@@ -675,42 +665,19 @@ select option:disabled{color:var(--muted)}
 .vtick:hover::after,.vtick:focus-visible::after{opacity:1}
 .ch .contbtn{width:auto;margin:0;padding:8px 14px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;text-decoration:none}
 .ch .contbtn .d20i{width:16px;height:16px}
-/* the pop-up messages look like the sheet's roll bubbles: dark ink card, light text, small, near the bottom
-   (overrides the #msg pop-up above: bottom instead of top) */
-body > #msg{top:auto;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);background:var(--ink);color:var(--bg);border:0;border-radius:12px;
-  padding:10px 14px 11px;font-size:.92rem;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.28);max-width:min(440px,calc(100vw - 24px))}
-body > #msg.show{transform:translate(-50%,0)}
-body > #msg.bad{background:var(--ink);color:var(--bg);border:0;border-left:4px solid var(--hp);padding-left:38px}
-body > #msg.bad::before{top:9px}
-.chctl select{max-width:190px} .ch .open span{text-wrap:pretty}
-/* the character you played last stands out (gold edge, a soft glow); the "add a character" box only gets the gold
-   edge while your list is still empty (overrides "Your characters: the add box stands out") */
+/* the character you played last stands out (gold edge, a soft glow) */
 .ch.chlast{border:1.5px solid var(--brass);background:color-mix(in srgb,var(--brass) 8%,var(--raised));box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 14%,transparent),0 8px 24px -12px color-mix(in srgb,var(--brass) 60%,transparent)}
-.addrow input{border:1px solid var(--line)}
-section:not(:has(#mine .ch)) .addrow input{border:1.5px solid color-mix(in srgb,var(--brass) 75%,transparent)}
-.addrow input:focus{border-color:var(--brass)}
 /* one loud button per row: Continue → is the gold one; Add is outlined (gold edge only) */
 .ch .contbtn.btn.primary{background:var(--brass);border-color:var(--brass);color:var(--bg)}
-.ch .contbtn.btn.primary:hover{filter:brightness(1.08);border-color:var(--brass)}
 .addrow .btn.primary{background:transparent;color:var(--ink);border:1.5px solid var(--brass)}
 .addrow .btn.primary:hover{background:color-mix(in srgb,var(--brass) 14%,transparent);border-color:var(--brass);filter:none}
 
 /* ── Readable sizes on the signed-in pages and sign-in (phone and desktop) ─────────────────────────────── */
-/* overrides the body:not(.front) main sizes from "Account page" and the sizes in earlier blocks */
-#main{font-size:1.08rem}
+/* after the body:not(.front) main sizes of the Account page block on purpose: these win */
 #main .card .small,#main .card p.small,#main .secrow .muted,#main .card .muted{font-size:1rem;line-height:1.5}
-#main .card h2{font-size:1.4rem}
 #main .authlbl,#main .secrow b{font-size:1.05rem}
-#main .btn{font-size:1.02rem}
 #main .btn.small{font-size:.95rem}
-#main input,#main select{font-size:1.05rem}
-/* messages: the pop-up and the ones under password boxes */
-body > #msg{font-size:1.02rem;line-height:1.45}
-.pwerr{font-size:1.02rem;line-height:1.45}
 .pwnote{margin:12px 0 8px;line-height:1.5}
-#firstcode .codein{max-width:14rem}
-/* Sign-in & security rows: text left, buttons right; the rows stack on phones (overrides the 520px rule above) */
-.sec .secrow > .secbtns{display:flex;gap:8px;flex-wrap:nowrap;align-items:center}
 @media (max-width:560px){ .secrow{flex-direction:column;align-items:stretch;gap:10px} .secrow .btn,.secrow .secbtns{align-self:flex-start} }
 /* "Forgot your password?" next to Roll in */
 .pwgorow{align-items:center;gap:14px}
@@ -721,51 +688,22 @@ body > #msg{font-size:1.02rem;line-height:1.45}
 .askcard b{font-family:var(--f-display);font-size:1.3rem}
 .askcard span{color:var(--muted);line-height:1.5}
 .askcard .row{gap:10px;margin-top:8px;justify-content:center}
-/* ── Phones: a character row in two lines ──────────────────────────────────────────────────────────────── */
-/* ☆ name … ⋯, then Verify, who can see it and Continue →, instead of four lines. Replaces the base 520px
-   wrap rule for .ch. Some grid placements are set twice; the later one wins. */
+
+/* ── Phones: a character row in two lines, How it works steps ──────────────────────────────────────────── */
+/* ☆ name … ⋯, then Verify, who can see it and Continue →, instead of four lines. Continue → spans columns
+   3–4 so the narrow ⋯ alone sizes column 4 and the name's column keeps its width (Verify and who-can-see
+   then share columns 1–2) */
 @media (max-width:560px){
-  .ch{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;column-gap:8px;row-gap:10px}
-  .ch > .chstar{grid-column:1;grid-row:1}
-  .ch > .open{grid-column:2;grid-row:1;flex-basis:auto}
-  .ch > .chmore{grid-column:3;grid-row:1}
-  .ch > .contbtn{grid-column:4;grid-row:2;padding:8px 12px}
-  .ch > .contbtn .d20i{display:none}
-  .chctl select{padding-left:12px;padding-right:30px}
-  .ch > .chctl{grid-column:1/4;grid-row:2;width:auto;justify-content:flex-start;flex-wrap:nowrap;min-width:0}
-  .ch > .open{grid-column:2/4}
-  .ch > .chmore{grid-column:4;justify-self:end}
-  .ch > .chctl:empty{display:none}
+  .ch > .contbtn{grid-row:2;padding:8px 12px;grid-column:3/5;justify-self:end}
   .ch > .small.muted{grid-column:1/-1}
-  .chctl select{flex:1 1 auto;min-width:0;max-width:none}
-  /* with the portrait in the link, Continue → spans columns 3–4 so the narrow ⋯ alone sizes column 4 and the
-     name's column keeps its width (Verify and who-can-see then share columns 1–2) */
-  .ch > .contbtn{grid-column:3/5;justify-self:end}
-  .ch > .chctl{grid-column:1/3}
-  /* Sign-in & security: Change and Remove side by side */
-  .sec .secrow > .secbtns{display:flex;flex-direction:row-reverse;justify-content:flex-end;flex-wrap:nowrap;align-self:stretch;width:auto}
   .secrow .secbtns > .btn{align-self:auto}
 }
 /* Front page "How it works", phones: the Roman numeral sits in line with the heading and everything below it
    (bullets, the link box, notes) runs the full width of the box instead of hanging under an empty column */
 @media (max-width:560px){
   .steps > li{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:baseline;padding:16px}
-  .steps > li > .num{min-width:0;text-align:left;grid-row:1}
-  .steps > li > div{display:contents}
-  .steps > li > div > h3{grid-column:2;grid-row:1;margin:0}
-  .steps > li > div > :not(h3){grid-column:1/-1}
   .steps > li > div > :nth-child(2){margin-top:10px}
-  .steps .substeps{padding-left:1.1em;margin:4px 0 8px}
-  .steps .ql-step{margin:8px 0}
 }
-/* Account → Theme tiles: the same look-coloured tiles as the sheet menu (src/app.css) */
-.looks .skinsw{width:40px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--sd) 0 64%,var(--sl) 64%)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-.looks .skinsw .skini{background:none!important;position:absolute;left:5px;top:5px;color:var(--sa);font-size:17px;line-height:1;--ia:var(--sa);--iao:.28;width:auto;height:auto;border-radius:0;box-shadow:none;right:auto;bottom:auto}
-.looks .skinsw > i{position:absolute;width:7px;height:7px;border-radius:50%;right:4px;bottom:11px;background:var(--ss);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
-.looks .skinsw > i + i{right:12px;bottom:4px;background:var(--sh)}
-/* theme picker: rows of four on wider screens (8 looks = two even rows) */
-@media (min-width:640px){ .looks .skingrid{grid-template-columns:repeat(4,minmax(0,1fr))} }
 /* secondary buttons next to a primary one (Copy link beside Share invite, and the like): an accent border so
    they read as buttons on every look */
 .saverow .btn:not(.primary):not(.danger){border:1.5px solid color-mix(in srgb,var(--brass) 70%,transparent)}
-@media (hover:hover) and (pointer:fine){ .saverow .btn:not(.primary):not(.danger):hover{border-color:var(--brass)} }
