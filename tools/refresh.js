@@ -1,7 +1,7 @@
 // Refreshes a claude.ai sheet's data from D&D Beyond without resetting its tracker. Fetches the raw JSON into
 // data/<name>.json, builds, opens the built sheet in headless Chromium so the engine compacts it, and writes the
 // compact DATA back with the old syncedAt (the play state is keyed to it). Builds again at the end.
-// usage: node tools/refresh.js <data name> <out html> <ddb id>   e.g. node tools/refresh.js tester apptester.html 172559988
+// usage: node tools/refresh.js <data name> <out html> <ddb id>   e.g. node tools/refresh.js tester2 apptester2.html <ddb id>
 // Needs curl, playwright and Chromium ($CHROMIUM, default /opt/pw-browsers/chromium). The character must be public on D&D Beyond.
 // If the page throws or yields no character, the old data file is put back.
 const {chromium}=require('playwright'); const fs=require('fs'), {execSync}=require('child_process');

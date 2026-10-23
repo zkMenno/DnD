@@ -1,6 +1,6 @@
 // The hit → damage flow and its extras: Sneak Attack / Menacing / Precision (the Rogue / Fighter fixture), Rage /
 // Smite / Colossus Slayer / Frenzy, Flurry, Lay on Hands, no spells while raging, magic arrows (AppTester-02),
-// damage-type tooltip over the roll sheet.
+// damage-type tooltip over the roll sheet (the Sorcerer / Warlock / Bard fixture).
 // Run: node tools/test/combat.js (after node tools/build.js), or as part of bash tools/test.sh sheets. Uses the built
 // claude.ai sheets in dist/claude through lib.js; prints PASS/FAIL per check and exits non-zero on a failure.
 // Each part runs at phone (390 px) and desktop (1400 px) width. Dice are random, so checks compare totals with
@@ -114,13 +114,14 @@ withBrowser(async browser => {
     check(at+'+2 arrows: +7 damage', await p.evaluate(() => cur.dmg.flat === 7));
     check(at+'AppTester-02: no page errors', !p.errs.length, p.errs); await p.close2();
 
-    // ── AppTester-01: damage-type tooltip ──────────────────────────────────────────────────────────────────
-    // The damage-type tooltip opens on top of the roll sheet, not behind it (AppTester-01, a spell attack).
-    p = await openSheet(browser, 'tester', width);
+    // ── Kestra Galeborn: damage-type tooltip ──────────────────────────────────────────────────────────────────
+    // The damage-type tooltip opens on top of the roll sheet, not behind it (a spell attack; Kestra is the
+    // sorc-warlock-bard fixture sheet).
+    p = await openSheet(browser, 'sorc-warlock-bard', width);
     await p.evaluate(() => { ui.mode = 'norm'; castSpell('Shocking Grasp'); }); await p.waitForTimeout(500);
     for (let i = 0; i < 4; i++) { const nx = await p.$('#dock [data-act="rolldmg"], #dock .atkopt.norm'); if (!nx) break; await nx.click(); await wait(p); }
     await p.click('#dock .term.dt'); await p.waitForTimeout(400);
     check(at+'Damage-type tooltip opens on top of the roll sheet', await p.evaluate(() => { const b = document.querySelector('#bubble'); if (!b) return false; const r = b.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2); return !!(e && e.closest('#bubble')); }));
-    check(at+'AppTester-01: no page errors', !p.errs.length, p.errs); await p.close2();
+    check(at+'Kestra Galeborn: no page errors', !p.errs.length, p.errs); await p.close2();
   }
 });
