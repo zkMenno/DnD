@@ -1730,3 +1730,19 @@ body:has(#menubox:not([hidden])) #dock,body:has(#restbox:not([hidden])) #dock{vi
 .skinsw > i{position:absolute;width:7px;height:7px;border-radius:50%;right:4px;bottom:11px;background:var(--ss);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 .skinsw > i + i{right:12px;bottom:4px;background:var(--sh)}
 .skinsw > span:not(.skini){display:none}
+
+/* ── Dark surfaces: links, hover and focus ─────────────────────────────────────────────────────────────────
+   The roll sheet and tooltips are drawn in the page's ink colour, so the page's link colour (--sea) sits on a
+   surface of almost the same darkness in light looks (and the same lightness in dark ones). On these surfaces,
+   --on-ink-link is the link colour pulled most of the way towards the surface's own text colour. */
+.roll,.bubble{--on-ink-link:color-mix(in srgb,var(--sea) 34%,var(--bg))}
+.roll .term,.bubble .term{text-decoration-color:color-mix(in srgb,var(--on-ink-link) 75%,transparent)}
+.roll .term:hover,.roll .term[aria-expanded="true"],.bubble .term:hover,.bubble .term[aria-expanded="true"]{color:var(--on-ink-link);text-decoration-color:var(--on-ink-link)}
+.roll :focus-visible,.bubble :focus-visible{outline-color:var(--on-ink-link)!important}
+
+/* ── Press beats hover ──────────────────────────────────────────────────────────────────────────────────────
+   With a mouse, the hover lift (translateY) used to win over the press, so a click on Done or Reroll showed
+   nothing. The press look comes last and is instant on the way in; it eases back out on release. */
+button.btn:not(:disabled):is(:active,.pressing),.restopt:is(:active,.pressing),.atkopt:is(:active,.pressing),.menulink:is(:active,.pressing),.dsopt:is(:active,.pressing){transform:scale(.95);transition-duration:0s;box-shadow:inset 0 0 0 999px rgba(0,0,0,.16)}
+:is(#dock,body) .roll button.btn:not(:disabled):is(:active,.pressing){transform:scale(.94);filter:brightness(.88)}
+@media (prefers-reduced-motion:reduce){ button.btn:not(:disabled):is(:active,.pressing),.restopt:is(:active,.pressing),.atkopt:is(:active,.pressing),.menulink:is(:active,.pressing),.dsopt:is(:active,.pressing){transform:none} }
